@@ -1,0 +1,88 @@
+site:
+  title: "SecPath Radar"
+  tagline: "رادار روزانه امنیت سایبری، CVEها و تهدیدهای مهم"
+  domain: "radar.secpath.space"
+
+fetch:
+  max_items_per_source: 12
+  max_total_items: 40
+  sleep_ms_between_sources: 900
+  user_agent: "SecPath RadarLocal/0.3 (+https://localhost)"
+
+cve:
+  max_cves: 12
+  lookback_days: 2
+  sleep_ms_between_sources: 1300
+  nvd_url: "https://services.nvd.nist.gov/rest/json/cves/2.0"
+  kev_url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+  epss_url: "https://api.first.org/data/v1/epss"
+  include_epss: true
+
+filters:
+  iran_keywords:
+    - iran
+    - iranian
+    - tehran
+    - .ir
+    - irancell
+    - hamrah aval
+    - shaparak
+    - shetab
+    - apt34
+    - oilrig
+    - charming kitten
+    - muddywater
+    - ایران
+    - ایرانی
+    - تهران
+    - ایرانسل
+    - همراه اول
+    - شاپرک
+    - شتاب
+    - بانک ملی
+    - بانک ملت
+  high_keywords:
+    - zero-day
+    - zeroday
+    - actively exploited
+    - exploited in the wild
+    - ransomware
+    - data breach
+    - breach
+    - critical
+    - vulnerability
+    - cve-
+    - exploit
+    - malware
+    - apt
+    - fortinet
+    - cisco
+    - microsoft
+    - exchange
+    - vpn
+    - firewall
+    - linux
+    - openssh
+    - wordpress
+    - kubernetes
+    - docker
+  low_keywords:
+    - sponsored
+    - webinar
+    - podcast
+    - opinion
+
+limits:
+  iran_radar: 5
+  global_news: 7
+  cves: 8
+
+sources:
+  - name: "CISA Advisories"
+    url: "https://www.cisa.gov/cybersecurity-advisories/all.xml"
+  - name: "BleepingComputer"
+    url: "https://www.bleepingcomputer.com/feed/"
+  - name: "The Hacker News"
+    url: "https://thehackernews.com/feeds/posts/default"
+  - name: "KrebsOnSecurity"
+    url: "https://krebsonsecurity.com/feed/"

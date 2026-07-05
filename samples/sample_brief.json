@@ -1,0 +1,107 @@
+{
+  "site_title": "SecPath Radar",
+  "date_fa": "۱۵ تیر ۱۴۰۵",
+  "date_en": "6 July 2026",
+  "risk_level": "High",
+  "generated_at": "2026-07-06 08:00",
+  "stats": {
+    "total_items": 31,
+    "iran_items": 3,
+    "global_news": 6,
+    "cves": 8,
+    "critical_cves": 3,
+    "kev": 1,
+    "tools": 2
+  },
+  "priority_alert": {
+    "title": "افزایش سوءاستفاده فعال از یک آسیب‌پذیری در تجهیزات مرزی",
+    "summary": "چند منبع امنیتی گزارش کرده‌اند که تجهیزات اینترنت‌-facing در چند سازمان هدف اسکن و بهره‌برداری قرار گرفته‌اند. اولویت امروز: بررسی exposure و اعمال patch یا mitigation.",
+    "source": "Sample Brief",
+    "url": "#",
+    "risk_score": 9,
+    "tags": ["Active Exploit", "Edge Device", "Patch Now"]
+  },
+  "iran_radar": [
+    {
+      "title": "افزایش تلاش‌های فیشینگ با تمرکز روی کاربران فارسی‌زبان",
+      "summary": "چند دامنه تازه‌ثبت‌شده با ظاهر مشابه سرویس‌های بانکی و پرداخت مشاهده شده‌اند. پیشنهاد: مانیتورینگ دامنه‌های مشابه برند و آموزش سریع کاربران.",
+      "source": "Sample OSINT",
+      "url": "#",
+      "risk_score": 6,
+      "iran_context": "domestic",
+      "tags": ["Phishing", "Iran", "Brand Abuse"]
+    },
+    {
+      "title": "اشاره به یک گروه تهدید مرتبط با ایران در گزارش جهانی",
+      "summary": "گزارش نمونه، یک کمپین جاسوسی سایبری را بررسی کرده که در آن نام یک actor مرتبط با ایران آمده است. این مورد به معنی attribution قطعی جدید نیست.",
+      "source": "Sample Report",
+      "url": "#",
+      "risk_score": 5,
+      "iran_context": "threat_actor",
+      "tags": ["Threat Actor", "Mentioned"]
+    }
+  ],
+  "global_news": [
+    {
+      "title": "انتشار گزارش جدید درباره افزایش حملات زنجیره تأمین",
+      "summary": "گزارش نمونه نشان می‌دهد مهاجمان بیشتر به dependencyها، CI/CD و package registryها توجه دارند.",
+      "source": "Sample News",
+      "url": "#",
+      "risk_score": 7,
+      "tags": ["Supply Chain", "CI/CD"]
+    },
+    {
+      "title": "یک vendor امنیتی ابزار جدیدی برای تحلیل لاگ منتشر کرد",
+      "summary": "این ابزار نمونه به تیم‌های SOC کمک می‌کند رخدادهای مشکوک را سریع‌تر دسته‌بندی کنند.",
+      "source": "Sample Vendor",
+      "url": "#",
+      "risk_score": 4,
+      "tags": ["SOC", "Tooling"]
+    }
+  ],
+  "cves": [
+    {
+      "cve_id": "CVE-2026-0001",
+      "title": "نمونه آسیب‌پذیری اجرای کد از راه دور در محصول پرکاربرد",
+      "severity": "Critical",
+      "cvss": 9.8,
+      "epss": 0.72,
+      "kev": true,
+      "summary": "این نمونه برای تست UI است. در نسخه واقعی، داده از NVD، CISA KEV و EPSS می‌آید.",
+      "recommended_action": "دارایی‌های exposed را پیدا کن، patch را اولویت بده و لاگ‌ها را بررسی کن.",
+      "url": "#"
+    },
+    {
+      "cve_id": "CVE-2026-0002",
+      "title": "نمونه آسیب‌پذیری privilege escalation",
+      "severity": "High",
+      "cvss": 8.1,
+      "epss": 0.31,
+      "kev": false,
+      "summary": "آسیب‌پذیری نمونه با ریسک متوسط‌روبه‌بالا برای تست نمایش کارت CVE.",
+      "recommended_action": "patch window را برنامه‌ریزی کن و سیستم‌های حساس را زودتر به‌روزرسانی کن.",
+      "url": "#"
+    }
+  ],
+  "tools": [
+    {
+      "name": "Log Pattern Watch",
+      "summary": "ایده ابزار روز: یک rule ساده برای پیدا کردن spike در خطاهای auth و درخواست‌های غیرعادی.",
+      "url": "#",
+      "tags": ["Blue Team", "Detection"]
+    }
+  ],
+  "tip_of_the_day": {
+    "title": "SMB Signing را در ارزیابی داخلی چک کن",
+    "type": "Pentest / Defensive",
+    "body": "خاموش بودن SMB signing می‌تواند ریسک NTLM relay را بالا ببرد. در گزارش، هم finding را توضیح بده و هم مسیر hardening را پیشنهاد کن.",
+    "command": "Get-SmbServerConfiguration | Select EnableSecuritySignature, RequireSecuritySignature",
+    "takeaway": "نکته عملی: روی scope مجاز تست کن و برای production، enforce کردن signing را با تیم زیرساخت هماهنگ کن."
+  },
+  "action_items": [
+    "CVEهای Critical امروز را با asset inventory تطبیق بده.",
+    "اگر موردی در CISA KEV بود، patch یا mitigation را فوری‌تر بررسی کن.",
+    "خبرهای ایران را جداگانه برای دامنه‌ها، برندها و زیرساخت‌های مرتبط مرور کن.",
+    "لاگ‌های edge deviceها و VPNها را برای رفتار غیرعادی چک کن."
+  ]
+}

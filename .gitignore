@@ -1,0 +1,9 @@
+/target/
+/site/*
+!/site/CNAME
+data/latest_brief.json
+*.rej
+*.orig
+*.patch
+.env
+.DS_Store

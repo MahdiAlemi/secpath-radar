@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ brief.site_title }} — {{ brief.date_fa }}</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #111821;
+      --panel-2: #16202b;
+      --border: #263241;
+      --border-soft: rgba(148, 163, 184, .16);
+      --text: #d8dee9;
+      --muted: #8b949e;
+      --muted-2: #657080;
+      --blue: #58a6ff;
+      --green: #7ee787;
+      --yellow: #d29922;
+      --red: #ff7b72;
+      --purple: #bc8cff;
+      --radius: 18px;
+      --shadow: 0 20px 50px rgba(0, 0, 0, .25);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at 20% -10%, rgba(88, 166, 255, .16), transparent 32rem),
+        radial-gradient(circle at 100% 10%, rgba(188, 140, 255, .12), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.9;
+      padding: 28px 18px 48px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .shell { max-width: 980px; margin: 0 auto; }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(17, 24, 33, .92), rgba(22, 32, 43, .78));
+      border: 1px solid var(--border-soft);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      padding: 26px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset-inline-end: -80px;
+      top: -90px;
+      width: 230px;
+      height: 230px;
+      background: rgba(88, 166, 255, .12);
+      border-radius: 999px;
+      filter: blur(6px);
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #f0f6fc;
+      letter-spacing: -0.03em;
+    }
+
+    .brand span { color: var(--blue); }
+    .sub { color: var(--muted); font-size: .92rem; margin-top: 4px; }
+
+    .date-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      background: rgba(13, 17, 23, .72);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: .38rem .75rem;
+      color: var(--muted);
+      font-size: .8rem;
+      white-space: nowrap;
+    }
+
+    .risk-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .55rem;
+      margin-top: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      background: rgba(33, 38, 45, .78);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 999px;
+      padding: .26rem .65rem;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .chip.danger { color: var(--red); border-color: rgba(255, 123, 114, .35); background: rgba(255, 123, 114, .09); }
+    .chip.info { color: var(--blue); border-color: rgba(88, 166, 255, .35); background: rgba(88, 166, 255, .09); }
+    .chip.ok { color: var(--green); border-color: rgba(126, 231, 135, .35); background: rgba(126, 231, 135, .08); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin: 18px 0 22px;
+    }
+
+    .stat {
+      background: rgba(17, 24, 33, .78);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    .stat strong { display: block; font-size: 1.35rem; color: #f0f6fc; line-height: 1.2; }
+    .stat span { display: block; font-size: .74rem; color: var(--muted); margin-top: 4px; }
+
+    .section {
+      margin-top: 22px;
+      background: rgba(17, 24, 33, .58);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .section.iran {
+      background: linear-gradient(180deg, rgba(88,166,255,.08), rgba(17, 24, 33, .55));
+      border-color: rgba(88,166,255,.22);
+    }
+
+    .section.tip {
+      background: linear-gradient(135deg, rgba(88,166,255,.10), rgba(188,140,255,.07));
+      border-color: rgba(88,166,255,.24);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      display: block;
+      color: var(--blue);
+      font-weight: 900;
+      font-size: .74rem;
+      letter-spacing: .04em;
+      margin-bottom: 2px;
+    }
+
+    .section h2 { color: #f0f6fc; font-size: 1.08rem; }
+    .count { color: var(--muted); border: 1px solid var(--border); background: #101721; border-radius: 999px; padding: .2rem .62rem; font-size: .75rem; white-space: nowrap; }
+
+    .priority {
+      border-color: rgba(255, 123, 114, .28);
+      background: linear-gradient(135deg, rgba(255,123,114,.10), rgba(17,24,33,.62));
+    }
+
+    .card {
+      background: rgba(13, 17, 23, .62);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .card:last-child { margin-bottom: 0; }
+    .card h3 { color: #f0f6fc; font-size: 1rem; line-height: 1.65; margin: 8px 0 4px; }
+    .card p { color: var(--muted); font-size: .9rem; }
+
+    .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+    .pill {
+      background: rgba(33, 38, 45, .78);
+      border: 1px solid var(--border);
+      color: #c9d1d9;
+      border-radius: 999px;
+      padding: .08rem .5rem;
+      font-size: .7rem;
+      font-weight: 700;
+    }
+
+    .risk-high { color: var(--red); border-color: rgba(255,123,114,.38); background: rgba(255,123,114,.10); }
+    .risk-medium { color: var(--yellow); border-color: rgba(210,153,34,.38); background: rgba(210,153,34,.10); }
+    .risk-low { color: var(--green); border-color: rgba(126,231,135,.32); background: rgba(126,231,135,.08); }
+
+    .source { display: inline-block; margin-top: 8px; font-size: .78rem; }
+
+    .cve-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .cve-id { direction: ltr; display: inline-block; color: var(--blue); font-weight: 900; }
+    .kv { color: var(--muted); font-size: .78rem; margin-top: 6px; }
+    .kv b { color: var(--text); }
+
+    .code {
+      direction: ltr;
+      text-align: left;
+      background: #080c11;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .8rem;
+      margin-top: 10px;
+      color: var(--green);
+      overflow-x: auto;
+      font-size: .85rem;
+      line-height: 1.7;
+    }
+
+    .actions { list-style: none; display: grid; gap: 8px; }
+    .actions li {
+      background: rgba(13, 17, 23, .58);
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      padding: .75rem .9rem;
+      color: var(--text);
+      font-size: .9rem;
+    }
+
+    footer {
+      color: var(--muted-2);
+      text-align: center;
+      padding: 26px 0 0;
+      font-size: .78rem;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 16px 12px 36px; }
+      .hero { padding: 20px; border-radius: 22px; }
+      .nav { flex-direction: column; align-items: flex-start; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .cve-grid { grid-template-columns: 1fr; }
+      .brand { font-size: 1.45rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="nav">
+        <div>
+          <div class="brand">🛡️ SecPath<span>Radar</span></div>
+          <div class="sub">خلاصه روزانه خبرها، CVEها، هشدارها و نکته‌های امنیتی</div>
+        </div>
+        <div class="date-badge">📅 {{ brief.date_fa }} | {{ brief.date_en }}</div>
+      </div>
+      <div class="risk-line">
+        <span class="chip danger">وضعیت امروز: {{ brief.risk_level }}</span>
+        <span class="chip info">Iran Radar: {{ brief.stats.iran_items }} مورد</span>
+        <span class="chip ok">Generated: {{ brief.generated_at }}</span>
+      </div>
+    </header>
+
+    <section class="stats" aria-label="آمار روز">
+      <div class="stat"><strong>{{ brief.stats.cves }}</strong><span>🧨 CVE</span></div>
+      <div class="stat"><strong>{{ brief.stats.critical_cves }}</strong><span>Critical</span></div>
+      <div class="stat"><strong>{{ brief.stats.kev }}</strong><span>🚨 KEV</span></div>
+      <div class="stat"><strong>{{ brief.stats.iran_items }}</strong><span>🇮🇷 ایران</span></div>
+      <div class="stat"><strong>{{ brief.stats.global_news }}</strong><span>🌍 خبر جهانی</span></div>
+      <div class="stat"><strong>{{ brief.stats.tools }}</strong><span>🛠️ ابزار</span></div>
+    </section>
+
+    <section class="section priority">
+      <div class="section-head">
+        <div><span class="eyebrow">🔥 PRIORITY ALERT</span><h2>مهم‌ترین هشدار امروز</h2></div>
+        <span class="count">Risk {{ brief.priority_alert.risk_score }}</span>
+      </div>
+      <article class="card">
+        <div class="meta">
+          {% for tag in brief.priority_alert.tags %}<span class="pill risk-high">{{ tag }}</span>{% endfor %}
+        </div>
+        <h3>{{ brief.priority_alert.title }}</h3>
+        <p>{{ brief.priority_alert.summary }}</p>
+        <a class="source" href="{{ brief.priority_alert.url }}">{{ brief.priority_alert.source }} →</a>
+      </article>
+    </section>
+
+    <section class="section iran">
+      <div class="section-head">
+        <div><span class="eyebrow">🇮🇷 IRAN CYBER RADAR</span><h2>خبرها و هشدارهای مرتبط با ایران</h2></div>
+        <span class="count">{{ brief.iran_radar | length }} مورد</span>
+      </div>
+      {% for item in brief.iran_radar %}
+      <article class="card">
+        <div class="meta">
+          <span class="pill risk-medium">{{ item.iran_context }}</span>
+          <span class="pill">Risk {{ item.risk_score }}</span>
+          {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
+        </div>
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.summary }}</p>
+        <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
+      </article>
+      {% endfor %}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">🌍 GLOBAL CYBER NEWS</span><h2>خبرهای مهم جهانی</h2></div>
+        <span class="count">{{ brief.global_news | length }} مورد</span>
+      </div>
+      {% for item in brief.global_news %}
+      <article class="card">
+        <div class="meta">
+          <span class="pill">Risk {{ item.risk_score }}</span>
+          {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
+        </div>
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.summary }}</p>
+        <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
+      </article>
+      {% endfor %}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">🧨 CVE WATCH</span><h2>CVEهای مهم امروز</h2></div>
+        <span class="count">{{ brief.cves | length }} مورد</span>
+      </div>
+      {% if brief.cves | length == 0 %}
+      <article class="card">
+        <h3>فعلاً CVE مهمی برای بازه امروز دریافت نشد</h3>
+        <p>اگر فقط <code>cargo run -- --fetch</code> اجرا کرده باشی، CVE engine فعال نشده. برای CVE واقعی از <code>cargo run -- --cves</code> یا <code>cargo run -- --full</code> استفاده کن.</p>
+      </article>
+      {% else %}
+      <div class="cve-grid">
+        {% for cve in brief.cves %}
+        <article class="card">
+          <div class="meta">
+            <span class="pill risk-high">{{ cve.severity }}</span>
+            {% if cve.kev %}<span class="pill risk-high">KEV</span>{% endif %}
+            <span class="pill">CVSS {{ cve.cvss }}</span>
+            <span class="pill">EPSS {{ (cve.epss * 100) | round }}%</span>
+          </div>
+          <h3><span class="cve-id">{{ cve.cve_id }}</span> — {{ cve.title }}</h3>
+          <p>{{ cve.summary }}</p>
+          <div class="kv">اقدام پیشنهادی: <b>{{ cve.recommended_action }}</b></div>
+          <a class="source" href="{{ cve.url }}">جزئیات →</a>
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">🛠️ TOOLS & TECHNIQUES</span><h2>ابزار و تکنیک قابل توجه</h2></div>
+        <span class="count">{{ brief.tools | length }} مورد</span>
+      </div>
+      {% for tool in brief.tools %}
+      <article class="card">
+        <div class="meta">{% for tag in tool.tags %}<span class="pill">{{ tag }}</span>{% endfor %}</div>
+        <h3>{{ tool.name }}</h3>
+        <p>{{ tool.summary }}</p>
+        <a class="source" href="{{ tool.url }}">مشاهده →</a>
+      </article>
+      {% endfor %}
+    </section>
+
+    <section class="section tip">
+      <div class="section-head">
+        <div><span class="eyebrow">🧠 TIP OF THE DAY</span><h2>{{ brief.tip_of_the_day.title }}</h2></div>
+        <span class="count">{{ brief.tip_of_the_day.type }}</span>
+      </div>
+      <p>{{ brief.tip_of_the_day.body }}</p>
+      <pre class="code"><code>{{ brief.tip_of_the_day.command }}</code></pre>
+      <p style="margin-top:10px;color:var(--muted);font-size:.88rem;">💡 {{ brief.tip_of_the_day.takeaway }}</p>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">✅ TODAY'S ACTION ITEMS</span><h2>چک‌لیست امروز</h2></div>
+        <span class="count">{{ brief.action_items | length }} کار</span>
+      </div>
+      <ul class="actions">
+        {% for item in brief.action_items %}<li>✅ {{ item }}</li>{% endfor %}
+      </ul>
+    </section>
+
+    <footer>
+      <p>🛡️ SecPath Radar — نسخه لوکال فاز ۳</p>
+      <p>در حالت --fetch خبرها، در حالت --cves آسیب‌پذیری‌ها، و در حالت --full هر دو ساخته می‌شوند؛ Gemini هنوز صدا زده نمی‌شود.</p>
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,17 @@
+- title: "SMB Signing را در ارزیابی داخلی چک کن"
+  type: "Pentest / Defensive"
+  body: "خاموش بودن SMB signing می‌تواند ریسک NTLM relay را بالا ببرد. در گزارش، هم finding را توضیح بده و هم مسیر hardening را پیشنهاد کن."
+  command: "Get-SmbServerConfiguration | Select EnableSecuritySignature, RequireSecuritySignature"
+  takeaway: "روی scope مجاز تست کن؛ برای production، enforce کردن signing را با تیم زیرساخت هماهنگ کن."
+
+- title: "Subdomain Takeover را در inventory جدی بگیر"
+  type: "Web Security"
+  body: "رکوردهای CNAME قدیمی که به سرویس حذف‌شده اشاره می‌کنند، می‌توانند ریسک takeover ایجاد کنند."
+  command: "subfinder -d example.com | httpx -status-code -title"
+  takeaway: "خروجی‌های مشکوک مثل 404 سرویس‌های cloud را دستی بررسی کن و فقط روی دامنه‌های مجاز تست انجام بده."
+
+- title: "MFA fatigue را فقط با MFA حل نکن"
+  type: "Blue Team"
+  body: "اگر push-based MFA داری، لاگ‌های تکرار prompt، geo غیرعادی و زمان‌های خارج از الگوی کاربر را مانیتور کن."
+  command: "Look for repeated MFA prompts + impossible travel + unfamiliar device"
+  takeaway: "برای حساب‌های حساس، number matching و conditional access را بررسی کن."
