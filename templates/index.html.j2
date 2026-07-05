@@ -41,6 +41,7 @@
       <div><span>CISA</span><b>{{ brief.stats.vulnrichment_hits }}</b><small>{{ brief.stats.vulnrichment_checked }} بررسی</small></div>
       <div><span>IOC</span><b>{{ brief.stats.iocs }}</b></div>
       <div><span>Botnet C2</span><b>{{ brief.stats.botnet_c2 }}</b><small>{{ brief.stats.malicious_tls }} TLS</small></div>
+      <div><span>GreyNoise</span><b>{{ brief.stats.greynoise_noise }}</b><small>{{ brief.stats.greynoise_malicious }} malicious</small></div>
       <div><span>زیرساخت</span><b>{{ brief.stats.infrastructure_hosts }}</b></div>
       <div><span>زنجیره تأمین</span><b>{{ brief.stats.supply_chain_advisories }}</b></div>
       <div><span>Ransomware</span><b>{{ brief.stats.ransomware_victims }}</b></div>
@@ -195,6 +196,26 @@
               <div class="row-main"><b>{{ host.ip }}</b><span>{{ host.source }}</span></div>
               <div class="meter"><span style="--bar: {{ host.bar_width }}%"></span></div>
               <div class="meta-row"><small>{{ host.port_count }} port</small><small>{{ host.vuln_count }} vuln</small><small>{{ host.reason }}</small></div>
+            </article>
+            {% endif %}{% endfor %}
+          </div>
+        </section>
+
+        <section id="greynoise-context" class="panel" aria-label="GreyNoise Context">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">GreyNoise</span><h2>context اسکنرها</h2></div>
+            <span class="count">{{ brief.greynoise_context.totals.noise }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.greynoise_context.summary_fa }}</p>
+          <div class="tiny-bars split-two">
+            {% for row in brief.greynoise_context.classification_chart %}{% if loop.index <= 4 %}<div class="risk-{% if row.name == 'malicious' %}high{% elif row.name == 'benign' %}low{% else %}watch{% endif %}"><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endif %}{% endfor %}
+          </div>
+          <div class="compact-list">
+            {% for row in brief.greynoise_context.contexts %}{% if loop.index <= 4 %}
+            <article class="row-card risk-{{ row.risk }}">
+              <div class="row-main"><b>{{ row.ip_safe }}</b><span>{{ row.classification }} · {% if row.noise %}noise{% elif row.riot %}riot{% else %}quiet{% endif %}</span></div>
+              <div class="meter"><span style="--bar: {{ row.bar_width }}%"></span></div>
+              <div class="meta-row"><small>{{ row.source }}</small><small>{{ row.name }}</small><small>{{ row.last_seen }}</small></div>
             </article>
             {% endif %}{% endfor %}
           </div>

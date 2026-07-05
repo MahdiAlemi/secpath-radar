@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.18 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.19 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -72,6 +72,11 @@ intel:
     feodo_ipblocklist_csv_url: "https://feodotracker.abuse.ch/downloads/ipblocklist.csv"
     sslbl_ja3_csv_url: "https://sslbl.abuse.ch/blacklist/ja3_fingerprints.csv"
     sslbl_cert_csv_url: "https://sslbl.abuse.ch/blacklist/sslblacklist.csv"
+  greynoise:
+    enabled: true
+    max_lookups: 8
+    community_api_url: "https://api.greynoise.io/v3/community"
+    api_key_env: "GREYNOISE_API_KEY"
 
 cache:
   enabled: true

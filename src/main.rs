@@ -131,6 +131,8 @@ struct IntelConfig {
     ransomware: RansomwareConfig,
     #[serde(default)]
     botnet_c2: BotnetC2Config,
+    #[serde(default)]
+    greynoise: GreyNoiseConfig,
 }
 
 impl Default for IntelConfig {
@@ -146,6 +148,7 @@ impl Default for IntelConfig {
             supply_chain: SupplyChainConfig::default(),
             ransomware: RansomwareConfig::default(),
             botnet_c2: BotnetC2Config::default(),
+            greynoise: GreyNoiseConfig::default(),
         }
     }
 }
@@ -441,6 +444,45 @@ fn default_sslbl_ja3_url() -> String {
 
 fn default_sslbl_cert_url() -> String {
     "https://sslbl.abuse.ch/blacklist/sslblacklist.csv".to_string()
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct GreyNoiseConfig {
+    #[serde(default = "default_greynoise_enabled")]
+    enabled: bool,
+    #[serde(default = "default_greynoise_max_lookups")]
+    max_lookups: usize,
+    #[serde(default = "default_greynoise_community_api_url")]
+    community_api_url: String,
+    #[serde(default = "default_greynoise_api_key_env")]
+    api_key_env: String,
+}
+
+impl Default for GreyNoiseConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_greynoise_enabled(),
+            max_lookups: default_greynoise_max_lookups(),
+            community_api_url: default_greynoise_community_api_url(),
+            api_key_env: default_greynoise_api_key_env(),
+        }
+    }
+}
+
+fn default_greynoise_enabled() -> bool {
+    true
+}
+
+fn default_greynoise_max_lookups() -> usize {
+    8
+}
+
+fn default_greynoise_community_api_url() -> String {
+    "https://api.greynoise.io/v3/community".to_string()
+}
+
+fn default_greynoise_api_key_env() -> String {
+    "GREYNOISE_API_KEY".to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -778,6 +820,31 @@ struct TlsThreatIndicator {
     note_fa: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct GreyNoiseContextRow {
+    rank: usize,
+    ip: String,
+    ip_safe: String,
+    source: String,
+    reason: String,
+    classification: String,
+    noise: bool,
+    riot: bool,
+    name: String,
+    last_seen: String,
+    risk: String,
+    score: usize,
+    bar_width: usize,
+    note_fa: String,
+}
+
+#[derive(Debug, Clone)]
+struct GreyNoiseCandidate {
+    ip: String,
+    source: String,
+    reason: String,
+}
+
 fn parse_args() -> Result<Args> {
     let mut args = Args::default();
     let mut iter = env::args().skip(1);
@@ -931,6 +998,33 @@ fn main() -> Result<()> {
         brief["stats"]["botnet_c2"] = json!(botnet_total);
         brief["stats"]["malicious_tls"] = json!(malicious_tls_total);
         brief["botnet_c2_pulse"] = botnet_c2_pulse;
+
+        let greynoise_context = fetch_greynoise_context_or_fallback(
+            &config,
+            &brief["infrastructure_radar"],
+            &brief["botnet_c2_pulse"],
+            args.offline,
+            args.refresh_cache,
+        );
+        let greynoise_noise = greynoise_context
+            .get("totals")
+            .and_then(|totals| totals.get("noise"))
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0);
+        let greynoise_malicious = greynoise_context
+            .get("totals")
+            .and_then(|totals| totals.get("malicious"))
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0);
+        let greynoise_riot = greynoise_context
+            .get("totals")
+            .and_then(|totals| totals.get("riot"))
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["greynoise_noise"] = json!(greynoise_noise);
+        brief["stats"]["greynoise_malicious"] = json!(greynoise_malicious);
+        brief["stats"]["greynoise_riot"] = json!(greynoise_riot);
+        brief["greynoise_context"] = greynoise_context;
 
         let executive_snapshot = build_executive_snapshot(&brief);
         brief["executive_snapshot"] = executive_snapshot;
@@ -3574,6 +3668,450 @@ fn count_chart_names(names: &[String], limit: usize) -> Vec<Value> {
         .collect()
 }
 
+fn fetch_greynoise_context_or_fallback(
+    config: &Config,
+    infrastructure_radar: &Value,
+    botnet_c2_pulse: &Value,
+    offline: bool,
+    refresh_cache: bool,
+) -> Value {
+    if !config.intel.enabled || !config.intel.greynoise.enabled {
+        return empty_greynoise_context("disabled");
+    }
+
+    match fetch_greynoise_context(
+        config,
+        infrastructure_radar,
+        botnet_c2_pulse,
+        offline,
+        refresh_cache,
+    ) {
+        Ok(value) => value,
+        Err(err) => {
+            eprintln!("⚠️  GreyNoise Context skipped: {err:#}");
+            let mut fallback = empty_greynoise_context("error");
+            fallback["error"] = json!(err.to_string());
+            fallback
+        }
+    }
+}
+
+fn fetch_greynoise_context(
+    config: &Config,
+    infrastructure_radar: &Value,
+    botnet_c2_pulse: &Value,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Value> {
+    let cfg = &config.intel.greynoise;
+    eprintln!("→ fetching GreyNoise Infrastructure Context");
+
+    if offline {
+        if let Some(value) = read_greynoise_context_aggregate(config)? {
+            eprintln!("  ↳ cache hit: GreyNoise Context aggregate");
+            return Ok(value);
+        }
+    }
+
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(18))
+        .build()
+        .context("failed to build HTTP client for GreyNoise Context")?;
+
+    let candidates =
+        greynoise_candidates_from_signals(infrastructure_radar, botnet_c2_pulse, cfg.max_lookups);
+    if candidates.is_empty() {
+        return Ok(json!({
+            "enabled": true,
+            "ok": true,
+            "provider": "GreyNoise Community API",
+            "source_url": cfg.community_api_url.clone(),
+            "level": "Low",
+            "summary_fa": "در این اجرا IP مناسبی برای context گیری GreyNoise انتخاب نشد.",
+            "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
+            "passive_lookup": true,
+            "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0},
+            "contexts": [],
+            "classification_chart": [],
+            "noise_chart": []
+        }));
+    }
+
+    let mut rows = Vec::new();
+    let mut no_data = 0usize;
+    let mut errors = 0usize;
+    for (idx, candidate) in candidates.iter().enumerate() {
+        if idx > 0 {
+            thread::sleep(Duration::from_millis(config.intel.sleep_ms_between_sources));
+        }
+        match fetch_greynoise_candidate(&client, config, candidate, offline, refresh_cache) {
+            Ok(row) => {
+                if row.classification == "unknown" && !row.noise && !row.riot {
+                    no_data += 1;
+                }
+                rows.push(row);
+            }
+            Err(err) => {
+                let text = err.to_string();
+                if text.contains("429") || text.to_lowercase().contains("rate") {
+                    eprintln!("  ↳ GreyNoise rate limit reached after {} lookup(s); keeping collected context", rows.len());
+                    errors += 1;
+                    break;
+                }
+                if !offline {
+                    eprintln!("⚠️  skipped GreyNoise {}: {err:#}", candidate.ip);
+                }
+                errors += 1;
+            }
+        }
+    }
+
+    finalize_greynoise_rows(&mut rows);
+    let noise_count = rows.iter().filter(|row| row.noise).count();
+    let riot_count = rows.iter().filter(|row| row.riot).count();
+    let malicious_count = rows
+        .iter()
+        .filter(|row| row.classification == "malicious")
+        .count();
+    let checked = rows.len();
+
+    let level = if malicious_count > 0 || noise_count >= 4 {
+        "High"
+    } else if noise_count >= 1 || checked >= 4 {
+        "Medium"
+    } else {
+        "Low"
+    };
+
+    let summary_fa = match level {
+        "High" => "برخی IPهای زیرساختی یا C2 در GreyNoise به‌عنوان noise یا malicious دیده شده‌اند؛ این فقط context دفاعی است.",
+        "Medium" => "چند IP در GreyNoise context قابل مشاهده دارند؛ برای کاهش false positive و اولویت‌بندی مناسب است.",
+        _ => "GreyNoise برای IPهای انتخاب‌شده سیگنال پرریسک برجسته‌ای نشان نمی‌دهد.",
+    };
+
+    let value = json!({
+        "enabled": true,
+        "ok": errors == 0 || !rows.is_empty(),
+        "provider": "GreyNoise Community API",
+        "source_url": cfg.community_api_url.clone(),
+        "level": level,
+        "summary_fa": summary_fa,
+        "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
+        "passive_lookup": true,
+        "rate_limited_possible": true,
+        "cached": false,
+        "offline_cache": false,
+        "totals": {
+            "checked": checked,
+            "noise": noise_count,
+            "malicious": malicious_count,
+            "riot": riot_count,
+            "no_data": no_data,
+            "errors": errors
+        },
+        "contexts": rows,
+        "classification_chart": greynoise_classification_chart(&rows),
+        "noise_chart": greynoise_noise_chart(&rows)
+    });
+
+    if checked > 0 || errors == 0 {
+        if let Err(err) = write_greynoise_context_aggregate(config, &value) {
+            eprintln!("⚠️  failed to write GreyNoise aggregate cache: {err:#}");
+        }
+    }
+
+    Ok(value)
+}
+
+fn greynoise_candidates_from_signals(
+    infrastructure_radar: &Value,
+    botnet_c2_pulse: &Value,
+    limit: usize,
+) -> Vec<GreyNoiseCandidate> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+
+    if let Some(hosts) = infrastructure_radar
+        .get("hosts")
+        .and_then(|value| value.as_array())
+    {
+        for host in hosts {
+            let Some(ip) = host.get("ip").and_then(|value| value.as_str()) else {
+                continue;
+            };
+            if !looks_like_ipv4(ip) || !seen.insert(ip.to_string()) {
+                continue;
+            }
+            out.push(GreyNoiseCandidate {
+                ip: ip.to_string(),
+                source: host
+                    .get("source")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("Infrastructure")
+                    .to_string(),
+                reason: host
+                    .get("reason")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("suspicious infrastructure")
+                    .to_string(),
+            });
+            if out.len() >= limit {
+                return out;
+            }
+        }
+    }
+
+    if let Some(items) = botnet_c2_pulse.get("c2").and_then(|value| value.as_array()) {
+        for item in items {
+            let Some(ip) = item.get("ip").and_then(|value| value.as_str()) else {
+                continue;
+            };
+            if !looks_like_ipv4(ip) || !seen.insert(ip.to_string()) {
+                continue;
+            }
+            out.push(GreyNoiseCandidate {
+                ip: ip.to_string(),
+                source: item
+                    .get("source")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("Botnet C2")
+                    .to_string(),
+                reason: item
+                    .get("malware")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("botnet c2")
+                    .to_string(),
+            });
+            if out.len() >= limit {
+                return out;
+            }
+        }
+    }
+
+    out
+}
+
+fn fetch_greynoise_candidate(
+    client: &Client,
+    config: &Config,
+    candidate: &GreyNoiseCandidate,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<GreyNoiseContextRow> {
+    let bytes =
+        get_greynoise_context_cached(client, config, &candidate.ip, offline, refresh_cache)?;
+    let value: Value = serde_json::from_slice(&bytes)
+        .with_context(|| format!("GreyNoise response was not JSON for {}", candidate.ip))?;
+
+    let noise = value
+        .get("noise")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+    let riot = value
+        .get("riot")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+    let mut classification = value
+        .get("classification")
+        .and_then(|value| value.as_str())
+        .unwrap_or(if riot { "benign" } else { "unknown" })
+        .to_lowercase();
+    if classification.trim().is_empty() {
+        classification = "unknown".to_string();
+    }
+    let name = value
+        .get("name")
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("unknown")
+        .to_string();
+    let last_seen = value
+        .get("last_seen")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let (risk, score) = greynoise_risk_score(&classification, noise, riot);
+    let note_fa = greynoise_note(&classification, noise, riot, &name);
+
+    Ok(GreyNoiseContextRow {
+        rank: 0,
+        ip: candidate.ip.clone(),
+        ip_safe: defang_indicator(&candidate.ip),
+        source: candidate.source.clone(),
+        reason: candidate.reason.clone(),
+        classification,
+        noise,
+        riot,
+        name: truncate_chars(&name, 48),
+        last_seen,
+        risk: risk.to_string(),
+        score,
+        bar_width: score.clamp(12, 100),
+        note_fa,
+    })
+}
+
+fn greynoise_context_aggregate_cache_key() -> String {
+    cache_key("greynoise://community-context/aggregate-v1", &[])
+}
+
+fn read_greynoise_context_aggregate(config: &Config) -> Result<Option<Value>> {
+    let cache_key = greynoise_context_aggregate_cache_key();
+    let ttl_minutes = config.intel.refresh_hours.saturating_mul(60).max(60);
+    let Some(bytes) = read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
+    else {
+        return Ok(None);
+    };
+    let mut value: Value = serde_json::from_slice(&bytes)
+        .context("cached GreyNoise Context aggregate was not valid JSON")?;
+    value["cached"] = json!(true);
+    value["offline_cache"] = json!(true);
+    Ok(Some(value))
+}
+
+fn write_greynoise_context_aggregate(config: &Config, value: &Value) -> Result<()> {
+    let cache_key = greynoise_context_aggregate_cache_key();
+    let bytes =
+        serde_json::to_vec(value).context("failed to serialize GreyNoise Context aggregate")?;
+    write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)
+}
+
+fn get_greynoise_context_cached(
+    client: &Client,
+    config: &Config,
+    ip: &str,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Vec<u8>> {
+    let cfg = &config.intel.greynoise;
+    let url = format!("{}/{}", cfg.community_api_url.trim_end_matches('/'), ip);
+    let label = format!("GreyNoise Community {}", ip);
+    let cache_key = cache_key(&url, &[]);
+    let ttl_minutes = config.intel.refresh_hours.saturating_mul(60).max(60);
+
+    if !refresh_cache {
+        if let Some(bytes) =
+            read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, false)?
+        {
+            eprintln!("  ↳ cache hit: {label}");
+            return Ok(bytes);
+        }
+    }
+
+    if offline {
+        return read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
+            .with_context(|| format!("offline mode has no cached response for {label}"));
+    }
+
+    let mut request = client.get(&url);
+    if let Ok(api_key) = env::var(&cfg.api_key_env) {
+        if !api_key.trim().is_empty() {
+            request = request.header("key", api_key.trim().to_string());
+        }
+    }
+
+    let response = request
+        .send()
+        .with_context(|| format!("request failed for {label}: {url}"))?;
+    let status = response.status().as_u16();
+    let bytes = response
+        .bytes()
+        .with_context(|| format!("failed to read response body for {label}"))?
+        .to_vec();
+
+    if status == 200 || status == 404 {
+        write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)?;
+        Ok(bytes)
+    } else if let Some(cached) =
+        read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
+    {
+        eprintln!("⚠️  using stale intel cache for {label}: HTTP {status}");
+        Ok(cached)
+    } else {
+        anyhow::bail!("GreyNoise Community API returned HTTP {status} for {ip}");
+    }
+}
+
+fn finalize_greynoise_rows(rows: &mut [GreyNoiseContextRow]) {
+    rows.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.ip.cmp(&b.ip)));
+    let max_score = rows.iter().map(|row| row.score).max().unwrap_or(1).max(1);
+    for (idx, row) in rows.iter_mut().enumerate() {
+        row.rank = idx + 1;
+        row.ip_safe = defang_indicator(&row.ip);
+        row.bar_width =
+            (((row.score as f64 / max_score as f64) * 100.0).round() as usize).clamp(12, 100);
+    }
+}
+
+fn greynoise_risk_score(classification: &str, noise: bool, riot: bool) -> (&'static str, usize) {
+    if classification == "malicious" {
+        ("high", 92)
+    } else if noise {
+        ("medium", 68)
+    } else if riot || classification == "benign" {
+        ("low", 18)
+    } else {
+        ("watch", 32)
+    }
+}
+
+fn greynoise_note(classification: &str, noise: bool, riot: bool, name: &str) -> String {
+    if classification == "malicious" {
+        return "GreyNoise این IP را malicious طبقه‌بندی کرده؛ برای کاهش false positive و triage دفاعی استفاده شود.".to_string();
+    }
+    if noise {
+        return "این IP در GreyNoise به‌عنوان internet noise/scanner دیده شده؛ اولویت بررسی را با سایر سیگنال‌ها تطبیق بده.".to_string();
+    }
+    if riot {
+        return format!(
+            "این IP در RIOT/Business Services دیده شده و احتمالاً سرویس شناخته‌شده است: {}.",
+            truncate_chars(name, 36)
+        );
+    }
+    "GreyNoise برای این IP سیگنال scanning یا RIOT برجسته‌ای نشان نمی‌دهد.".to_string()
+}
+
+fn greynoise_classification_chart(rows: &[GreyNoiseContextRow]) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for row in rows {
+        *counts.entry(row.classification.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, 5)
+}
+
+fn greynoise_noise_chart(rows: &[GreyNoiseContextRow]) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for row in rows {
+        let key = if row.noise {
+            "noise"
+        } else if row.riot {
+            "riot"
+        } else {
+            "quiet"
+        };
+        *counts.entry(key.to_string()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, 4)
+}
+
+fn empty_greynoise_context(status: &str) -> Value {
+    json!({
+        "enabled": status != "disabled",
+        "ok": false,
+        "provider": "GreyNoise Community API",
+        "level": "Unknown",
+        "summary_fa": "داده GreyNoise Context در این اجرا در دسترس نبود.",
+        "last_updated": "",
+        "passive_lookup": true,
+        "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0},
+        "contexts": [],
+        "classification_chart": [],
+        "noise_chart": []
+    })
+}
+
 fn empty_botnet_c2_pulse(status: &str) -> Value {
     json!({
         "enabled": status != "disabled",
@@ -4407,6 +4945,9 @@ fn intel_source_count(config: &Config) -> usize {
     if config.intel.botnet_c2.enabled {
         count += 2;
     }
+    if config.intel.greynoise.enabled {
+        count += 1;
+    }
     count
 }
 
@@ -4481,6 +5022,9 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "vulnrichment_missing": vulnrichment_missing,
             "botnet_c2": 0,
             "malicious_tls": 0,
+            "greynoise_noise": 0,
+            "greynoise_malicious": 0,
+            "greynoise_riot": 0,
             "rss_sources": config.sources.len(),
             "intel_sources": intel_source_count(config)
         },
@@ -5070,6 +5614,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
     let iocs = stat_u64(brief, "iocs");
     let botnet_c2 = stat_u64(brief, "botnet_c2");
     let malicious_tls = stat_u64(brief, "malicious_tls");
+    let greynoise_noise = stat_u64(brief, "greynoise_noise");
+    let greynoise_malicious = stat_u64(brief, "greynoise_malicious");
     let infrastructure_hosts = stat_u64(brief, "infrastructure_hosts");
     let supply_advisories = stat_u64(brief, "supply_chain_advisories");
     let ransomware_victims = stat_u64(brief, "ransomware_victims");
@@ -5086,6 +5632,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         + iocs.min(60)
         + botnet_c2.min(25)
         + malicious_tls.min(20)
+        + greynoise_noise.min(20)
+        + greynoise_malicious * 12
         + infrastructure_hosts.min(25)
         + infra_high * 10
         + supply_critical * 12
@@ -5099,6 +5647,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
     let intel_score = (iocs.min(55)
         + botnet_c2.min(25)
         + malicious_tls.min(20)
+        + greynoise_noise.min(20)
+        + greynoise_malicious * 12
         + infrastructure_hosts.min(25)
         + infra_high * 10)
         .min(100)
@@ -5129,8 +5679,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         "bar_width": score.max(12),
         "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
         "summary_fa": format!(
-            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} C2 botnet، {} host مشکوک، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
-            total_items, cves, iocs, botnet_c2, infrastructure_hosts, supply_advisories, ransomware_victims
+            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} C2 botnet، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
+            total_items, cves, iocs, botnet_c2, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
         ),
         "risk_cards": [
             {
@@ -5142,10 +5692,10 @@ fn build_executive_snapshot(brief: &Value) -> Value {
             },
             {
                 "title": "IOC و زیرساخت مشکوک",
-                "metric": format!("{} IOC / {} C2 / {} host", iocs, botnet_c2, infrastructure_hosts),
+                "metric": format!("{} IOC / {} C2 / {} GN noise", iocs, botnet_c2, greynoise_noise),
                 "level": snapshot_level(intel_score),
                 "bar_width": intel_score,
-                "note_fa": if botnet_c2 > 0 { "سیگنال‌های C2 و زیرساخت برای correlation دفاعی کنار هم دیده می‌شوند." } else if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
+                "note_fa": if greynoise_malicious > 0 { "GreyNoise برای برخی IPها classification بدخواه داده و با C2/IOC باید correlation شود." } else if botnet_c2 > 0 { "سیگنال‌های C2 و زیرساخت برای correlation دفاعی کنار هم دیده می‌شوند." } else if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
             },
             {
                 "title": "Supply Chain و Ransomware",
@@ -5186,7 +5736,7 @@ fn build_executive_snapshot(brief: &Value) -> Value {
                 "note_fa": "هسته اولویت‌بندی CVE و exploitability."
             },
             {
-                "name": "DShield + abuse.ch + SSLBL + InternetDB",
+                "name": "DShield + abuse.ch + SSLBL + InternetDB + GreyNoise",
                 "count": impact_b,
                 "bar_width": relative_width(impact_b, impact_max),
                 "note_fa": "فشار حمله، IOC و زیرساخت قابل مشاهده."
@@ -5292,7 +5842,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.18-botnet-c2-pulse");
+    brief["version"] = json!("v0.4.19.1-greynoise-offline-cache");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -5331,6 +5881,12 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief.get("ransomware_pulse").is_none() {
         brief["ransomware_pulse"] = empty_ransomware_pulse("missing");
+    }
+    if brief.get("botnet_c2_pulse").is_none() {
+        brief["botnet_c2_pulse"] = empty_botnet_c2_pulse("missing");
+    }
+    if brief.get("greynoise_context").is_none() {
+        brief["greynoise_context"] = empty_greynoise_context("missing");
     }
     if brief.get("executive_snapshot").is_none() {
         brief["executive_snapshot"] = json!({});
@@ -5470,6 +6026,48 @@ fn apply_local_polish(brief: &mut Value) {
             .and_then(|value| value.as_u64())
             .unwrap_or(0);
         brief["stats"]["ransomware_victims"] = json!(ransomware_total);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("botnet_c2"))
+        .is_none()
+    {
+        let botnet_total = path_u64(brief, &["botnet_c2_pulse", "totals", "c2"]);
+        brief["stats"]["botnet_c2"] = json!(botnet_total);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("malicious_tls"))
+        .is_none()
+    {
+        let tls_total = path_u64(brief, &["botnet_c2_pulse", "totals", "tls"]);
+        brief["stats"]["malicious_tls"] = json!(tls_total);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("greynoise_noise"))
+        .is_none()
+    {
+        brief["stats"]["greynoise_noise"] =
+            json!(path_u64(brief, &["greynoise_context", "totals", "noise"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("greynoise_malicious"))
+        .is_none()
+    {
+        brief["stats"]["greynoise_malicious"] = json!(path_u64(
+            brief,
+            &["greynoise_context", "totals", "malicious"]
+        ));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("greynoise_riot"))
+        .is_none()
+    {
+        brief["stats"]["greynoise_riot"] =
+            json!(path_u64(brief, &["greynoise_context", "totals", "riot"]));
     }
 
     polish_priority(brief);
@@ -6008,6 +6606,16 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         .and_then(|v| v.get("ok"))
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    let botnet_ok = brief
+        .get("botnet_c2_pulse")
+        .and_then(|v| v.get("ok"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let greynoise_ok = brief
+        .get("greynoise_context")
+        .and_then(|v| v.get("ok"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
     if ai_enabled && ai_ok && ai_cache {
         notes.push(
@@ -6051,6 +6659,15 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         }
         if ransomware_ok {
             coverage.push_str(" Ransomware Pulse هم از Ransomware.live به صورت آماری و بدون لینک leak ساخته شده است.");
+        }
+        if botnet_ok {
+            coverage
+                .push_str(" Botnet C2 Pulse از Feodo و SSLBL به‌صورت metadata-only ساخته شده است.");
+        }
+        if greynoise_ok {
+            coverage.push_str(
+                " GreyNoise Context نیز برای IPهای منتخب به‌صورت passive lookup اضافه شده است.",
+            );
         }
         if failed_sources > 0 {
             coverage.push_str(&format!(

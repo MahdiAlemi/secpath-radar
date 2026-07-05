@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.18-botnet-c2-pulse",
+  "version": "v0.4.19.1-greynoise-offline-cache",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -13,7 +13,7 @@
     "critical_cves": 1,
     "kev": 0,
     "rss_sources": 18,
-    "intel_sources": 7,
+    "intel_sources": 10,
     "infrastructure_hosts": 0,
     "supply_chain_advisories": 0,
     "ransomware_victims": 0,
@@ -26,7 +26,10 @@
     "vulnrichment_checked": 1,
     "vulnrichment_missing": 0,
     "botnet_c2": 0,
-    "malicious_tls": 0
+    "malicious_tls": 0,
+    "greynoise_noise": 1,
+    "greynoise_malicious": 0,
+    "greynoise_riot": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -39,7 +42,7 @@
     "http_cache": true,
     "cache_ttl_minutes": 720,
     "ai_cache_dir": "data/cache/ai",
-    "intel_sources": 9,
+    "intel_sources": 10,
     "intel_cache_dir": "data/cache/intel",
     "failed_rss_sources": 0,
     "rss_failures": []
@@ -352,5 +355,55 @@
     "family_chart": [],
     "port_chart": [],
     "tls_chart": []
+  },
+  "greynoise_context": {
+    "enabled": true,
+    "ok": true,
+    "provider": "GreyNoise Community API",
+    "source_url": "https://api.greynoise.io/v3/community",
+    "level": "Medium",
+    "summary_fa": "GreyNoise برای چند IP منتخب context اسکنر/noise فراهم کرده است؛ این خروجی فقط passive lookup است.",
+    "last_updated": "2026-07-05T19:40:00Z",
+    "passive_lookup": true,
+    "totals": {
+      "checked": 1,
+      "noise": 1,
+      "malicious": 0,
+      "riot": 0,
+      "no_data": 0,
+      "errors": 0
+    },
+    "contexts": [
+      {
+        "rank": 1,
+        "ip": "196.251.121.142",
+        "ip_safe": "196[.]251[.]121[.]142",
+        "source": "URLhaus",
+        "reason": "botnet/infrastructure candidate",
+        "classification": "unknown",
+        "noise": true,
+        "riot": false,
+        "name": "unknown",
+        "last_seen": "2026-07-01",
+        "risk": "medium",
+        "score": 68,
+        "bar_width": 100,
+        "note_fa": "این IP در GreyNoise به‌عنوان internet noise/scanner دیده شده است."
+      }
+    ],
+    "classification_chart": [
+      {
+        "name": "unknown",
+        "count": 1,
+        "bar_width": 100
+      }
+    ],
+    "noise_chart": [
+      {
+        "name": "noise",
+        "count": 1,
+        "bar_width": 100
+      }
+    ]
   }
 }
