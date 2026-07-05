@@ -6240,7 +6240,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.20-phishing-pulse");
+    brief["version"] = json!("v0.4.21-static-interactivity");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({

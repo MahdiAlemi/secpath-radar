@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="assets/css/radar.css" />
   <script src="assets/js/radar.js" defer></script>
 </head>
-<body>
+<body data-radar-mode="overview">
   <main class="shell">
     <nav class="topbar" aria-label="وضعیت تولید">
       <div class="brand"><span class="brand-mark">▦</span><span>SecPath Radar</span></div>
@@ -18,13 +18,18 @@
         <span>{{ brief.source_health.intel_sources }} تله‌متری</span>
         <span>نمای تولید</span>
       </div>
+      <div class="local-controls" aria-label="کنترل‌های محلی نمایش">
+        <span class="ui-chip" role="button" tabindex="0" data-ui-action="density">حالت فشرده</span>
+        <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">جمع‌کردن</span>
+        <span class="ui-chip" role="button" tabindex="0" data-ui-action="focus">تمرکز</span>
+      </div>
     </nav>
 
     <header class="hero production-hero">
       <div>
         <span class="eyebrow">نمای عملیاتی فشرده</span>
         <h1>داشبورد امنیت سایبری امروز</h1>
-        <p>خلاصه تولیدی و سه‌ستونه از خبر، آسیب‌پذیری، فشار حمله، IOC، زیرساخت مشکوک، زنجیره تأمین، botnet C2، فیشینگ و باج‌افزار؛ بدون کنترل تعاملی و بدون اطلاعات اضافه غیرضروری.</p>
+        <p>خلاصه تولیدی و سه‌ستونه از خبر، آسیب‌پذیری، فشار حمله، IOC، زیرساخت مشکوک، زنجیره تأمین، botnet C2، فیشینگ و باج‌افزار؛ تعامل‌ها فقط محلی و نمایشی هستند، بدون scan، submit یا عملیات امنیتی.</p>
       </div>
       <div class="hero-score risk-{{ brief.executive_snapshot.level }}">
         <span>امتیاز ریسک</span>
@@ -32,6 +37,23 @@
         <small>{{ brief.executive_snapshot.level }}</small>
       </div>
     </header>
+
+    <section class="view-help" aria-label="راهنمای تعامل محلی">
+      <span>کلیک روی سربرگ هر کارت: باز/بسته</span>
+      <span>کلید D: حالت فشرده</span>
+      <span>کلید F: تمرکز روی کارت انتخاب‌شده</span>
+      <span>Esc: بازگشت به نمای کامل</span>
+    </section>
+
+    <nav class="section-jump" aria-label="پرش محلی بین بخش‌ها">
+      <a href="#executive-snapshot">مدیریتی</a>
+      <a href="#cves">CVE</a>
+      <a href="#global-news">خبرها</a>
+      <a href="#phishing-pulse">Phishing</a>
+      <a href="#botnet-c2-pulse">C2</a>
+      <a href="#greynoise-context">GreyNoise</a>
+      <a href="#sources">منابع</a>
+    </nav>
 
     <section class="metric-strip" aria-label="شاخص‌های یک نگاه">
       <div><span>خبرها</span><b>{{ brief.stats.global_news }}</b></div>
@@ -295,7 +317,7 @@
     </section>
 
     <footer>
-      <p><b>SecPath Radar {{ brief.version }}</b> — نمای production، فشرده و فقط خواندنی برای آگاهی موقعیتی روزانه.</p>
+      <p><b>SecPath Radar {{ brief.version }}</b> — نمای production، فشرده، فقط خواندنی و با تعامل محلی برای مرور سریع‌تر؛ بدون عملیات فعال.</p>
     </footer>
   </main>
 </body>

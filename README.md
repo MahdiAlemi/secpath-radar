@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.20-phishing-pulse**
+Current phase: **v0.4.21-static-interactivity**
 
 ## What changed in v0.4.8
 
@@ -192,3 +192,15 @@ Adds passive GreyNoise Community API context for selected suspicious infrastruct
 ### v0.4.20 — Phishing Pulse
 
 Adds a compact, read-only phishing telemetry layer from the OpenPhish community feed. The dashboard stores only defanged URLs and host metadata, derives TLD/brand/risk charts locally, and never renders clickable phishing links or any submission/scanning workflow.
+
+
+### v0.4.21 — Static Interactivity
+
+Adds local-only viewing interactions for the production dashboard:
+
+- Collapsible panels by clicking each card header.
+- Dense mode stored in localStorage.
+- Focus mode for one selected panel with `F`; `Esc` returns to the overview.
+- Local section jump links and keyboard hints.
+- No forms, no scanners, no submissions, no backend workflow, and no operational security actions.
+
