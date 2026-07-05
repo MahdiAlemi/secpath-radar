@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.9 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.10 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -30,6 +30,12 @@ intel:
     top_ports_source_url: "https://feeds.dshield.org/feeds//topports_source.txt"
     top_ports_reports_url: "https://feeds.dshield.org/feeds//topports_reports.txt"
     top_ports_targets_url: "https://feeds.dshield.org/feeds//topports_targets.txt"
+  ioc_radar:
+    enabled: true
+    max_urlhaus: 18
+    max_threatfox: 18
+    urlhaus_recent_csv_url: "https://urlhaus.abuse.ch/downloads/csv_recent/"
+    threatfox_recent_csv_url: "https://threatfox.abuse.ch/export/csv/recent/"
 
 cache:
   enabled: true

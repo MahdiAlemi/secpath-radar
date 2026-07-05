@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.9-attack-pressure-chart**
+Current phase: **v0.4.10-ioc-radar**
 
 ## What changed in v0.4.8
 
@@ -79,9 +79,13 @@ This release keeps SecPath Radar as a static, observational dashboard:
 No deployment, GitHub Pages, or DNS changes are included in this phase.
 
 
+## v0.4.10 — IOC Radar
+
+This phase adds a read-only IOC telemetry layer from abuse.ch URLhaus and ThreatFox static CSV exports. Indicators are cached under `data/cache/intel`, defanged before display, and rendered as passive charts/lists. There are no forms, search boxes, filters, or user input workflows.
+
 ## v0.4.9 — Attack Pressure Radar chart
 
-This phase adds a read-only DShield/SANS telemetry layer. It fetches static DShield top-port feeds, stores them in `data/cache/intel`, and renders passive attack-pressure cards. There are no forms, search boxes, filters, or user input workflows.
+This phase adds a read-only DShield/SANS telemetry layer. It fetches static DShield top-port feeds, stores them in `data/cache/intel`, and renders passive attack-pressure charts. There are no forms, search boxes, filters, or user input workflows.
 
 Telemetry sources:
 
@@ -98,4 +102,5 @@ DShield/SANS recommends using static feeds where possible and not downloading th
 - Black/orange SOC-console theme.
 - No border radius.
 - Attack Pressure must render as static charts, not statistic-only cards.
+- IOC Radar must defang URLs/domains/IPs and never make malware/phishing URLs clickable.
 - Radar remains read-only: no forms, inputs, filters, or user workflows.

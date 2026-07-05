@@ -121,6 +121,8 @@ struct IntelConfig {
     sleep_ms_between_sources: u64,
     #[serde(default)]
     attack_pressure: AttackPressureConfig,
+    #[serde(default)]
+    ioc_radar: IocRadarConfig,
 }
 
 impl Default for IntelConfig {
@@ -131,6 +133,7 @@ impl Default for IntelConfig {
             refresh_hours: default_intel_refresh_hours(),
             sleep_ms_between_sources: default_intel_sleep_ms(),
             attack_pressure: AttackPressureConfig::default(),
+            ioc_radar: IocRadarConfig::default(),
         }
     }
 }
@@ -202,6 +205,52 @@ fn default_top_ports_reports_url() -> String {
 
 fn default_top_ports_targets_url() -> String {
     "https://feeds.dshield.org/feeds//topports_targets.txt".to_string()
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct IocRadarConfig {
+    #[serde(default = "default_ioc_radar_enabled")]
+    enabled: bool,
+    #[serde(default = "default_ioc_max_urlhaus")]
+    max_urlhaus: usize,
+    #[serde(default = "default_ioc_max_threatfox")]
+    max_threatfox: usize,
+    #[serde(default = "default_urlhaus_recent_csv_url")]
+    urlhaus_recent_csv_url: String,
+    #[serde(default = "default_threatfox_recent_csv_url")]
+    threatfox_recent_csv_url: String,
+}
+
+impl Default for IocRadarConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_ioc_radar_enabled(),
+            max_urlhaus: default_ioc_max_urlhaus(),
+            max_threatfox: default_ioc_max_threatfox(),
+            urlhaus_recent_csv_url: default_urlhaus_recent_csv_url(),
+            threatfox_recent_csv_url: default_threatfox_recent_csv_url(),
+        }
+    }
+}
+
+fn default_ioc_radar_enabled() -> bool {
+    true
+}
+
+fn default_ioc_max_urlhaus() -> usize {
+    18
+}
+
+fn default_ioc_max_threatfox() -> usize {
+    18
+}
+
+fn default_urlhaus_recent_csv_url() -> String {
+    "https://urlhaus.abuse.ch/downloads/csv_recent/".to_string()
+}
+
+fn default_threatfox_recent_csv_url() -> String {
+    "https://threatfox.abuse.ch/export/csv/recent/".to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -388,6 +437,24 @@ struct AttackPort {
     bar_width: usize,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct IocIndicator {
+    rank: usize,
+    source: String,
+    indicator_type: String,
+    indicator: String,
+    indicator_safe: String,
+    threat_type: String,
+    malware: String,
+    first_seen: String,
+    confidence: usize,
+    risk: String,
+    risk_score: usize,
+    bar_width: usize,
+    tags: Vec<String>,
+    note_fa: String,
+}
+
 fn parse_args() -> Result<Args> {
     let mut args = Args::default();
     let mut iter = env::args().skip(1);
@@ -480,6 +547,14 @@ fn main() -> Result<()> {
         let attack_pressure =
             fetch_attack_pressure_or_fallback(&config, args.offline, args.refresh_cache);
         brief["attack_pressure"] = attack_pressure;
+        let ioc_radar = fetch_ioc_radar_or_fallback(&config, args.offline, args.refresh_cache);
+        let ioc_total = ioc_radar
+            .get("totals")
+            .and_then(|totals| totals.get("total"))
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["iocs"] = json!(ioc_total);
+        brief["ioc_radar"] = ioc_radar;
         brief
     } else {
         let brief_raw = fs::read_to_string(&args.input)
@@ -1311,6 +1386,454 @@ fn attack_port_note(port: u16) -> String {
     }
 }
 
+fn fetch_ioc_radar_or_fallback(config: &Config, offline: bool, refresh_cache: bool) -> Value {
+    if !config.intel.enabled || !config.intel.ioc_radar.enabled {
+        return empty_ioc_radar("disabled");
+    }
+
+    match fetch_ioc_radar(config, offline, refresh_cache) {
+        Ok(value) => value,
+        Err(err) => {
+            eprintln!("⚠️  IOC Radar skipped: {err:#}");
+            let mut fallback = empty_ioc_radar("error");
+            fallback["error"] = json!(err.to_string());
+            fallback
+        }
+    }
+}
+
+fn fetch_ioc_radar(config: &Config, offline: bool, refresh_cache: bool) -> Result<Value> {
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(24))
+        .build()
+        .context("failed to build HTTP client for IOC Radar")?;
+
+    let ioc = &config.intel.ioc_radar;
+    eprintln!("→ fetching IOC Radar feeds");
+
+    let urlhaus_bytes = get_bytes_cached_intel(
+        &client,
+        config,
+        &ioc.urlhaus_recent_csv_url,
+        "URLhaus recent URLs",
+        offline,
+        refresh_cache,
+    )?;
+    thread::sleep(Duration::from_millis(config.intel.sleep_ms_between_sources));
+
+    let threatfox_bytes = get_bytes_cached_intel(
+        &client,
+        config,
+        &ioc.threatfox_recent_csv_url,
+        "ThreatFox recent IOCs",
+        offline,
+        refresh_cache,
+    )?;
+
+    let mut urlhaus = parse_urlhaus_recent_csv(&String::from_utf8_lossy(&urlhaus_bytes));
+    let mut threatfox = parse_threatfox_recent_csv(&String::from_utf8_lossy(&threatfox_bytes));
+    urlhaus.truncate(ioc.max_urlhaus);
+    threatfox.truncate(ioc.max_threatfox);
+    finalize_ioc_indicators(&mut urlhaus);
+    finalize_ioc_indicators(&mut threatfox);
+
+    let all = urlhaus
+        .iter()
+        .chain(threatfox.iter())
+        .cloned()
+        .collect::<Vec<_>>();
+    let type_chart = ioc_count_chart(&all, |item| item.indicator_type.as_str(), 7);
+    let malware_chart = ioc_count_chart(&all, |item| item.malware.as_str(), 8);
+    let source_chart = ioc_count_chart(&all, |item| item.source.as_str(), 4);
+    let high_count = all.iter().filter(|item| item.risk == "high").count();
+    let watch_count = all.iter().filter(|item| item.risk == "watch").count();
+
+    let level = if high_count >= 12 {
+        "High"
+    } else if high_count >= 5 || watch_count >= 18 {
+        "Medium"
+    } else {
+        "Low"
+    };
+
+    let summary_fa = match level {
+        "High" => "حجم IOCهای تازه و چند خانواده بدافزاری قابل توجه است؛ این بخش برای آگاهی موقعیتی و triage دفاعی است.",
+        "Medium" => "IOCهای تازه از URLhaus و ThreatFox دریافت شده‌اند؛ چند نوع indicator و خانواده بدافزاری دیده می‌شود.",
+        _ => "IOCهای تازه دریافت شد، اما شدت کلی در این اجرا پایین ارزیابی می‌شود.",
+    };
+
+    Ok(json!({
+        "enabled": true,
+        "ok": true,
+        "provider": "abuse.ch URLhaus + ThreatFox",
+        "source_urls": [
+            "https://urlhaus.abuse.ch/api/",
+            "https://threatfox.abuse.ch/api/"
+        ],
+        "level": level,
+        "summary_fa": summary_fa,
+        "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
+        "cache_dir": config.intel.cache_dir.clone(),
+        "refresh_hours": config.intel.refresh_hours,
+        "totals": {
+            "urlhaus": urlhaus.len(),
+            "threatfox": threatfox.len(),
+            "total": all.len(),
+            "high": high_count,
+            "watch": watch_count
+        },
+        "urlhaus": urlhaus,
+        "threatfox": threatfox,
+        "type_chart": type_chart,
+        "malware_chart": malware_chart,
+        "source_chart": source_chart
+    }))
+}
+
+fn parse_urlhaus_recent_csv(text: &str) -> Vec<IocIndicator> {
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields = split_csv_line(line);
+        if fields.len() < 4 || fields[0].eq_ignore_ascii_case("id") {
+            continue;
+        }
+
+        let date_added = fields.get(1).cloned().unwrap_or_default();
+        let url = fields.get(2).cloned().unwrap_or_default();
+        if url.is_empty() || !url.contains('.') {
+            continue;
+        }
+        let status = fields.get(3).cloned().unwrap_or_default();
+        let threat = fields
+            .get(5)
+            .cloned()
+            .unwrap_or_else(|| "malware_download".to_string());
+        let tags = parse_tag_list(fields.get(6).map(String::as_str).unwrap_or(""));
+        let malware = first_useful_tag(&tags).unwrap_or_else(|| normalize_family(&threat));
+
+        out.push(IocIndicator {
+            rank: out.len() + 1,
+            source: "URLhaus".to_string(),
+            indicator_type: "url".to_string(),
+            indicator: url.clone(),
+            indicator_safe: defang_indicator(&url),
+            threat_type: non_empty_or(threat, "malware_url"),
+            malware,
+            first_seen: date_added,
+            confidence: if status.eq_ignore_ascii_case("online") {
+                85
+            } else {
+                65
+            },
+            risk: "watch".to_string(),
+            risk_score: 0,
+            bar_width: 0,
+            tags,
+            note_fa: String::new(),
+        });
+    }
+    out
+}
+
+fn parse_threatfox_recent_csv(text: &str) -> Vec<IocIndicator> {
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields = split_csv_line(line);
+        if fields.len() < 5 || fields[0].to_lowercase().contains("first_seen") {
+            continue;
+        }
+
+        let first_seen = fields.first().cloned().unwrap_or_default();
+        let indicator = fields
+            .get(2)
+            .cloned()
+            .or_else(|| fields.get(1).cloned())
+            .unwrap_or_default();
+        if indicator.trim().is_empty() || indicator.eq_ignore_ascii_case("ioc_value") {
+            continue;
+        }
+        let indicator_type = fields
+            .get(3)
+            .cloned()
+            .unwrap_or_else(|| infer_indicator_type(&indicator));
+        let threat_type = fields
+            .get(4)
+            .cloned()
+            .unwrap_or_else(|| "malware_ioc".to_string());
+        let malware = fields
+            .get(7)
+            .filter(|value| {
+                !value.trim().is_empty()
+                    && value.trim() != "-"
+                    && !value.contains("malware_printable")
+            })
+            .cloned()
+            .or_else(|| fields.get(5).cloned())
+            .unwrap_or_else(|| normalize_family(&threat_type));
+        let confidence = fields
+            .iter()
+            .filter_map(|value| value.trim().parse::<usize>().ok())
+            .find(|value| *value <= 100)
+            .unwrap_or(70);
+        let tags = fields
+            .iter()
+            .rev()
+            .find(|value| value.contains(',') || value.contains('|'))
+            .map(|value| parse_tag_list(value))
+            .unwrap_or_default();
+
+        out.push(IocIndicator {
+            rank: out.len() + 1,
+            source: "ThreatFox".to_string(),
+            indicator_type: normalize_ioc_type(&indicator_type),
+            indicator: indicator.clone(),
+            indicator_safe: defang_indicator(&indicator),
+            threat_type: non_empty_or(threat_type, "malware_ioc"),
+            malware: normalize_family(&malware),
+            first_seen,
+            confidence,
+            risk: "watch".to_string(),
+            risk_score: 0,
+            bar_width: 0,
+            tags,
+            note_fa: String::new(),
+        });
+    }
+    out
+}
+
+fn finalize_ioc_indicators(items: &mut [IocIndicator]) {
+    let total = items.len().max(1);
+    for (idx, item) in items.iter_mut().enumerate() {
+        item.rank = idx + 1;
+        item.indicator_type = normalize_ioc_type(&item.indicator_type);
+        item.threat_type = normalize_family(&item.threat_type);
+        item.malware = normalize_family(&item.malware);
+        item.indicator_safe = defang_indicator(&item.indicator);
+
+        let mut score = 35 + ((total - idx) * 50 / total);
+        let lower =
+            format!("{} {} {}", item.indicator, item.threat_type, item.malware).to_lowercase();
+        if lower.contains("botnet")
+            || lower.contains("stealer")
+            || lower.contains("ransom")
+            || lower.contains("loader")
+        {
+            score += 10;
+        }
+        if matches!(item.indicator_type.as_str(), "url" | "domain" | "ip") {
+            score += 5;
+        }
+        if item.confidence >= 80 {
+            score += 6;
+        }
+        item.risk_score = score.clamp(10, 100);
+        item.bar_width = item.risk_score.clamp(10, 100);
+        item.risk = if item.risk_score >= 78 {
+            "high".to_string()
+        } else if item.risk_score >= 55 {
+            "medium".to_string()
+        } else {
+            "watch".to_string()
+        };
+        item.note_fa = ioc_note(&item.indicator_type, &item.malware);
+        item.tags = item
+            .tags
+            .iter()
+            .filter(|tag| !tag.trim().is_empty())
+            .take(4)
+            .cloned()
+            .collect();
+    }
+}
+
+fn ioc_count_chart<F>(items: &[IocIndicator], key_fn: F, limit: usize) -> Vec<Value>
+where
+    F: Fn(&IocIndicator) -> &str,
+{
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for item in items {
+        let key = normalize_family(key_fn(item));
+        if !key.trim().is_empty() && key != "unknown" && key != "-" {
+            *counts.entry(key).or_insert(0) += 1;
+        }
+    }
+
+    let mut rows = counts.into_iter().collect::<Vec<_>>();
+    rows.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let max = rows
+        .iter()
+        .map(|(_, count)| *count)
+        .max()
+        .unwrap_or(1)
+        .max(1);
+    rows.into_iter()
+        .take(limit)
+        .map(|(name, count)| {
+            let width = ((count as f64 / max as f64) * 100.0).round() as usize;
+            json!({
+                "name": truncate_chars(&name, 38),
+                "count": count,
+                "bar_width": width.clamp(12, 100)
+            })
+        })
+        .collect()
+}
+
+fn split_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' if in_quotes && chars.peek() == Some(&'"') => {
+                current.push('"');
+                chars.next();
+            }
+            '"' => in_quotes = !in_quotes,
+            ',' if !in_quotes => {
+                fields.push(current.trim().trim_matches('"').to_string());
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+    fields.push(current.trim().trim_matches('"').to_string());
+    fields
+}
+
+fn parse_tag_list(raw: &str) -> Vec<String> {
+    raw.split(&[',', '|', ';'][..])
+        .map(|tag| {
+            tag.trim()
+                .trim_matches('"')
+                .trim_matches('[')
+                .trim_matches(']')
+        })
+        .filter(|tag| !tag.is_empty() && *tag != "-" && !tag.eq_ignore_ascii_case("null"))
+        .map(|tag| truncate_chars(tag, 28))
+        .take(6)
+        .collect()
+}
+
+fn first_useful_tag(tags: &[String]) -> Option<String> {
+    tags.iter()
+        .find(|tag| {
+            !matches!(
+                tag.to_lowercase().as_str(),
+                "elf" | "exe" | "payload" | "malware" | "download"
+            )
+        })
+        .map(|tag| normalize_family(tag))
+}
+
+fn normalize_ioc_type(value: &str) -> String {
+    let lower = value
+        .trim()
+        .trim_matches('"')
+        .to_lowercase()
+        .replace('-', "_");
+    if lower.contains("url") || lower.starts_with("http") {
+        "url".to_string()
+    } else if lower.contains("domain") || lower.contains("hostname") || lower == "fqdn" {
+        "domain".to_string()
+    } else if lower.contains("ip") || lower.contains("ipv4") || lower.contains("ipv6") {
+        "ip".to_string()
+    } else if lower.contains("sha") || lower.contains("md5") || lower.contains("hash") {
+        "hash".to_string()
+    } else if lower.is_empty() {
+        "unknown".to_string()
+    } else {
+        truncate_chars(&lower, 24)
+    }
+}
+
+fn infer_indicator_type(value: &str) -> String {
+    let lower = value.to_lowercase();
+    if lower.starts_with("http://") || lower.starts_with("https://") {
+        "url".to_string()
+    } else if lower.parse::<std::net::IpAddr>().is_ok() {
+        "ip".to_string()
+    } else if lower.len() >= 32 && lower.chars().all(|ch| ch.is_ascii_hexdigit()) {
+        "hash".to_string()
+    } else if lower.contains('.') {
+        "domain".to_string()
+    } else {
+        "unknown".to_string()
+    }
+}
+
+fn normalize_family(value: &str) -> String {
+    let cleaned = value
+        .trim()
+        .trim_matches('"')
+        .trim_matches('-')
+        .replace('_', " ")
+        .replace("malware ", "")
+        .replace("Malware ", "");
+    if cleaned.trim().is_empty() {
+        "unknown".to_string()
+    } else {
+        truncate_chars(cleaned.trim(), 36)
+    }
+}
+
+fn non_empty_or(value: String, fallback: &str) -> String {
+    if value.trim().is_empty() || value.trim() == "-" {
+        fallback.to_string()
+    } else {
+        value
+    }
+}
+
+fn defang_indicator(value: &str) -> String {
+    let mut out = value.trim().to_string();
+    out = out
+        .replace("https://", "hxxps://")
+        .replace("http://", "hxxp://");
+    out = out.replace('.', "[.]");
+    truncate_chars(&out, 96)
+}
+
+fn ioc_note(indicator_type: &str, malware: &str) -> String {
+    match indicator_type {
+        "url" => "URL بدافزاری defanged نمایش داده شده؛ آن را مستقیم باز نکن و فقط برای correlation دفاعی استفاده کن.".to_string(),
+        "domain" => "دامنه IOC برای correlation در DNS logs، proxy و EDR مناسب است؛ از کلیک مستقیم خودداری شود.".to_string(),
+        "ip" => "IP IOC را با firewall/proxy/EDR logs تطبیق بده و قبل از block، مالکیت و false positive را بررسی کن.".to_string(),
+        "hash" => format!("Hash مرتبط با {malware} برای hunting در EDR و فایل‌لاگ‌ها قابل استفاده است."),
+        _ => "IOC تازه برای آگاهی موقعیتی نمایش داده شده؛ قبل از اقدام، با منبع و لاگ داخلی تطبیق بده.".to_string(),
+    }
+}
+
+fn empty_ioc_radar(status: &str) -> Value {
+    json!({
+        "enabled": status != "disabled",
+        "ok": false,
+        "provider": "abuse.ch URLhaus + ThreatFox",
+        "level": "Unknown",
+        "summary_fa": "داده IOC Radar در این اجرا در دسترس نبود.",
+        "last_updated": "",
+        "refresh_hours": 1,
+        "totals": {"urlhaus": 0, "threatfox": 0, "total": 0, "high": 0, "watch": 0},
+        "urlhaus": [],
+        "threatfox": [],
+        "type_chart": [],
+        "malware_chart": [],
+        "source_chart": []
+    })
+}
+
 fn empty_attack_pressure(status: &str) -> Value {
     json!({
         "enabled": status != "disabled",
@@ -1325,6 +1848,21 @@ fn empty_attack_pressure(status: &str) -> Value {
         "reported_ports": [],
         "targeted_ports": []
     })
+}
+
+fn intel_source_count(config: &Config) -> usize {
+    if !config.intel.enabled {
+        return 0;
+    }
+
+    let mut count = 0;
+    if config.intel.attack_pressure.enabled {
+        count += 1;
+    }
+    if config.intel.ioc_radar.enabled {
+        count += 2;
+    }
+    count
 }
 
 fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) -> Result<Value> {
@@ -1380,7 +1918,7 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "critical_cves": critical_count,
             "kev": kev_count,
             "rss_sources": config.sources.len(),
-            "intel_sources": if config.intel.enabled && config.intel.attack_pressure.enabled { 1 } else { 0 }
+            "intel_sources": intel_source_count(config)
         },
         "source_health": {
             "rss_sources": config.sources.len(),
@@ -1388,7 +1926,7 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "http_cache": config.cache.enabled,
             "cache_ttl_minutes": config.cache.ttl_minutes,
             "ai_cache_dir": config.gemini.cache_dir.clone(),
-            "intel_sources": if config.intel.enabled && config.intel.attack_pressure.enabled { 1 } else { 0 },
+            "intel_sources": intel_source_count(config),
             "intel_cache_dir": config.intel.cache_dir.clone()
         },
         "priority_alert": priority,
@@ -1904,7 +2442,7 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.9-attack-pressure-chart");
+    brief["version"] = json!("v0.4.10-ioc-radar");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -1925,6 +2463,18 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief.get("attack_pressure").is_none() {
         brief["attack_pressure"] = empty_attack_pressure("missing");
+    }
+    if brief.get("ioc_radar").is_none() {
+        brief["ioc_radar"] = empty_ioc_radar("missing");
+    }
+    if brief.get("stats").and_then(|v| v.get("iocs")).is_none() {
+        let ioc_total = brief
+            .get("ioc_radar")
+            .and_then(|radar| radar.get("totals"))
+            .and_then(|totals| totals.get("total"))
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["iocs"] = json!(ioc_total);
     }
 
     polish_priority(brief);
@@ -2206,6 +2756,11 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         .and_then(|v| v.get("ok"))
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    let ioc_radar_ok = brief
+        .get("ioc_radar")
+        .and_then(|v| v.get("ok"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
     if ai_enabled && ai_ok && ai_cache {
         notes.push(
@@ -2234,6 +2789,9 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         );
         if attack_pressure_ok {
             coverage.push_str(" لایه Attack Pressure نیز از DShield/SANS اضافه شده است.");
+        }
+        if ioc_radar_ok {
+            coverage.push_str(" IOC Radar هم از URLhaus و ThreatFox ساخته شده است.");
         }
         notes.push(coverage);
     }

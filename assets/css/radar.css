@@ -129,7 +129,7 @@ h1 { font-size: clamp(2.1rem, 4vw, 4.4rem); line-height: 1.2; letter-spacing: -.
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 10px;
   margin: 18px 0;
 }
@@ -277,3 +277,32 @@ footer { margin-top: 22px; }
 .source-note { color: var(--faint); font-size: .76rem; margin-top: 12px; }
 @media (max-width: 1120px) { .pressure-chart-board { grid-template-columns: 1fr; } .metrics { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 640px) { .pressure-summary { flex-direction: column; } .bar-row { grid-template-columns: 90px minmax(120px, 1fr) 34px; } }
+
+
+/* IOC Radar: passive, defanged, chart-first threat intelligence display. */
+.ioc-radar-panel {
+  margin-bottom: 18px;
+  background:
+    linear-gradient(135deg, rgba(255,122,24,.12), rgba(0,0,0,.94)),
+    repeating-linear-gradient(0deg, rgba(255,122,24,.035) 0 1px, transparent 1px 38px);
+  border-color: rgba(255,122,24,.34);
+}
+.ioc-chart-board { display: grid; grid-template-columns: minmax(0, .9fr) minmax(320px, 1.1fr); gap: 12px; align-items: stretch; }
+.compact-bars .bar-row { grid-template-columns: 132px minmax(140px, 1fr) 36px; }
+.tiny-bars { display: grid; gap: 10px; }
+.tiny-bars div { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(120px, 1.6fr) 36px; gap: 10px; align-items: center; }
+.tiny-bars span { color: var(--muted); font-size: .74rem; direction: ltr; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tiny-bars i { height: 12px; width: var(--bar); background: linear-gradient(90deg, rgba(255,122,24,.35), rgba(255,122,24,.95)); border: 1px solid rgba(255,122,24,.25); display: block; }
+.tiny-bars b { color: var(--text); font-size: .72rem; direction: ltr; }
+.ioc-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.ioc-list { border: 1px solid var(--line); background: rgba(0,0,0,.36); padding: 14px; min-width: 0; }
+.ioc-row { border-top: 1px solid var(--line); padding: 10px 0; display: grid; gap: 4px; }
+.ioc-row:first-of-type { border-top: 0; padding-top: 0; }
+.ioc-row code { color: var(--amber); font-size: .78rem; direction: ltr; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.ioc-row span { color: var(--muted); font-size: .72rem; direction: ltr; text-align: left; }
+.ioc-row small { color: var(--faint); font-size: .72rem; line-height: 1.6; }
+.ioc-row.risk-high code { color: var(--red); }
+.ioc-row.risk-medium code { color: var(--amber); }
+.ioc-row.risk-watch code { color: #c67b34; }
+@media (max-width: 1120px) { .ioc-chart-board, .ioc-lists { grid-template-columns: 1fr; } .metrics { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 640px) { .tiny-bars div { grid-template-columns: 90px minmax(90px, 1fr) 28px; } }

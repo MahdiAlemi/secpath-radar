@@ -38,7 +38,7 @@
         <div class="status-row"><span>Generated</span><b>{{ brief.generated_at }}</b></div>
         <div class="status-row"><span>HTTP cache</span><b>{% if brief.source_health.http_cache %}ON{% else %}OFF{% endif %}</b></div>
         <div class="status-row"><span>AI model</span><b>{% if brief.ai_status.enabled %}{{ brief.ai_status.model }}{% else %}disabled{% endif %}</b></div>
-        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield</b></div>
+        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield + IOC</b></div>
       </aside>
     </header>
 
@@ -50,6 +50,7 @@
       <div class="metric"><span>Global News</span><strong>{{ brief.stats.global_news }}</strong><small>خبرهای rank شده</small></div>
       <div class="metric"><span>Sources</span><strong>{{ brief.stats.rss_sources }}</strong><small>RSS فعال در config</small></div>
       <div class="metric text-metric"><span>Attack Pressure</span><strong>{{ brief.attack_pressure.level }}</strong><small>DShield telemetry</small></div>
+      <div class="metric"><span>IOC Radar</span><strong>{{ brief.stats.iocs }}</strong><small>URLhaus + ThreatFox</small></div>
     </section>
 
     {% if brief.brief_notes | length > 0 %}
@@ -115,6 +116,81 @@
         <span><i class="risk-dot watch"></i>watch</span>
         <small>نمودار بر اساس رتبه feedهای DShield ساخته شده و برای آگاهی موقعیتی است، نه blocklist مستقیم.</small>
       </div>
+    </section>
+
+
+
+    <section id="ioc-radar" class="panel ioc-radar-panel" aria-label="IOC Radar">
+      <div class="panel-head">
+        <div><span class="eyebrow">IOC Radar</span><h2>نشانگرهای تازه بدافزار و زیرساخت مخرب</h2></div>
+        <span class="count">{{ brief.ioc_radar.provider }} · {{ brief.ioc_radar.level }}</span>
+      </div>
+      <div class="pressure-summary">
+        <p>{{ brief.ioc_radar.summary_fa }}</p>
+        <div class="meta">
+          <span class="pill {% if brief.ioc_radar.ok %}green{% else %}amber{% endif %}">{% if brief.ioc_radar.ok %}IOC telemetry ok{% else %}IOC fallback{% endif %}</span>
+          <span class="pill">{{ brief.ioc_radar.totals.total }} IOC</span>
+          <span class="pill">refresh {{ brief.ioc_radar.refresh_hours }}h</span>
+          {% if brief.ioc_radar.last_updated %}<span class="pill">{{ brief.ioc_radar.last_updated }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="ioc-chart-board" aria-label="نمودار IOCهای تازه">
+        <div class="chart-panel chart-panel-wide">
+          <div class="chart-title"><span>ترکیب نوع IOC</span><small>indicator type distribution</small></div>
+          <div class="bar-chart compact-bars" role="img" aria-label="نمودار نوع IOC">
+            {% for row in brief.ioc_radar.type_chart %}
+            <div class="bar-row risk-medium">
+              <div class="bar-label"><code>{{ row.count }}</code><span>{{ row.name }}</span></div>
+              <div class="bar-track"><span class="bar-fill" style="--bar: {{ row.bar_width }}%"></span></div>
+              <b>{{ row.count }}</b>
+            </div>
+            {% endfor %}
+            {% if brief.ioc_radar.type_chart | length == 0 %}<div class="chart-empty">داده‌ای برای نمودار IOC موجود نیست.</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="mini-chart-grid">
+          <div class="chart-panel">
+            <div class="chart-title"><span>Malware Families</span><small>top tags</small></div>
+            <div class="tiny-bars" aria-label="نمودار خانواده‌های بدافزاری">
+              {% for row in brief.ioc_radar.malware_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title"><span>Source Split</span><small>abuse.ch feeds</small></div>
+            <div class="tiny-bars" aria-label="نمودار منبع IOC">
+              {% for row in brief.ioc_radar.source_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ioc-lists" aria-label="فهرست IOCهای تازه">
+        <div class="ioc-list">
+          <div class="chart-title"><span>URLhaus — Malware URLs</span><small>defanged</small></div>
+          {% for ioc in brief.ioc_radar.urlhaus %}
+          <article class="ioc-row risk-{{ ioc.risk }}">
+            <code>{{ ioc.indicator_safe }}</code>
+            <span>{{ ioc.malware }} · {{ ioc.threat_type }} · confidence {{ ioc.confidence }}</span>
+            <small>{{ ioc.note_fa }}</small>
+          </article>
+          {% endfor %}
+          {% if brief.ioc_radar.urlhaus | length == 0 %}<article class="ioc-row empty">URLhaus IOC در این اجرا موجود نیست.</article>{% endif %}
+        </div>
+        <div class="ioc-list">
+          <div class="chart-title"><span>ThreatFox — Recent IOCs</span><small>defanged</small></div>
+          {% for ioc in brief.ioc_radar.threatfox %}
+          <article class="ioc-row risk-{{ ioc.risk }}">
+            <code>{{ ioc.indicator_safe }}</code>
+            <span>{{ ioc.indicator_type }} · {{ ioc.malware }} · confidence {{ ioc.confidence }}</span>
+            <small>{{ ioc.note_fa }}</small>
+          </article>
+          {% endfor %}
+          {% if brief.ioc_radar.threatfox | length == 0 %}<article class="ioc-row empty">ThreatFox IOC در این اجرا موجود نیست.</article>{% endif %}
+        </div>
+      </div>
+      <p class="source-note">IOCها برای آگاهی موقعیتی و correlation دفاعی defanged شده‌اند؛ هیچ URL مخرب در این بخش قابل کلیک نیست.</p>
     </section>
 
     <div class="grid">
@@ -203,7 +279,7 @@
 
         <section id="sources" class="panel">
           <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.intel_sources }} telemetry</span></div>
-          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span></div>
+          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span></div>
         </section>
       </aside>
     </div>
