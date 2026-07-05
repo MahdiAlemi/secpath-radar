@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.17.1-vulnrichment-polish**
+Current phase: **v0.4.18-botnet-c2-pulse**
 
 ## What changed in v0.4.8
 
@@ -62,7 +62,7 @@ http://localhost:8000
 
 Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecurity, The Hacker News, Zero Day Initiative, SANS ISC, Cisco advisories, Cisco Talos, Microsoft Security Blog, Google Online Security Blog, ProjectDiscovery Blog, Cloudflare Security, Unit 42, Rapid7, CERT/CC, Infosecurity Magazine, and PortSwigger Research.
 
-NVD, CISA KEV, and EPSS are still used by the CVE engine.
+NVD, CISA KEV, EPSS, CISA Vulnrichment, Feodo Tracker, and SSLBL are used by the intelligence engine. Botnet C2 and TLS indicators are metadata-only; no malware samples or dangerous links are downloaded or rendered.
 
 
 ## v0.4.8.1 Frontend split
@@ -159,6 +159,11 @@ This phase is a production UI redesign, not a data-source expansion.
 - AI status is no longer a prominent production UI element.
 - Source health is reduced to compact operational counts.
 - The dashboard remains static/read-only: no forms, no user inputs, and no workflow controls.
+
+## v0.4.18 — Botnet C2 Pulse
+
+This phase adds a compact, read-only botnet telemetry layer from abuse.ch Feodo Tracker and SSLBL. It fetches C2 IP metadata plus SSLBL JA3/certificate fingerprint metadata, caches it under `data/cache/intel`, defangs IPs before display, and renders only aggregate charts and short metadata rows. It does not download malware samples, render dangerous links, expose onion/leak data, or add user-input workflows.
+
 
 ## v0.4.17.1 — Vulnrichment No-Data Polish
 

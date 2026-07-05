@@ -24,7 +24,7 @@
       <div>
         <span class="eyebrow">نمای عملیاتی فشرده</span>
         <h1>داشبورد امنیت سایبری امروز</h1>
-        <p>خلاصه تولیدی و سه‌ستونه از خبر، آسیب‌پذیری، فشار حمله، IOC، زیرساخت مشکوک، زنجیره تأمین و باج‌افزار؛ بدون کنترل تعاملی و بدون اطلاعات اضافه غیرضروری.</p>
+        <p>خلاصه تولیدی و سه‌ستونه از خبر، آسیب‌پذیری، فشار حمله، IOC، زیرساخت مشکوک، زنجیره تأمین، botnet C2 و باج‌افزار؛ بدون کنترل تعاملی و بدون اطلاعات اضافه غیرضروری.</p>
       </div>
       <div class="hero-score risk-{{ brief.executive_snapshot.level }}">
         <span>امتیاز ریسک</span>
@@ -40,6 +40,7 @@
       <div><span>EPSS</span><b>{{ brief.stats.epss_stable }}</b><small>{{ brief.stats.epss_rising }} رو به رشد</small></div>
       <div><span>CISA</span><b>{{ brief.stats.vulnrichment_hits }}</b><small>{{ brief.stats.vulnrichment_checked }} بررسی</small></div>
       <div><span>IOC</span><b>{{ brief.stats.iocs }}</b></div>
+      <div><span>Botnet C2</span><b>{{ brief.stats.botnet_c2 }}</b><small>{{ brief.stats.malicious_tls }} TLS</small></div>
       <div><span>زیرساخت</span><b>{{ brief.stats.infrastructure_hosts }}</b></div>
       <div><span>زنجیره تأمین</span><b>{{ brief.stats.supply_chain_advisories }}</b></div>
       <div><span>Ransomware</span><b>{{ brief.stats.ransomware_victims }}</b></div>
@@ -157,6 +158,28 @@
           <div class="indicator-list">
             {% for ioc in brief.ioc_radar.urlhaus %}{% if loop.index <= 4 %}<code>{{ ioc.indicator_safe }}</code>{% endif %}{% endfor %}
             {% for ioc in brief.ioc_radar.threatfox %}{% if loop.index <= 3 %}<code>{{ ioc.indicator_safe }}</code>{% endif %}{% endfor %}
+          </div>
+        </section>
+
+        <section id="botnet-c2-pulse" class="panel" aria-label="Botnet C2 Pulse">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">Botnet C2</span><h2>C2 و TLS بدخواه</h2></div>
+            <span class="count">{{ brief.botnet_c2_pulse.totals.c2 }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.botnet_c2_pulse.summary_fa }}</p>
+          <div class="tiny-bars split-two">
+            {% for row in brief.botnet_c2_pulse.family_chart %}{% if loop.index <= 5 %}<div class="risk-high"><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endif %}{% endfor %}
+          </div>
+          <div class="compact-list">
+            {% for c2 in brief.botnet_c2_pulse.c2 %}{% if loop.index <= 4 %}
+            <article class="row-card risk-{{ c2.risk }}">
+              <div class="row-main"><b>{{ c2.ip_safe }}</b><span>{{ c2.malware }} · {{ c2.port }}</span></div>
+              <div class="meta-row"><small>{{ c2.status }}</small><small>{{ c2.source }}</small><small>metadata only</small></div>
+            </article>
+            {% endif %}{% endfor %}
+          </div>
+          <div class="indicator-list">
+            {% for tls in brief.botnet_c2_pulse.tls %}{% if loop.index <= 4 %}<code>{{ tls.indicator_type }} {{ tls.fingerprint_safe }}</code>{% endif %}{% endfor %}
           </div>
         </section>
 

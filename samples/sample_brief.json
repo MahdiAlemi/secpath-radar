@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.17.1-vulnrichment-polish",
+  "version": "v0.4.18-botnet-c2-pulse",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -24,7 +24,9 @@
     "epss_stable": 1,
     "epss_falling": 0,
     "vulnrichment_checked": 1,
-    "vulnrichment_missing": 0
+    "vulnrichment_missing": 0,
+    "botnet_c2": 0,
+    "malicious_tls": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -37,7 +39,7 @@
     "http_cache": true,
     "cache_ttl_minutes": 720,
     "ai_cache_dir": "data/cache/ai",
-    "intel_sources": 7,
+    "intel_sources": 9,
     "intel_cache_dir": "data/cache/intel",
     "failed_rss_sources": 0,
     "rss_failures": []
@@ -330,5 +332,25 @@
         "note_fa": "نمونه ecosystem."
       }
     ]
+  },
+  "botnet_c2_pulse": {
+    "enabled": true,
+    "ok": false,
+    "provider": "Feodo Tracker + SSLBL",
+    "level": "Unknown",
+    "summary_fa": "داده Botnet C2 Pulse در نمونه در دسترس نیست.",
+    "metadata_only": true,
+    "totals": {
+      "c2": 0,
+      "tls": 0,
+      "high": 0,
+      "families": 0,
+      "ports": 0
+    },
+    "c2": [],
+    "tls": [],
+    "family_chart": [],
+    "port_chart": [],
+    "tls_chart": []
   }
 }
