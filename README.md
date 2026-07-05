@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.11.1-infra-fallback**
+Current phase: **v0.4.12-supply-chain-radar**
 
 ## What changed in v0.4.8
 
@@ -116,3 +116,8 @@ Adds a passive infrastructure enrichment layer. SecPath Radar extracts public IP
 - Adds DShield top source IPs as passive infrastructure candidates.
 - Keeps candidate-only infrastructure rows when Shodan InternetDB has no record, so the radar does not render empty.
 - Tightens the Gemini JSON prompt and reduces AI payload size to reduce truncated JSON.
+
+
+## Supply Chain Radar
+
+This local, static radar adds passive open-source package advisory awareness from GitHub Global Security Advisories and OSV vulnerability reference pages. It does not accept package input, does not scan dependencies, and does not perform any user-driven workflow.

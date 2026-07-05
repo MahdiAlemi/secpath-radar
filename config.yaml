@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.11.1 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.12 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -41,6 +41,19 @@ intel:
     max_ips: 12
     shodan_base_url: "https://internetdb.shodan.io"
     dshield_top_ips_url: "https://feeds.dshield.org/feeds/topips.txt"
+  supply_chain:
+    enabled: true
+    max_advisories: 24
+    github_advisories_url: "https://api.github.com/advisories"
+    osv_base_url: "https://osv.dev/vulnerability"
+    ecosystems:
+      - npm
+      - pip
+      - maven
+      - go
+      - rust
+      - composer
+      - nuget
 
 cache:
   enabled: true

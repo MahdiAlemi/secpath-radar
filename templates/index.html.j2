@@ -38,7 +38,7 @@
         <div class="status-row"><span>Generated</span><b>{{ brief.generated_at }}</b></div>
         <div class="status-row"><span>HTTP cache</span><b>{% if brief.source_health.http_cache %}ON{% else %}OFF{% endif %}</b></div>
         <div class="status-row"><span>AI model</span><b>{% if brief.ai_status.enabled %}{{ brief.ai_status.model }}{% else %}disabled{% endif %}</b></div>
-        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield + IOC + InternetDB</b></div>
+        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield + IOC + InternetDB + Supply Chain</b></div>
       </aside>
     </header>
 
@@ -52,6 +52,7 @@
       <div class="metric text-metric"><span>Attack Pressure</span><strong>{{ brief.attack_pressure.level }}</strong><small>DShield telemetry</small></div>
       <div class="metric"><span>IOC Radar</span><strong>{{ brief.stats.iocs }}</strong><small>URLhaus + ThreatFox</small></div>
       <div class="metric"><span>Suspicious Infra</span><strong>{{ brief.stats.infrastructure_hosts }}</strong><small>Shodan InternetDB</small></div>
+      <div class="metric"><span>Supply Chain</span><strong>{{ brief.stats.supply_chain_advisories }}</strong><small>GitHub + OSV</small></div>
     </section>
 
     {% if brief.brief_notes | length > 0 %}
@@ -256,6 +257,66 @@
       <p class="source-note">این بخش فقط IPهای انتخاب‌شده از IOCهای همین اجرا را enrich می‌کند؛ هیچ جستجوی کاربر، اسکن فعال یا اقدام عملیاتی انجام نمی‌شود.</p>
     </section>
 
+    <section id="supply-chain-radar" class="panel supply-chain-panel" aria-label="Supply Chain Radar">
+      <div class="panel-head">
+        <div><span class="eyebrow">Supply Chain Radar</span><h2>آسیب‌پذیری‌های تازه اکوسیستم‌های نرم‌افزاری</h2></div>
+        <span class="count">{{ brief.supply_chain_radar.provider }} · {{ brief.supply_chain_radar.level }}</span>
+      </div>
+      <div class="pressure-summary">
+        <p>{{ brief.supply_chain_radar.summary_fa }}</p>
+        <div class="meta">
+          <span class="pill {% if brief.supply_chain_radar.ok %}green{% else %}amber{% endif %}">{% if brief.supply_chain_radar.ok %}supply telemetry ok{% else %}supply fallback{% endif %}</span>
+          <span class="pill">{{ brief.supply_chain_radar.totals.advisories }} advisory</span>
+          <span class="pill">{{ brief.supply_chain_radar.totals.ecosystems }} ecosystem</span>
+          <span class="pill">{{ brief.supply_chain_radar.totals.fixed }} fix available</span>
+        </div>
+      </div>
+
+      <div class="supply-chart-board" aria-label="نمودار Supply Chain Radar">
+        <div class="chart-panel chart-panel-wide">
+          <div class="chart-title"><span>Advisories by Ecosystem</span><small>GitHub reviewed advisories</small></div>
+          <div class="bar-chart compact-bars" role="img" aria-label="نمودار advisory بر اساس ecosystem">
+            {% for row in brief.supply_chain_radar.ecosystem_chart %}
+            <div class="bar-row risk-medium">
+              <div class="bar-label"><code>{{ row.count }}</code><span>{{ row.name }}</span></div>
+              <div class="bar-track"><span class="bar-fill" style="--bar: {{ row.bar_width }}%"></span></div>
+              <b>{{ row.count }}</b>
+            </div>
+            {% endfor %}
+            {% if brief.supply_chain_radar.ecosystem_chart | length == 0 %}<div class="chart-empty">داده‌ای برای نمودار supply chain موجود نیست.</div>{% endif %}
+          </div>
+        </div>
+        <div class="mini-chart-grid">
+          <div class="chart-panel">
+            <div class="chart-title"><span>Severity Split</span><small>critical / high / medium</small></div>
+            <div class="tiny-bars" aria-label="نمودار شدت advisory">
+              {% for row in brief.supply_chain_radar.severity_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title"><span>Top Packages</span><small>affected packages</small></div>
+            <div class="tiny-bars" aria-label="نمودار packageهای پرتکرار">
+              {% for row in brief.supply_chain_radar.package_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="supply-list" aria-label="فهرست advisoryهای supply chain">
+        {% for advisory in brief.supply_chain_radar.advisories %}
+        <article class="supply-row risk-{{ advisory.risk }}">
+          <div class="supply-main"><code>{{ advisory.package }}</code><span>{{ advisory.ecosystem }} · {{ advisory.severity }}</span></div>
+          <div class="bar-track"><span class="bar-fill" style="--bar: {{ advisory.bar_width }}%"></span></div>
+          <p>{{ advisory.summary }}</p>
+          <div class="infra-meta"><span>{{ advisory.ghsa_id }}</span>{% if advisory.cve_id %}<span>{{ advisory.cve_id }}</span>{% endif %}{% if advisory.fix_available %}<span>patched: {{ advisory.patched_version }}</span>{% else %}<span>patch unknown</span>{% endif %}</div>
+          <small>{{ advisory.note_fa }}</small>
+        </article>
+        {% endfor %}
+        {% if brief.supply_chain_radar.advisories | length == 0 %}<article class="supply-row empty">در این اجرا advisory قابل نمایش برای supply chain دریافت نشد.</article>{% endif %}
+      </div>
+      <p class="source-note">این بخش فقط advisory عمومی اکوسیستم‌ها را نمایش می‌دهد؛ dependency scan، ورودی package یا ارزیابی دارایی کاربر انجام نمی‌شود.</p>
+    </section>
+
     <div class="grid">
       <div class="stack">
         <section id="priority" class="panel priority">
@@ -342,7 +403,7 @@
 
         <section id="sources" class="panel">
           <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.intel_sources }} telemetry</span></div>
-          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span><span>Shodan InternetDB</span></div>
+          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span><span>Shodan InternetDB</span><span>GitHub Advisories</span><span>OSV References</span></div>
         </section>
       </aside>
     </div>

@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.11.1-infra-fallback",
+  "version": "v0.4.12-supply-chain-radar",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -14,7 +14,8 @@
     "kev": 0,
     "rss_sources": 18,
     "intel_sources": 1,
-    "infrastructure_hosts": 0
+    "infrastructure_hosts": 0,
+    "supply_chain_advisories": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -27,7 +28,7 @@
     "http_cache": true,
     "cache_ttl_minutes": 720,
     "ai_cache_dir": "data/cache/ai",
-    "intel_sources": 4,
+    "intel_sources": 6,
     "intel_cache_dir": "data/cache/intel"
   },
   "ai_status": {
@@ -193,5 +194,25 @@
     "hosts": [],
     "port_chart": [],
     "risk_chart": []
+  },
+  "supply_chain_radar": {
+    "enabled": true,
+    "ok": false,
+    "provider": "GitHub Global Advisories + OSV references",
+    "level": "Unknown",
+    "summary_fa": "داده Supply Chain Radar در نمونه محلی موجود نیست.",
+    "last_updated": "",
+    "refresh_hours": 1,
+    "totals": {
+      "advisories": 0,
+      "critical": 0,
+      "high": 0,
+      "fixed": 0,
+      "ecosystems": 0
+    },
+    "advisories": [],
+    "ecosystem_chart": [],
+    "severity_chart": [],
+    "package_chart": []
   }
 }
