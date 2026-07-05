@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.17-epss-vulnrichment",
+  "version": "v0.4.17.1-vulnrichment-polish",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -19,7 +19,12 @@
     "ransomware_victims": 0,
     "failed_rss_sources": 0,
     "epss_rising": 1,
-    "vulnrichment_hits": 1
+    "vulnrichment_hits": 1,
+    "epss_tracked": 1,
+    "epss_stable": 1,
+    "epss_falling": 0,
+    "vulnrichment_checked": 1,
+    "vulnrichment_missing": 0
   },
   "source_health": {
     "rss_sources": 18,

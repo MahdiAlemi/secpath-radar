@@ -1286,6 +1286,9 @@ fn enrich_vulnrichment(
 ) {
     eprintln!("→ fetching CISA Vulnrichment for selected CVEs");
     let mut checked = 0_usize;
+    let mut hits = 0_usize;
+    let mut missing = 0_usize;
+    let mut errors = 0_usize;
     for cve in cves.iter_mut() {
         if checked >= cve_config.max_vulnrichment {
             break;
@@ -1302,10 +1305,26 @@ fn enrich_vulnrichment(
             offline,
             refresh_cache,
         ) {
-            Ok(Some(enrichment)) => apply_cisa_vulnrichment(cve, enrichment),
-            Ok(None) => {}
-            Err(err) => eprintln!("⚠️  skipped CISA Vulnrichment {}: {err:#}", cve.cve_id),
+            Ok(Some(enrichment)) => {
+                hits += 1;
+                apply_cisa_vulnrichment(cve, enrichment);
+            }
+            Ok(None) => {
+                missing += 1;
+            }
+            Err(err) => {
+                errors += 1;
+                eprintln!(
+                    "⚠️  CISA Vulnrichment transport error for {}: {err:#}",
+                    cve.cve_id
+                );
+            }
         }
+    }
+    if checked > 0 {
+        eprintln!(
+            "  ↳ CISA Vulnrichment summary: {hits}/{checked} enriched, {missing} no-data, {errors} transport errors"
+        );
     }
 }
 
@@ -1332,11 +1351,8 @@ fn fetch_cisa_vulnrichment(
     ) {
         Ok(bytes) => bytes,
         Err(err) => {
-            let err_s = err.to_string();
-            if err_s.contains("404")
-                || err_s.contains("Not Found")
-                || err_s.contains("no cached response")
-            {
+            let err_s = format!("{err:#}");
+            if is_vulnrichment_no_data(&err_s) {
                 return Ok(None);
             }
             return Err(err);
@@ -1345,6 +1361,14 @@ fn fetch_cisa_vulnrichment(
     let json: Value =
         serde_json::from_slice(&bytes).context("invalid JSON from CISA Vulnrichment")?;
     Ok(extract_cisa_vulnrichment(&json))
+}
+
+fn is_vulnrichment_no_data(error_text: &str) -> bool {
+    let text = error_text.to_ascii_lowercase();
+    text.contains("404")
+        || text.contains("not found")
+        || text.contains("no cached response")
+        || text.contains("offline mode has no cached response")
 }
 
 fn vulnrichment_url(base_url: &str, cve_id: &str) -> Option<String> {
@@ -3905,8 +3929,16 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
         .filter(|c| c.severity == "CRITICAL" || c.cvss >= 9.0)
         .count();
     let kev_count = cves.iter().filter(|c| c.kev).count();
+    let epss_tracked = cves
+        .iter()
+        .filter(|c| c.epss > 0.0 || c.epss_percentile > 0.0)
+        .count();
     let epss_rising_count = cves.iter().filter(|c| c.epss_momentum == "rising").count();
+    let epss_stable_count = cves.iter().filter(|c| c.epss_momentum == "stable").count();
+    let epss_falling_count = cves.iter().filter(|c| c.epss_momentum == "falling").count();
+    let vulnrichment_checked = cve_count.min(config.cve.max_vulnrichment);
     let vulnrichment_hits = cves.iter().filter(|c| c.cisa_vulnrichment).count();
+    let vulnrichment_missing = vulnrichment_checked.saturating_sub(vulnrichment_hits);
 
     Ok(json!({
         "site_title": config.site.title,
@@ -3921,8 +3953,13 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "cves": cve_count,
             "critical_cves": critical_count,
             "kev": kev_count,
+            "epss_tracked": epss_tracked,
             "epss_rising": epss_rising_count,
+            "epss_stable": epss_stable_count,
+            "epss_falling": epss_falling_count,
+            "vulnrichment_checked": vulnrichment_checked,
             "vulnrichment_hits": vulnrichment_hits,
+            "vulnrichment_missing": vulnrichment_missing,
             "rss_sources": config.sources.len(),
             "intel_sources": intel_source_count(config)
         },
@@ -4726,7 +4763,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.17-epss-vulnrichment");
+    brief["version"] = json!("v0.4.17.1-vulnrichment-polish");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -4804,45 +4841,93 @@ fn apply_local_polish(brief: &mut Value) {
             .unwrap_or(0);
         brief["stats"]["supply_chain_advisories"] = json!(supply_total);
     }
+    let cve_items = brief
+        .get("cves")
+        .and_then(|items| items.as_array())
+        .cloned()
+        .unwrap_or_default();
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("epss_tracked"))
+        .is_none()
+    {
+        let tracked = cve_items
+            .iter()
+            .filter(|cve| {
+                cve.get("epss").and_then(|v| v.as_f64()).unwrap_or(0.0) > 0.0
+                    || cve
+                        .get("epss_percentile")
+                        .and_then(|v| v.as_f64())
+                        .unwrap_or(0.0)
+                        > 0.0
+            })
+            .count();
+        brief["stats"]["epss_tracked"] = json!(tracked);
+    }
     if brief
         .get("stats")
         .and_then(|v| v.get("epss_rising"))
         .is_none()
     {
-        let rising = brief
-            .get("cves")
-            .and_then(|items| items.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter(|cve| {
-                        cve.get("epss_momentum").and_then(|v| v.as_str()) == Some("rising")
-                    })
-                    .count()
-            })
-            .unwrap_or(0);
+        let rising = cve_items
+            .iter()
+            .filter(|cve| cve.get("epss_momentum").and_then(|v| v.as_str()) == Some("rising"))
+            .count();
         brief["stats"]["epss_rising"] = json!(rising);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("epss_stable"))
+        .is_none()
+    {
+        let stable = cve_items
+            .iter()
+            .filter(|cve| cve.get("epss_momentum").and_then(|v| v.as_str()) == Some("stable"))
+            .count();
+        brief["stats"]["epss_stable"] = json!(stable);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("epss_falling"))
+        .is_none()
+    {
+        let falling = cve_items
+            .iter()
+            .filter(|cve| cve.get("epss_momentum").and_then(|v| v.as_str()) == Some("falling"))
+            .count();
+        brief["stats"]["epss_falling"] = json!(falling);
     }
     if brief
         .get("stats")
         .and_then(|v| v.get("vulnrichment_hits"))
         .is_none()
     {
-        let hits = brief
-            .get("cves")
-            .and_then(|items| items.as_array())
-            .map(|items| {
-                items
-                    .iter()
-                    .filter(|cve| {
-                        cve.get("cisa_vulnrichment")
-                            .and_then(|v| v.as_bool())
-                            .unwrap_or(false)
-                    })
-                    .count()
+        let hits = cve_items
+            .iter()
+            .filter(|cve| {
+                cve.get("cisa_vulnrichment")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
             })
-            .unwrap_or(0);
+            .count();
         brief["stats"]["vulnrichment_hits"] = json!(hits);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("vulnrichment_checked"))
+        .is_none()
+    {
+        let checked = cve_items.len().min(10);
+        brief["stats"]["vulnrichment_checked"] = json!(checked);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("vulnrichment_missing"))
+        .is_none()
+    {
+        let checked = brief["stats"]["vulnrichment_checked"].as_u64().unwrap_or(0);
+        let hits = brief["stats"]["vulnrichment_hits"].as_u64().unwrap_or(0);
+        brief["stats"]["vulnrichment_missing"] = json!(checked.saturating_sub(hits));
     }
     if brief
         .get("stats")

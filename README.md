@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.17-epss-vulnrichment**
+Current phase: **v0.4.17.1-vulnrichment-polish**
 
 ## What changed in v0.4.8
 
@@ -159,6 +159,12 @@ This phase is a production UI redesign, not a data-source expansion.
 - AI status is no longer a prominent production UI element.
 - Source health is reduced to compact operational counts.
 - The dashboard remains static/read-only: no forms, no user inputs, and no workflow controls.
+
+## v0.4.17.1 — Vulnrichment No-Data Polish
+
+- Treat missing CISA Vulnrichment records as normal no-data instead of noisy warnings.
+- Add EPSS tracked/stable/falling counters and Vulnrichment checked/missing counters.
+- Keep the production UI compact when enrichment has no hits.
 
 ## v0.4.17 — EPSS Momentum + CISA Vulnrichment
 
