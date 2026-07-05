@@ -133,6 +133,8 @@ struct IntelConfig {
     botnet_c2: BotnetC2Config,
     #[serde(default)]
     greynoise: GreyNoiseConfig,
+    #[serde(default)]
+    phishing: PhishingPulseConfig,
 }
 
 impl Default for IntelConfig {
@@ -149,6 +151,7 @@ impl Default for IntelConfig {
             ransomware: RansomwareConfig::default(),
             botnet_c2: BotnetC2Config::default(),
             greynoise: GreyNoiseConfig::default(),
+            phishing: PhishingPulseConfig::default(),
         }
     }
 }
@@ -483,6 +486,38 @@ fn default_greynoise_community_api_url() -> String {
 
 fn default_greynoise_api_key_env() -> String {
     "GREYNOISE_API_KEY".to_string()
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct PhishingPulseConfig {
+    #[serde(default = "default_phishing_enabled")]
+    enabled: bool,
+    #[serde(default = "default_phishing_max_urls")]
+    max_urls: usize,
+    #[serde(default = "default_openphish_feed_url")]
+    openphish_feed_url: String,
+}
+
+impl Default for PhishingPulseConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_phishing_enabled(),
+            max_urls: default_phishing_max_urls(),
+            openphish_feed_url: default_openphish_feed_url(),
+        }
+    }
+}
+
+fn default_phishing_enabled() -> bool {
+    true
+}
+
+fn default_phishing_max_urls() -> usize {
+    24
+}
+
+fn default_openphish_feed_url() -> String {
+    "https://openphish.com/feed.txt".to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -845,6 +880,23 @@ struct GreyNoiseCandidate {
     reason: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct PhishingUrlIndicator {
+    rank: usize,
+    url_safe: String,
+    host_safe: String,
+    host: String,
+    tld: String,
+    brand_hint: String,
+    scheme: String,
+    path_depth: usize,
+    source: String,
+    risk: String,
+    score: usize,
+    bar_width: usize,
+    note_fa: String,
+}
+
 fn parse_args() -> Result<Args> {
     let mut args = Args::default();
     let mut iter = env::args().skip(1);
@@ -1025,6 +1077,13 @@ fn main() -> Result<()> {
         brief["stats"]["greynoise_malicious"] = json!(greynoise_malicious);
         brief["stats"]["greynoise_riot"] = json!(greynoise_riot);
         brief["greynoise_context"] = greynoise_context;
+
+        let phishing_pulse =
+            fetch_phishing_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        brief["stats"]["phishing_urls"] = json!(path_u64(&phishing_pulse, &["totals", "urls"]));
+        brief["stats"]["phishing_high"] = json!(path_u64(&phishing_pulse, &["totals", "high"]));
+        brief["stats"]["phishing_tlds"] = json!(path_u64(&phishing_pulse, &["totals", "tlds"]));
+        brief["phishing_pulse"] = phishing_pulse;
 
         let executive_snapshot = build_executive_snapshot(&brief);
         brief["executive_snapshot"] = executive_snapshot;
@@ -4136,6 +4195,331 @@ fn empty_botnet_c2_pulse(status: &str) -> Value {
     })
 }
 
+fn fetch_phishing_pulse_or_fallback(config: &Config, offline: bool, refresh_cache: bool) -> Value {
+    if !config.intel.enabled || !config.intel.phishing.enabled {
+        return empty_phishing_pulse("disabled");
+    }
+
+    match fetch_phishing_pulse(config, offline, refresh_cache) {
+        Ok(value) => value,
+        Err(err) => {
+            eprintln!("⚠️  Phishing Pulse skipped: {err:#}");
+            empty_phishing_pulse("error")
+        }
+    }
+}
+
+fn fetch_phishing_pulse(config: &Config, offline: bool, refresh_cache: bool) -> Result<Value> {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(22))
+        .user_agent(&config.fetch.user_agent)
+        .build()
+        .context("failed to build HTTP client for Phishing Pulse")?;
+
+    let cfg = &config.intel.phishing;
+    eprintln!("→ fetching Phishing Pulse");
+    let bytes = get_bytes_cached_intel(
+        &client,
+        config,
+        &cfg.openphish_feed_url,
+        "OpenPhish community feed",
+        offline,
+        refresh_cache,
+    )?;
+    let text = String::from_utf8_lossy(&bytes);
+    let mut indicators = parse_openphish_feed(&text, cfg.max_urls);
+    finalize_phishing_indicators(&mut indicators);
+
+    let high = indicators.iter().filter(|item| item.risk == "high").count();
+    let tlds = indicators
+        .iter()
+        .map(|item| item.tld.clone())
+        .collect::<HashSet<_>>()
+        .len();
+    let brands = indicators
+        .iter()
+        .map(|item| item.brand_hint.clone())
+        .collect::<HashSet<_>>()
+        .len();
+    let tld_chart = phishing_tld_chart(&indicators, 8);
+    let brand_chart = phishing_brand_chart(&indicators, 8);
+    let risk_chart = phishing_risk_chart(&indicators);
+    let level = if high >= 6 {
+        "High"
+    } else if indicators.len() >= 10 {
+        "Medium"
+    } else if indicators.is_empty() {
+        "Unknown"
+    } else {
+        "Watch"
+    };
+    let summary_fa = if indicators.is_empty() {
+        "در این اجرا URL فیشینگ تازه‌ای از feed عمومی دریافت نشد.".to_string()
+    } else if high > 0 {
+        format!("{} URL فیشینگ فعال از OpenPhish دریافت شد؛ {} مورد پرریسک lexical/host دیده می‌شود. همه URLها defanged هستند.", indicators.len(), high)
+    } else {
+        format!("{} URL فیشینگ فعال از OpenPhish دریافت شد؛ خروجی فقط برای آگاهی و correlation دفاعی است.", indicators.len())
+    };
+
+    Ok(json!({
+        "enabled": true,
+        "ok": true,
+        "provider": "OpenPhish Community Feed",
+        "level": level,
+        "summary_fa": summary_fa,
+        "last_updated": Local::now().format("%Y-%m-%d %H:%M").to_string(),
+        "metadata_only": true,
+        "defanged": true,
+        "totals": {
+            "urls": indicators.len(),
+            "high": high,
+            "tlds": tlds,
+            "brands": brands
+        },
+        "urls": indicators,
+        "tld_chart": tld_chart,
+        "brand_chart": brand_chart,
+        "risk_chart": risk_chart,
+    }))
+}
+
+fn parse_openphish_feed(text: &str, limit: usize) -> Vec<PhishingUrlIndicator> {
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for line in text.lines() {
+        let url = line.trim().trim_matches('"').trim_matches('\'');
+        if url.is_empty() || url.starts_with('#') || !url.contains('.') {
+            continue;
+        }
+        let Some(host) = phishing_host(url) else {
+            continue;
+        };
+        if !seen.insert(url.to_string()) {
+            continue;
+        }
+        let tld = phishing_tld(&host);
+        let brand_hint = phishing_brand_hint(url, &host);
+        let scheme = if url.to_lowercase().starts_with("https://") {
+            "https"
+        } else if url.to_lowercase().starts_with("http://") {
+            "http"
+        } else {
+            "unknown"
+        };
+        let path_depth = phishing_path_depth(url);
+        let score = phishing_score(url, &host, scheme, path_depth, &brand_hint);
+        let risk = if score >= 76 {
+            "high"
+        } else if score >= 52 {
+            "medium"
+        } else {
+            "watch"
+        };
+        out.push(PhishingUrlIndicator {
+            rank: 0,
+            url_safe: defang_indicator(url),
+            host_safe: defang_indicator(&host),
+            host,
+            tld,
+            brand_hint,
+            scheme: scheme.to_string(),
+            path_depth,
+            source: "OpenPhish".to_string(),
+            risk: risk.to_string(),
+            score,
+            bar_width: score.clamp(12, 100),
+            note_fa: "URL فیشینگ به‌صورت defanged نمایش داده شده؛ آن را باز نکن و فقط برای correlation دفاعی استفاده کن.".to_string(),
+        });
+        if out.len() >= limit.max(1) {
+            break;
+        }
+    }
+    out
+}
+
+fn phishing_host(url: &str) -> Option<String> {
+    let mut rest = url.trim();
+    if let Some(idx) = rest.find("://") {
+        rest = &rest[idx + 3..];
+    }
+    if let Some(idx) = rest.find('@') {
+        rest = &rest[idx + 1..];
+    }
+    let host_port = rest
+        .split(|ch| ch == '/' || ch == '?' || ch == '#')
+        .next()
+        .unwrap_or("");
+    let host = host_port
+        .trim_matches('[')
+        .trim_matches(']')
+        .split(':')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .trim_start_matches("www.")
+        .to_lowercase();
+    if host.is_empty() || !host.contains('.') {
+        None
+    } else {
+        Some(truncate_chars(&host, 80))
+    }
+}
+
+fn phishing_tld(host: &str) -> String {
+    host.rsplit('.')
+        .next()
+        .filter(|part| !part.is_empty())
+        .map(|part| truncate_chars(part, 16))
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn phishing_path_depth(url: &str) -> usize {
+    let rest = if let Some(idx) = url.find("://") {
+        &url[idx + 3..]
+    } else {
+        url
+    };
+    let path = rest.splitn(2, '/').nth(1).unwrap_or("");
+    path.split('/')
+        .filter(|part| !part.trim().is_empty())
+        .count()
+}
+
+fn phishing_brand_hint(url: &str, host: &str) -> String {
+    let lower = format!("{} {}", url.to_lowercase(), host.to_lowercase());
+    let pairs = [
+        ("microsoft", "Microsoft/Cloud"),
+        ("office", "Microsoft/Cloud"),
+        ("outlook", "Microsoft/Cloud"),
+        ("onedrive", "Microsoft/Cloud"),
+        ("paypal", "Payments"),
+        ("bank", "Banking"),
+        ("wallet", "Crypto/Wallet"),
+        ("crypto", "Crypto/Wallet"),
+        ("facebook", "Meta/Social"),
+        ("instagram", "Meta/Social"),
+        ("meta", "Meta/Social"),
+        ("google", "Google/Cloud"),
+        ("apple", "Apple"),
+        ("amazon", "Amazon/Retail"),
+        ("netflix", "Streaming"),
+        ("telegram", "Messaging"),
+        ("whatsapp", "Messaging"),
+        ("login", "Credential Harvest"),
+        ("verify", "Credential Harvest"),
+        ("account", "Credential Harvest"),
+    ];
+    for (needle, label) in pairs {
+        if lower.contains(needle) {
+            return label.to_string();
+        }
+    }
+    "Unknown target".to_string()
+}
+
+fn phishing_score(
+    url: &str,
+    host: &str,
+    scheme: &str,
+    path_depth: usize,
+    brand_hint: &str,
+) -> usize {
+    let mut score = 42_usize;
+    let lower = url.to_lowercase();
+    if scheme == "http" {
+        score += 10;
+    }
+    if host.chars().filter(|ch| *ch == '.').count() >= 3 {
+        score += 8;
+    }
+    if host.split('.').any(|part| part.parse::<u8>().is_ok()) {
+        score += 10;
+    }
+    if path_depth >= 4 {
+        score += 10;
+    }
+    if lower.len() > 120 {
+        score += 8;
+    }
+    for needle in [
+        "login", "verify", "account", "secure", "update", "wallet", "password", "invoice",
+    ] {
+        if lower.contains(needle) {
+            score += 6;
+            break;
+        }
+    }
+    if brand_hint != "Unknown target" {
+        score += 8;
+    }
+    score.min(100).max(12)
+}
+
+fn finalize_phishing_indicators(items: &mut [PhishingUrlIndicator]) {
+    items.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.host.cmp(&b.host)));
+    let max_score = items
+        .iter()
+        .map(|item| item.score)
+        .max()
+        .unwrap_or(1)
+        .max(1);
+    for (idx, item) in items.iter_mut().enumerate() {
+        item.rank = idx + 1;
+        item.url_safe = defang_indicator(
+            &item
+                .url_safe
+                .replace("hxxps://", "https://")
+                .replace("hxxp://", "http://")
+                .replace("[.]", "."),
+        );
+        item.host_safe = defang_indicator(&item.host);
+        item.bar_width =
+            (((item.score as f64 / max_score as f64) * 100.0).round() as usize).clamp(12, 100);
+    }
+}
+
+fn phishing_tld_chart(items: &[PhishingUrlIndicator], limit: usize) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for item in items {
+        *counts.entry(item.tld.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, limit)
+}
+
+fn phishing_brand_chart(items: &[PhishingUrlIndicator], limit: usize) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for item in items {
+        *counts.entry(item.brand_hint.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, limit)
+}
+
+fn phishing_risk_chart(items: &[PhishingUrlIndicator]) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for item in items {
+        *counts.entry(item.risk.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, 4)
+}
+
+fn empty_phishing_pulse(status: &str) -> Value {
+    json!({
+        "enabled": status != "disabled",
+        "ok": false,
+        "provider": "OpenPhish Community Feed",
+        "level": "Unknown",
+        "summary_fa": "داده Phishing Pulse در این اجرا در دسترس نبود.",
+        "last_updated": "",
+        "metadata_only": true,
+        "defanged": true,
+        "totals": {"urls": 0, "high": 0, "tlds": 0, "brands": 0},
+        "urls": [],
+        "tld_chart": [],
+        "brand_chart": [],
+        "risk_chart": []
+    })
+}
+
 fn fetch_supply_chain_radar_or_fallback(
     config: &Config,
     offline: bool,
@@ -4948,6 +5332,9 @@ fn intel_source_count(config: &Config) -> usize {
     if config.intel.greynoise.enabled {
         count += 1;
     }
+    if config.intel.phishing.enabled {
+        count += 1;
+    }
     count
 }
 
@@ -5025,6 +5412,9 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "greynoise_noise": 0,
             "greynoise_malicious": 0,
             "greynoise_riot": 0,
+            "phishing_urls": 0,
+            "phishing_high": 0,
+            "phishing_tlds": 0,
             "rss_sources": config.sources.len(),
             "intel_sources": intel_source_count(config)
         },
@@ -5616,6 +6006,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
     let malicious_tls = stat_u64(brief, "malicious_tls");
     let greynoise_noise = stat_u64(brief, "greynoise_noise");
     let greynoise_malicious = stat_u64(brief, "greynoise_malicious");
+    let phishing_urls = stat_u64(brief, "phishing_urls");
+    let phishing_high = stat_u64(brief, "phishing_high");
     let infrastructure_hosts = stat_u64(brief, "infrastructure_hosts");
     let supply_advisories = stat_u64(brief, "supply_chain_advisories");
     let ransomware_victims = stat_u64(brief, "ransomware_victims");
@@ -5634,6 +6026,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         + malicious_tls.min(20)
         + greynoise_noise.min(20)
         + greynoise_malicious * 12
+        + phishing_urls.min(20)
+        + phishing_high * 6
         + infrastructure_hosts.min(25)
         + infra_high * 10
         + supply_critical * 12
@@ -5649,6 +6043,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         + malicious_tls.min(20)
         + greynoise_noise.min(20)
         + greynoise_malicious * 12
+        + phishing_urls.min(20)
+        + phishing_high * 6
         + infrastructure_hosts.min(25)
         + infra_high * 10)
         .min(100)
@@ -5662,13 +6058,15 @@ fn build_executive_snapshot(brief: &Value) -> Value {
     let top_ioc = first_chart_entry(brief, &["ioc_radar", "malware_chart"])
         .or_else(|| first_chart_entry(brief, &["ioc_radar", "source_chart"]))
         .unwrap_or_else(|| ("بدون IOC برجسته".to_string(), 0));
+    let top_phishing = first_chart_entry(brief, &["phishing_pulse", "brand_chart"])
+        .unwrap_or_else(|| ("بدون phishing برجسته".to_string(), 0));
     let top_ransomware = first_chart_entry(brief, &["ransomware_pulse", "group_chart"])
         .unwrap_or_else(|| ("بدون گروه برجسته".to_string(), 0));
     let top_supply = first_chart_entry(brief, &["supply_chain_radar", "severity_chart"])
         .unwrap_or_else(|| ("بدون severity برجسته".to_string(), 0));
 
     let impact_a = cves + critical_cves + kev;
-    let impact_b = iocs + infrastructure_hosts + botnet_c2 + malicious_tls;
+    let impact_b = iocs + infrastructure_hosts + botnet_c2 + malicious_tls + phishing_urls;
     let impact_c = supply_advisories + ransomware_victims;
     let impact_max = impact_a.max(impact_b).max(impact_c).max(1);
 
@@ -5679,8 +6077,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         "bar_width": score.max(12),
         "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
         "summary_fa": format!(
-            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} C2 botnet، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
-            total_items, cves, iocs, botnet_c2, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
+            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} C2 botnet، {} URL فیشینگ، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
+            total_items, cves, iocs, botnet_c2, phishing_urls, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
         ),
         "risk_cards": [
             {
@@ -5692,10 +6090,10 @@ fn build_executive_snapshot(brief: &Value) -> Value {
             },
             {
                 "title": "IOC و زیرساخت مشکوک",
-                "metric": format!("{} IOC / {} C2 / {} GN noise", iocs, botnet_c2, greynoise_noise),
+                "metric": format!("{} IOC / {} C2 / {} phish", iocs, botnet_c2, phishing_urls),
                 "level": snapshot_level(intel_score),
                 "bar_width": intel_score,
-                "note_fa": if greynoise_malicious > 0 { "GreyNoise برای برخی IPها classification بدخواه داده و با C2/IOC باید correlation شود." } else if botnet_c2 > 0 { "سیگنال‌های C2 و زیرساخت برای correlation دفاعی کنار هم دیده می‌شوند." } else if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
+                "note_fa": if phishing_high > 0 { "URLهای فیشینگ defanged کنار IOC/C2 برای correlation دفاعی آمده‌اند." } else if greynoise_malicious > 0 { "GreyNoise برای برخی IPها classification بدخواه داده و با C2/IOC باید correlation شود." } else if botnet_c2 > 0 { "سیگنال‌های C2 و زیرساخت برای correlation دفاعی کنار هم دیده می‌شوند." } else if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
             },
             {
                 "title": "Supply Chain و Ransomware",
@@ -5715,10 +6113,10 @@ fn build_executive_snapshot(brief: &Value) -> Value {
             },
             {
                 "title": "IOC Pattern",
-                "metric": format!("{} · {}", top_ioc.0, top_ioc.1),
-                "level": if top_ioc.1 >= 5 { "high" } else if top_ioc.1 >= 2 { "medium" } else { "watch" },
-                "bar_width": ((top_ioc.1 * 20).min(100)).max(12),
-                "note_fa": "بیشترین الگوی IOC برای triage و correlation دفاعی نمایش داده شده است."
+                "metric": format!("{} · {} | {} · {}", top_ioc.0, top_ioc.1, top_phishing.0, top_phishing.1),
+                "level": if phishing_high >= 4 || top_ioc.1 >= 5 { "high" } else if phishing_urls >= 10 || top_ioc.1 >= 2 { "medium" } else { "watch" },
+                "bar_width": ((top_ioc.1 * 12 + phishing_high * 10 + phishing_urls.min(20)).min(100)).max(12),
+                "note_fa": "بیشترین الگوی IOC و phishing برای triage و correlation دفاعی نمایش داده شده است."
             },
             {
                 "title": "Ransomware / Ecosystem",
@@ -5736,7 +6134,7 @@ fn build_executive_snapshot(brief: &Value) -> Value {
                 "note_fa": "هسته اولویت‌بندی CVE و exploitability."
             },
             {
-                "name": "DShield + abuse.ch + SSLBL + InternetDB + GreyNoise",
+                "name": "DShield + abuse.ch + SSLBL + OpenPhish + InternetDB + GreyNoise",
                 "count": impact_b,
                 "bar_width": relative_width(impact_b, impact_max),
                 "note_fa": "فشار حمله، IOC و زیرساخت قابل مشاهده."
@@ -5842,7 +6240,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.19.1-greynoise-offline-cache");
+    brief["version"] = json!("v0.4.20-phishing-pulse");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -5887,6 +6285,9 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief.get("greynoise_context").is_none() {
         brief["greynoise_context"] = empty_greynoise_context("missing");
+    }
+    if brief.get("phishing_pulse").is_none() {
+        brief["phishing_pulse"] = empty_phishing_pulse("missing");
     }
     if brief.get("executive_snapshot").is_none() {
         brief["executive_snapshot"] = json!({});
@@ -6068,6 +6469,30 @@ fn apply_local_polish(brief: &mut Value) {
     {
         brief["stats"]["greynoise_riot"] =
             json!(path_u64(brief, &["greynoise_context", "totals", "riot"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("phishing_urls"))
+        .is_none()
+    {
+        brief["stats"]["phishing_urls"] =
+            json!(path_u64(brief, &["phishing_pulse", "totals", "urls"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("phishing_high"))
+        .is_none()
+    {
+        brief["stats"]["phishing_high"] =
+            json!(path_u64(brief, &["phishing_pulse", "totals", "high"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("phishing_tlds"))
+        .is_none()
+    {
+        brief["stats"]["phishing_tlds"] =
+            json!(path_u64(brief, &["phishing_pulse", "totals", "tlds"]));
     }
 
     polish_priority(brief);

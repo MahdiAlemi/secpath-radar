@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.19.1-greynoise-offline-cache",
+  "version": "v0.4.20-phishing-pulse",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -29,7 +29,10 @@
     "malicious_tls": 0,
     "greynoise_noise": 1,
     "greynoise_malicious": 0,
-    "greynoise_riot": 0
+    "greynoise_riot": 0,
+    "phishing_urls": 0,
+    "phishing_high": 0,
+    "phishing_tlds": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -405,5 +408,25 @@
         "bar_width": 100
       }
     ]
+  },
+  "phishing_pulse": {
+    "enabled": true,
+    "ok": false,
+    "provider": "OpenPhish Community Feed",
+    "level": "Unknown",
+    "summary_fa": "داده Phishing Pulse در این اجرا در دسترس نبود.",
+    "last_updated": "",
+    "metadata_only": true,
+    "defanged": true,
+    "totals": {
+      "urls": 0,
+      "high": 0,
+      "tlds": 0,
+      "brands": 0
+    },
+    "urls": [],
+    "tld_chart": [],
+    "brand_chart": [],
+    "risk_chart": []
   }
 }

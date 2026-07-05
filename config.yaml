@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.19 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.20 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -77,6 +77,10 @@ intel:
     max_lookups: 8
     community_api_url: "https://api.greynoise.io/v3/community"
     api_key_env: "GREYNOISE_API_KEY"
+  phishing:
+    enabled: true
+    max_urls: 24
+    openphish_feed_url: "https://openphish.com/feed.txt"
 
 cache:
   enabled: true

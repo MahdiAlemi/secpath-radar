@@ -24,7 +24,7 @@
       <div>
         <span class="eyebrow">نمای عملیاتی فشرده</span>
         <h1>داشبورد امنیت سایبری امروز</h1>
-        <p>خلاصه تولیدی و سه‌ستونه از خبر، آسیب‌پذیری، فشار حمله، IOC، زیرساخت مشکوک، زنجیره تأمین، botnet C2 و باج‌افزار؛ بدون کنترل تعاملی و بدون اطلاعات اضافه غیرضروری.</p>
+        <p>خلاصه تولیدی و سه‌ستونه از خبر، آسیب‌پذیری، فشار حمله، IOC، زیرساخت مشکوک، زنجیره تأمین، botnet C2، فیشینگ و باج‌افزار؛ بدون کنترل تعاملی و بدون اطلاعات اضافه غیرضروری.</p>
       </div>
       <div class="hero-score risk-{{ brief.executive_snapshot.level }}">
         <span>امتیاز ریسک</span>
@@ -42,6 +42,7 @@
       <div><span>IOC</span><b>{{ brief.stats.iocs }}</b></div>
       <div><span>Botnet C2</span><b>{{ brief.stats.botnet_c2 }}</b><small>{{ brief.stats.malicious_tls }} TLS</small></div>
       <div><span>GreyNoise</span><b>{{ brief.stats.greynoise_noise }}</b><small>{{ brief.stats.greynoise_malicious }} malicious</small></div>
+      <div><span>Phishing</span><b>{{ brief.stats.phishing_urls }}</b><small>{{ brief.stats.phishing_high }} high</small></div>
       <div><span>زیرساخت</span><b>{{ brief.stats.infrastructure_hosts }}</b></div>
       <div><span>زنجیره تأمین</span><b>{{ brief.stats.supply_chain_advisories }}</b></div>
       <div><span>Ransomware</span><b>{{ brief.stats.ransomware_victims }}</b></div>
@@ -159,6 +160,27 @@
           <div class="indicator-list">
             {% for ioc in brief.ioc_radar.urlhaus %}{% if loop.index <= 4 %}<code>{{ ioc.indicator_safe }}</code>{% endif %}{% endfor %}
             {% for ioc in brief.ioc_radar.threatfox %}{% if loop.index <= 3 %}<code>{{ ioc.indicator_safe }}</code>{% endif %}{% endfor %}
+          </div>
+        </section>
+
+        <section id="phishing-pulse" class="panel" aria-label="Phishing Pulse">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">Phishing</span><h2>URLهای فیشینگ</h2></div>
+            <span class="count">{{ brief.phishing_pulse.totals.urls }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.phishing_pulse.summary_fa }}</p>
+          <div class="tiny-bars split-two">
+            {% for row in brief.phishing_pulse.brand_chart %}{% if loop.index <= 5 %}<div class="risk-{% if row.name == 'Unknown target' %}watch{% else %}medium{% endif %}"><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endif %}{% endfor %}
+          </div>
+          <div class="compact-list">
+            {% for item in brief.phishing_pulse.urls %}{% if loop.index <= 4 %}
+            <article class="row-card risk-{{ item.risk }}">
+              <div class="row-main"><b>{{ item.host_safe }}</b><span>{{ item.brand_hint }} · .{{ item.tld }}</span></div>
+              <div class="meter"><span style="--bar: {{ item.bar_width }}%"></span></div>
+              <div class="meta-row"><small>{{ item.source }}</small><small>{{ item.scheme }}</small><small>defanged only</small></div>
+            </article>
+            {% endif %}{% endfor %}
+            {% if brief.phishing_pulse.urls | length == 0 %}<article class="empty-row">URL فیشینگ تازه‌ای در cache فعلی دیده نشد.</article>{% endif %}
           </div>
         </section>
 
