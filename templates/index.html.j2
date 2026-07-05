@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ brief.site_title }} — {{ brief.date_fa }}</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="assets/css/radar.css" />
   <script src="assets/js/radar.js" defer></script>
 </head>
@@ -469,8 +470,15 @@
         </section>
 
         <section id="sources" class="panel">
-          <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.intel_sources }} telemetry</span></div>
+          <div class="panel-head"><div><span class="eyebrow">Source Health</span><h2>پوشش و سلامت منابع</h2></div><span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.intel_sources }} telemetry · {% if brief.source_health.failed_rss_sources is defined %}{{ brief.source_health.failed_rss_sources }}{% else %}0{% endif %} skipped</span></div>
           <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span><span>Shodan InternetDB</span><span>GitHub Advisories</span><span>OSV References</span><span>Ransomware.live</span></div>
+          {% if brief.source_health.rss_failures is defined and brief.source_health.rss_failures | length > 0 %}
+          <div class="failure-board" aria-label="Skipped RSS sources">
+            {% for failure in brief.source_health.rss_failures %}<div class="failure-item"><b>{{ failure.name }}</b><span>{{ failure.error }}</span></div>{% endfor %}
+          </div>
+          {% else %}
+          <p class="source-note">در این اجرا خطای RSS قابل نمایش ثبت نشده است.</p>
+          {% endif %}
         </section>
       </aside>
     </div>

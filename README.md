@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.13.1-ransomware-fix**
+Current phase: **v0.4.14.4-sans-isc-title-feed**
 
 ## What changed in v0.4.8
 
@@ -60,7 +60,7 @@ http://localhost:8000
 
 ## Current source set
 
-Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecurity, The Hacker News, Dark Reading, SANS ISC, Cisco advisories, Cisco Talos, Microsoft Security Blog, Google security blogs, Cloudflare Security, Unit 42, Rapid7, CERT/CC, Infosecurity Magazine, and PortSwigger Research.
+Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecurity, The Hacker News, Zero Day Initiative, SANS ISC, Cisco advisories, Cisco Talos, Microsoft Security Blog, Google Online Security Blog, ProjectDiscovery Blog, Cloudflare Security, Unit 42, Rapid7, CERT/CC, Infosecurity Magazine, and PortSwigger Research.
 
 NVD, CISA KEV, and EPSS are still used by the CVE engine.
 
@@ -123,8 +123,22 @@ Adds a passive infrastructure enrichment layer. SecPath Radar extracts public IP
 This local, static radar adds passive open-source package advisory awareness from GitHub Global Security Advisories and OSV vulnerability reference pages. It does not accept package input, does not scan dependencies, and does not perform any user-driven workflow.
 
 
-## v0.4.13 — Ransomware Pulse
+## v0.4.14 — Source Hygiene + Reliability
 
-Adds a passive, high-level ransomware activity radar from the public Ransomware.live API. The dashboard shows aggregate counts, active groups, country/sector distribution, and a short recent-claims list. It intentionally does **not** link to leak sites, onion addresses, stolen data, negotiation chats, or victim content. This is a defensive situational-awareness panel only.
+Replaces unreliable RSS sources with current feeds, adds a static SVG favicon, surfaces RSS source-health details in the JSON/UI, and adds a Gemini JSON repair pass for malformed AI responses. The dashboard remains a static observational radar with no user input or deployment changes.
 
-Ransomware Pulse remains read-only: no forms, no search, no filters, no user input, and no deployment changes.
+## v0.4.14.1 — AI Offline Guard
+
+When `--offline --ai` is used and there is no matching Gemini cache for the current compact brief, SecPath Radar no longer attempts a network call. It records a local AI-status fallback and renders the site from deterministic local polish.
+
+
+## v0.4.14.4 — SANS ISC Title Feed
+
+- Switches SANS ISC from the full-text feed to the official title-only diary RSS feed to avoid malformed/empty full-text responses from producing RSS parse failures.
+- Keeps SANS ISC as a public RSS source while improving Source Health reliability.
+
+## v0.4.14.3 — AI Status Consistency
+
+- Keeps offline AI guard fully network-free.
+- Reports `ai_status.ok=false` when no matching Gemini cache exists in offline mode.
+- Keeps `calls_used=0` and renders with local fallback.

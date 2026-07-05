@@ -412,6 +412,13 @@ struct SourceConfig {
     url: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct SourceFailure {
+    name: String,
+    url: String,
+    error: String,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 struct CveConfig {
     #[serde(default = "default_max_cves")]
@@ -700,10 +707,10 @@ fn main() -> Result<()> {
     let mut gemini_calls_used = 0_u8;
 
     let mut brief = if network_mode {
-        let items = if args.fetch {
+        let (items, rss_failures) = if args.fetch {
             fetch_and_score(&config, args.offline, args.refresh_cache)?
         } else {
-            Vec::new()
+            (Vec::new(), Vec::new())
         };
 
         let cves = if args.cves {
@@ -719,6 +726,9 @@ fn main() -> Result<()> {
         };
 
         let mut brief = build_brief(&config, items, cves)?;
+        brief["source_health"]["failed_rss_sources"] = json!(rss_failures.len());
+        brief["source_health"]["rss_failures"] = json!(rss_failures);
+        brief["stats"]["failed_rss_sources"] = brief["source_health"]["failed_rss_sources"].clone();
         let attack_pressure =
             fetch_attack_pressure_or_fallback(&config, args.offline, args.refresh_cache);
         brief["attack_pressure"] = attack_pressure;
@@ -773,7 +783,7 @@ fn main() -> Result<()> {
     };
 
     if args.ai {
-        match enhance_brief_with_gemini(&config, &brief, args.refresh_ai) {
+        match enhance_brief_with_gemini(&config, &brief, args.refresh_ai, args.offline) {
             Ok(result) => {
                 brief = result.brief;
                 gemini_calls_used = result.calls_used;
@@ -829,7 +839,11 @@ fn load_config(path: &PathBuf) -> Result<Config> {
     serde_yaml::from_str(&raw).with_context(|| format!("invalid YAML in {}", path.display()))
 }
 
-fn fetch_and_score(config: &Config, offline: bool, refresh_cache: bool) -> Result<Vec<FeedItem>> {
+fn fetch_and_score(
+    config: &Config,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<(Vec<FeedItem>, Vec<SourceFailure>)> {
     let client = Client::builder()
         .user_agent(&config.fetch.user_agent)
         .timeout(Duration::from_secs(18))
@@ -838,13 +852,21 @@ fn fetch_and_score(config: &Config, offline: bool, refresh_cache: bool) -> Resul
 
     let mut seen = HashSet::new();
     let mut all = Vec::new();
+    let mut failures = Vec::new();
 
     for source in &config.sources {
         eprintln!("→ fetching {}", source.name);
 
         match fetch_source(&client, source, config, offline, refresh_cache) {
             Ok(mut items) => all.append(&mut items),
-            Err(err) => eprintln!("⚠️  skipped {}: {err:#}", source.name),
+            Err(err) => {
+                eprintln!("⚠️  skipped {}: {err:#}", source.name);
+                failures.push(SourceFailure {
+                    name: source.name.clone(),
+                    url: source.url.clone(),
+                    error: source_error_summary(&err.to_string()),
+                });
+            }
         }
 
         thread::sleep(Duration::from_millis(config.fetch.sleep_ms_between_sources));
@@ -862,7 +884,12 @@ fn fetch_and_score(config: &Config, offline: bool, refresh_cache: bool) -> Resul
     deduped.truncate(config.fetch.max_total_items);
 
     eprintln!("✅ fetched+deduped RSS: {} items", deduped.len());
-    Ok(deduped)
+    Ok((deduped, failures))
+}
+
+fn source_error_summary(error: &str) -> String {
+    let compact = clean_text(error);
+    truncate_chars(&compact, 160)
 }
 
 fn fetch_source(
@@ -3542,6 +3569,8 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
         "source_health": {
             "rss_sources": config.sources.len(),
             "source_names": config.sources.iter().map(|source| source.name.clone()).collect::<Vec<_>>(),
+            "failed_rss_sources": 0,
+            "rss_failures": [],
             "http_cache": config.cache.enabled,
             "cache_ttl_minutes": config.cache.ttl_minutes,
             "ai_cache_dir": config.gemini.cache_dir.clone(),
@@ -3625,6 +3654,7 @@ fn enhance_brief_with_gemini(
     config: &Config,
     brief: &Value,
     refresh_ai: bool,
+    offline: bool,
 ) -> Result<GeminiEditResult> {
     let compact = compact_brief_for_ai(config, brief);
     let cache_key = ai_cache_key(&config.gemini.model, &compact);
@@ -3640,23 +3670,26 @@ fn enhance_brief_with_gemini(
         }
     }
 
+    if offline {
+        let edited = mark_ai_status(
+            brief.clone(),
+            false,
+            false,
+            &config.gemini.model,
+            0,
+            Some("offline mode has no matching Gemini cache".to_string()),
+        );
+        return Ok(GeminiEditResult {
+            brief: edited,
+            calls_used: 0,
+            cache_hit: false,
+        });
+    }
+
     let api_key = get_env_or_dotenv("GEMINI_API_KEY")
         .context("GEMINI_API_KEY is not set. Put it in .env or export it before using --ai")?;
 
     let prompt = build_gemini_prompt(&compact)?;
-    let request_body = json!({
-        "contents": [{
-            "role": "user",
-            "parts": [{"text": prompt}]
-        }],
-        "generationConfig": {
-            "temperature": config.gemini.temperature,
-            "candidateCount": 1,
-            "maxOutputTokens": 8192,
-            "responseMimeType": "application/json",
-            "responseSchema": gemini_response_schema()
-        }
-    });
 
     let url = format!(
         "{}/models/{}:generateContent",
@@ -3670,9 +3703,71 @@ fn enhance_brief_with_gemini(
         .build()
         .context("failed to build HTTP client for Gemini")?;
 
+    let text = send_gemini_prompt(
+        &client,
+        &url,
+        &api_key,
+        &prompt,
+        config.gemini.temperature,
+        8192,
+    )
+    .context("Gemini request failed")?;
+    let cleaned = clean_json_block(&text);
+    let (ai_json, calls_used) = match serde_json::from_str::<Value>(&cleaned) {
+        Ok(value) => (value, 1),
+        Err(parse_error) => {
+            eprintln!("↳ Gemini JSON parse failed; attempting one repair pass");
+            let repair_prompt = build_gemini_repair_prompt(&cleaned, &parse_error.to_string());
+            let repaired_text =
+                send_gemini_prompt(&client, &url, &api_key, &repair_prompt, 0.0, 8192)
+                    .context("Gemini repair request failed")?;
+            let repaired = clean_json_block(&repaired_text);
+            let value: Value = serde_json::from_str(&repaired).with_context(|| {
+                format!(
+                    "Gemini returned text, but it was not valid JSON after repair: {}",
+                    json_parse_hint(&repaired)
+                )
+            })?;
+            (value, 2)
+        }
+    };
+    let ai_json = validate_ai_result_shape(&ai_json)?;
+
+    write_ai_cache(config, &cache_key, &ai_json)?;
+
+    let edited = merge_ai_result(brief.clone(), &ai_json);
+    Ok(GeminiEditResult {
+        brief: mark_ai_status(edited, true, false, &config.gemini.model, calls_used, None),
+        calls_used,
+        cache_hit: false,
+    })
+}
+
+fn send_gemini_prompt(
+    client: &Client,
+    url: &str,
+    api_key: &str,
+    prompt: &str,
+    temperature: f64,
+    max_output_tokens: u32,
+) -> Result<String> {
+    let request_body = json!({
+        "contents": [{
+            "role": "user",
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "temperature": temperature,
+            "candidateCount": 1,
+            "maxOutputTokens": max_output_tokens,
+            "responseMimeType": "application/json",
+            "responseSchema": gemini_response_schema()
+        }
+    });
+
     let response_json: Value = client
         .post(url)
-        .header("x-goog-api-key", api_key.as_str())
+        .header("x-goog-api-key", api_key)
         .json(&request_body)
         .send()
         .and_then(|response| response.error_for_status())
@@ -3680,25 +3775,13 @@ fn enhance_brief_with_gemini(
         .json()
         .context("Gemini response was not valid JSON")?;
 
-    let text =
-        extract_gemini_text(&response_json).context("Gemini response did not include text")?;
-    let cleaned = clean_json_block(&text);
-    let ai_json: Value = serde_json::from_str(&cleaned).with_context(|| {
-        format!(
-            "Gemini returned text, but it was not valid JSON: {}",
-            json_parse_hint(&cleaned)
-        )
-    })?;
-    let ai_json = validate_ai_result_shape(&ai_json)?;
+    extract_gemini_text(&response_json).context("Gemini response did not include text")
+}
 
-    write_ai_cache(config, &cache_key, &ai_json)?;
-
-    let edited = merge_ai_result(brief.clone(), &ai_json);
-    Ok(GeminiEditResult {
-        brief: mark_ai_status(edited, true, false, &config.gemini.model, 1, None),
-        calls_used: 1,
-        cache_hit: false,
-    })
+fn build_gemini_repair_prompt(broken_json: &str, parse_error: &str) -> String {
+    format!(
+        "Repair the following truncated or invalid JSON so it becomes valid JSON only.\n\nRules:\n- Return JSON only, no markdown.\n- Preserve the same schema and field names.\n- If a string is incomplete, close it safely.\n- If an array/object is incomplete, close it safely.\n- Do not add new source URLs, IOCs, leak links, or user-facing actions.\n- Keep Persian text concise.\n\nParser error: {parse_error}\n\nBroken JSON:\n{broken_json}"
+    )
 }
 
 fn compact_brief_for_ai(config: &Config, brief: &Value) -> Value {
@@ -4062,7 +4145,7 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.13.1-ransomware-fix");
+    brief["version"] = json!("v0.4.14.4-sans-isc-title-feed");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -4080,6 +4163,12 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief["source_health"].get("intel_sources").is_none() {
         brief["source_health"]["intel_sources"] = json!(0);
+    }
+    if brief["source_health"].get("failed_rss_sources").is_none() {
+        brief["source_health"]["failed_rss_sources"] = json!(0);
+    }
+    if brief["source_health"].get("rss_failures").is_none() {
+        brief["source_health"]["rss_failures"] = json!([]);
     }
     if brief.get("attack_pressure").is_none() {
         brief["attack_pressure"] = empty_attack_pressure("missing");
@@ -4419,6 +4508,11 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         .and_then(|v| v.get("rss_sources"))
         .and_then(|v| v.as_u64())
         .unwrap_or(0);
+    let failed_sources = brief
+        .get("source_health")
+        .and_then(|v| v.get("failed_rss_sources"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
     let attack_pressure_ok = brief
         .get("attack_pressure")
         .and_then(|v| v.get("ok"))
@@ -4487,6 +4581,11 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         }
         if ransomware_ok {
             coverage.push_str(" Ransomware Pulse هم از Ransomware.live به صورت آماری و بدون لینک leak ساخته شده است.");
+        }
+        if failed_sources > 0 {
+            coverage.push_str(&format!(
+                " {failed_sources} منبع RSS در این اجرا skip شد و در Source Health ثبت شده است."
+            ));
         }
         notes.push(coverage);
     }

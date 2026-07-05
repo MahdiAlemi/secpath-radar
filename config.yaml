@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.13 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.14 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -154,10 +154,10 @@ sources:
     url: "https://krebsonsecurity.com/feed/"
   - name: "The Hacker News"
     url: "https://feeds.feedburner.com/TheHackersNews"
-  - name: "Dark Reading"
-    url: "https://www.darkreading.com/rss/all.xml"
+  - name: "Zero Day Initiative"
+    url: "https://www.thezdi.com/blog?format=rss"
   - name: "SANS ISC"
-    url: "https://isc.sans.edu/rssfeed_full.xml"
+    url: "https://isc.sans.edu/rssfeed.xml"
   - name: "Cisco Security Advisories"
     url: "https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml"
   - name: "Cisco Talos"
@@ -166,8 +166,8 @@ sources:
     url: "https://www.microsoft.com/en-us/security/blog/feed/"
   - name: "Google Online Security Blog"
     url: "https://security.googleblog.com/feeds/posts/default"
-  - name: "Google Project Zero"
-    url: "https://googleprojectzero.blogspot.com/feeds/posts/default"
+  - name: "ProjectDiscovery Blog"
+    url: "https://projectdiscovery.io/rss.xml"
   - name: "Cloudflare Security"
     url: "https://blog.cloudflare.com/tag/security/rss/"
   - name: "Unit 42"
