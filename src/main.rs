@@ -24,6 +24,8 @@ struct Args {
     cves: bool,
     offline: bool,
     refresh_cache: bool,
+    ai: bool,
+    refresh_ai: bool,
 }
 
 impl Default for Args {
@@ -37,6 +39,8 @@ impl Default for Args {
             cves: false,
             offline: false,
             refresh_cache: false,
+            ai: false,
+            refresh_ai: false,
         }
     }
 }
@@ -52,6 +56,8 @@ struct Config {
     sources: Vec<SourceConfig>,
     #[serde(default)]
     cve: CveConfig,
+    #[serde(default)]
+    gemini: GeminiConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -183,6 +189,66 @@ fn default_epss_url() -> String {
     "https://api.first.org/data/v1/epss".to_string()
 }
 
+#[derive(Debug, Deserialize, Clone)]
+struct GeminiConfig {
+    #[serde(default = "default_gemini_model")]
+    model: String,
+    #[serde(default = "default_gemini_api_url")]
+    api_url: String,
+    #[serde(default = "default_gemini_cache_dir")]
+    cache_dir: String,
+    #[serde(default = "default_gemini_temperature")]
+    temperature: f64,
+    #[serde(default = "default_gemini_max_iran")]
+    max_iran_items: usize,
+    #[serde(default = "default_gemini_max_global")]
+    max_global_news: usize,
+    #[serde(default = "default_gemini_max_cves")]
+    max_cves: usize,
+}
+
+impl Default for GeminiConfig {
+    fn default() -> Self {
+        Self {
+            model: default_gemini_model(),
+            api_url: default_gemini_api_url(),
+            cache_dir: default_gemini_cache_dir(),
+            temperature: default_gemini_temperature(),
+            max_iran_items: default_gemini_max_iran(),
+            max_global_news: default_gemini_max_global(),
+            max_cves: default_gemini_max_cves(),
+        }
+    }
+}
+
+fn default_gemini_model() -> String {
+    "gemini-2.5-flash".to_string()
+}
+
+fn default_gemini_api_url() -> String {
+    "https://generativelanguage.googleapis.com/v1beta".to_string()
+}
+
+fn default_gemini_cache_dir() -> String {
+    "data/cache/ai".to_string()
+}
+
+fn default_gemini_temperature() -> f64 {
+    0.2
+}
+
+fn default_gemini_max_iran() -> usize {
+    5
+}
+
+fn default_gemini_max_global() -> usize {
+    7
+}
+
+fn default_gemini_max_cves() -> usize {
+    8
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct Tip {
     title: String,
@@ -232,6 +298,9 @@ fn parse_args() -> Result<Args> {
             "--cves" => args.cves = true,
             "--offline" => args.offline = true,
             "--refresh-cache" => args.refresh_cache = true,
+            "--ai" => args.ai = true,
+            "--refresh-ai" => args.refresh_ai = true,
+            "--no-ai" => args.ai = false,
             "--full" => {
                 args.fetch = true;
                 args.cves = true;
@@ -262,10 +331,11 @@ fn parse_args() -> Result<Args> {
             }
             "--help" | "-h" => {
                 println!(
-                    "Usage: secpath-radar [--fetch] [--cves] [--full] [--offline] [--refresh-cache] [--config PATH] [--input PATH] [--template PATH] [--out PATH]"
+                    "Usage: secpath-radar [--fetch] [--cves] [--full] [--offline] [--refresh-cache] [--ai] [--refresh-ai] [--config PATH] [--input PATH] [--template PATH] [--out PATH]"
                 );
                 println!("Default mode renders samples/sample_brief.json without network calls.");
                 println!("Use --fetch for RSS, --cves for NVD/CISA KEV/EPSS, --full for both, or --offline --full to use cache only.");
+                println!("Use --ai to polish the brief with Gemini. It is cached and limited to one call per run.");
                 std::process::exit(0);
             }
             unknown => anyhow::bail!("unknown argument: {unknown}"),
@@ -284,10 +354,10 @@ fn main() -> Result<()> {
     let args = parse_args()?;
 
     let network_mode = args.fetch || args.cves;
+    let config = load_config(&args.config)?;
+    let mut gemini_calls_used = 0_u8;
 
-    let brief = if network_mode {
-        let config = load_config(&args.config)?;
-
+    let mut brief = if network_mode {
         let items = if args.fetch {
             fetch_and_score(&config, args.offline, args.refresh_cache)?
         } else {
@@ -306,14 +376,7 @@ fn main() -> Result<()> {
             Vec::new()
         };
 
-        let brief = build_brief(&config, items, cves)?;
-        fs::create_dir_all("data").context("failed to create data directory")?;
-        fs::write(
-            "data/latest_brief.json",
-            serde_json::to_string_pretty(&brief)?,
-        )
-        .context("failed to write data/latest_brief.json")?;
-        brief
+        build_brief(&config, items, cves)?
     } else {
         let brief_raw = fs::read_to_string(&args.input)
             .with_context(|| format!("failed to read input JSON: {}", args.input.display()))?;
@@ -321,14 +384,50 @@ fn main() -> Result<()> {
             .with_context(|| format!("invalid JSON in {}", args.input.display()))?
     };
 
+    if args.ai {
+        match enhance_brief_with_gemini(&config, &brief, args.refresh_ai) {
+            Ok(result) => {
+                brief = result.brief;
+                gemini_calls_used = result.calls_used;
+                if result.cache_hit {
+                    eprintln!("↳ Gemini cache hit: {}", config.gemini.model);
+                } else if result.calls_used > 0 {
+                    eprintln!("✅ Gemini editor: {} call used", result.calls_used);
+                }
+            }
+            Err(err) => {
+                eprintln!("⚠️  Gemini editor skipped: {err:#}");
+                brief["ai_status"] = json!({
+                    "enabled": true,
+                    "ok": false,
+                    "model": config.gemini.model,
+                    "calls_used": 0,
+                    "error": err.to_string()
+                });
+            }
+        }
+    } else {
+        brief["ai_status"] = json!({
+            "enabled": false,
+            "ok": true,
+            "calls_used": 0,
+            "model": "none"
+        });
+    }
+
+    fs::create_dir_all("data").context("failed to create data directory")?;
+    fs::write(
+        "data/latest_brief.json",
+        serde_json::to_string_pretty(&brief)?,
+    )
+    .context("failed to write data/latest_brief.json")?;
+
     render_html(&brief, &args.template, &args.out)?;
     println!("✅ rendered {}", args.out.display());
-    if network_mode {
-        println!("✅ wrote data/latest_brief.json");
-        println!("ℹ️ Gemini calls used: 0");
-        if args.offline {
-            println!("ℹ️ offline mode: used cached HTTP responses only");
-        }
+    println!("✅ wrote data/latest_brief.json");
+    println!("ℹ️ Gemini calls used: {gemini_calls_used}");
+    if args.offline {
+        println!("ℹ️ offline mode: used cached HTTP responses only");
     }
     Ok(())
 }
@@ -991,6 +1090,286 @@ fn build_action_items(
     }
 
     items
+}
+
+struct GeminiEditResult {
+    brief: Value,
+    calls_used: u8,
+    cache_hit: bool,
+}
+
+fn enhance_brief_with_gemini(
+    config: &Config,
+    brief: &Value,
+    refresh_ai: bool,
+) -> Result<GeminiEditResult> {
+    let compact = compact_brief_for_ai(config, brief);
+    let cache_key = ai_cache_key(&config.gemini.model, &compact);
+
+    if !refresh_ai {
+        if let Some(cached) = read_ai_cache(config, &cache_key)? {
+            let edited = merge_ai_result(brief.clone(), &cached);
+            return Ok(GeminiEditResult {
+                brief: mark_ai_status(edited, true, true, &config.gemini.model, 0, None),
+                calls_used: 0,
+                cache_hit: true,
+            });
+        }
+    }
+
+    let api_key = get_env_or_dotenv("GEMINI_API_KEY")
+        .context("GEMINI_API_KEY is not set. Put it in .env or export it before using --ai")?;
+
+    let prompt = build_gemini_prompt(&compact)?;
+    let request_body = json!({
+        "contents": [{
+            "role": "user",
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "temperature": config.gemini.temperature,
+            "responseMimeType": "application/json"
+        }
+    });
+
+    let url = format!(
+        "{}/models/{}:generateContent",
+        config.gemini.api_url.trim_end_matches('/'),
+        config.gemini.model
+    );
+
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(60))
+        .build()
+        .context("failed to build HTTP client for Gemini")?;
+
+    let response_json: Value = client
+        .post(url)
+        .header("x-goog-api-key", api_key.as_str())
+        .json(&request_body)
+        .send()
+        .and_then(|response| response.error_for_status())
+        .context("Gemini request failed")?
+        .json()
+        .context("Gemini response was not valid JSON")?;
+
+    let text =
+        extract_gemini_text(&response_json).context("Gemini response did not include text")?;
+    let ai_json: Value = serde_json::from_str(&clean_json_block(&text))
+        .context("Gemini returned text, but it was not valid JSON")?;
+
+    write_ai_cache(config, &cache_key, &ai_json)?;
+
+    let edited = merge_ai_result(brief.clone(), &ai_json);
+    Ok(GeminiEditResult {
+        brief: mark_ai_status(edited, true, false, &config.gemini.model, 1, None),
+        calls_used: 1,
+        cache_hit: false,
+    })
+}
+
+fn compact_brief_for_ai(config: &Config, brief: &Value) -> Value {
+    let mut compact = json!({
+        "site_title": brief.get("site_title").cloned().unwrap_or(Value::Null),
+        "date_fa": brief.get("date_fa").cloned().unwrap_or(Value::Null),
+        "date_en": brief.get("date_en").cloned().unwrap_or(Value::Null),
+        "risk_level": brief.get("risk_level").cloned().unwrap_or(Value::Null),
+        "stats": brief.get("stats").cloned().unwrap_or(Value::Null),
+        "priority_alert": brief.get("priority_alert").cloned().unwrap_or(Value::Null),
+        "iran_radar": take_array_items(brief.get("iran_radar"), config.gemini.max_iran_items),
+        "global_news": take_array_items(brief.get("global_news"), config.gemini.max_global_news),
+        "cves": take_array_items(brief.get("cves"), config.gemini.max_cves),
+        "tip_of_the_day": brief.get("tip_of_the_day").cloned().unwrap_or(Value::Null),
+        "action_items": brief.get("action_items").cloned().unwrap_or(Value::Null),
+    });
+
+    truncate_value_strings(&mut compact, 900);
+    compact
+}
+
+fn take_array_items(value: Option<&Value>, limit: usize) -> Value {
+    value
+        .and_then(|v| v.as_array())
+        .map(|items| Value::Array(items.iter().take(limit).cloned().collect()))
+        .unwrap_or_else(|| Value::Array(Vec::new()))
+}
+
+fn truncate_value_strings(value: &mut Value, max_chars: usize) {
+    match value {
+        Value::String(s) => {
+            if s.chars().count() > max_chars {
+                *s = truncate_chars(s, max_chars);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                truncate_value_strings(item, max_chars);
+            }
+        }
+        Value::Object(map) => {
+            for value in map.values_mut() {
+                truncate_value_strings(value, max_chars);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn build_gemini_prompt(compact: &Value) -> Result<String> {
+    Ok(format!(
+        r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
+
+Input is JSON generated from RSS, NVD, CISA KEV, and EPSS. Your job is to make the brief concise, clean, and useful in Persian.
+
+Rules:
+- Do not invent facts, CVEs, sources, URLs, exploitation status, affected products, or attribution.
+- Preserve every source URL, source name, CVE ID, risk_score, cvss, epss, kev, severity, iran_context, and tags unless the input is clearly malformed.
+- Keep Iran-related items only in iran_radar. Do not move them into global_news.
+- If Iran is only mentioned as attribution or messaging, do not imply the target is inside Iran.
+- Prefer defensive recommendations and safe operational guidance.
+- Do not provide exploit chains, payloads, or instructions for unauthorized access.
+- Keep summaries short: 1-2 Persian sentences per item.
+- Return valid JSON only, with this exact top-level shape:
+{{
+  "priority_alert": {{...}},
+  "iran_radar": [...],
+  "global_news": [...],
+  "cves": [...],
+  "action_items": [...]
+}}
+
+Input JSON:
+{}"#,
+        serde_json::to_string_pretty(compact)?
+    ))
+}
+
+fn extract_gemini_text(response: &Value) -> Option<String> {
+    response
+        .get("candidates")?
+        .as_array()?
+        .first()?
+        .get("content")?
+        .get("parts")?
+        .as_array()?
+        .first()?
+        .get("text")?
+        .as_str()
+        .map(|s| s.to_string())
+}
+
+fn clean_json_block(text: &str) -> String {
+    let mut out = text.trim().to_string();
+    if out.starts_with("```json") {
+        out = out.trim_start_matches("```json").trim().to_string();
+    } else if out.starts_with("```") {
+        out = out.trim_start_matches("```").trim().to_string();
+    }
+    if out.ends_with("```") {
+        out = out.trim_end_matches("```").trim().to_string();
+    }
+    out
+}
+
+fn merge_ai_result(mut brief: Value, ai_json: &Value) -> Value {
+    for key in [
+        "priority_alert",
+        "iran_radar",
+        "global_news",
+        "cves",
+        "action_items",
+    ] {
+        if let Some(value) = ai_json.get(key) {
+            brief[key] = value.clone();
+        }
+    }
+    brief
+}
+
+fn mark_ai_status(
+    mut brief: Value,
+    ok: bool,
+    cache_hit: bool,
+    model: &str,
+    calls_used: u8,
+    error: Option<String>,
+) -> Value {
+    brief["ai_status"] = json!({
+        "enabled": true,
+        "ok": ok,
+        "cache_hit": cache_hit,
+        "model": model,
+        "calls_used": calls_used,
+        "error": error
+    });
+    brief
+}
+
+fn ai_cache_key(model: &str, compact: &Value) -> String {
+    let raw = format!(
+        "{}\n{}",
+        model,
+        serde_json::to_string(compact).unwrap_or_default()
+    );
+    let mut hasher = DefaultHasher::new();
+    raw.hash(&mut hasher);
+    format!("{:016x}.json", hasher.finish())
+}
+
+fn ai_cache_path(config: &Config, key: &str) -> PathBuf {
+    PathBuf::from(&config.gemini.cache_dir).join(key)
+}
+
+fn read_ai_cache(config: &Config, key: &str) -> Result<Option<Value>> {
+    let path = ai_cache_path(config, key);
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&path)
+        .with_context(|| format!("failed to read AI cache: {}", path.display()))?;
+    serde_json::from_str(&raw)
+        .map(Some)
+        .with_context(|| format!("invalid AI cache JSON: {}", path.display()))
+}
+
+fn write_ai_cache(config: &Config, key: &str, value: &Value) -> Result<()> {
+    let path = ai_cache_path(config, key);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).with_context(|| {
+            format!("failed to create AI cache directory: {}", parent.display())
+        })?;
+    }
+    fs::write(&path, serde_json::to_string_pretty(value)?)
+        .with_context(|| format!("failed to write AI cache: {}", path.display()))?;
+    Ok(())
+}
+
+fn get_env_or_dotenv(key: &str) -> Option<String> {
+    if let Ok(value) = env::var(key) {
+        if !value.trim().is_empty() {
+            return Some(value);
+        }
+    }
+
+    let raw = fs::read_to_string(".env").ok()?;
+    for line in raw.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let Some((k, v)) = line.split_once('=') else {
+            continue;
+        };
+        if k.trim() == key {
+            let value = v.trim().trim_matches('"').trim_matches('\'').to_string();
+            if !value.is_empty() {
+                return Some(value);
+            }
+        }
+    }
+
+    None
 }
 
 fn render_html(brief: &Value, template_path: &PathBuf, out_path: &PathBuf) -> Result<()> {

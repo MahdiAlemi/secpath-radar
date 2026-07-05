@@ -23,6 +23,15 @@ cache:
   dir: "data/cache/http"
   ttl_minutes: 720
 
+gemini:
+  model: "gemini-2.5-flash"
+  api_url: "https://generativelanguage.googleapis.com/v1beta"
+  cache_dir: "data/cache/ai"
+  temperature: 0.2
+  max_iran_items: 5
+  max_global_news: 7
+  max_cves: 8
+
 filters:
   iran_keywords:
     - iran

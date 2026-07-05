@@ -1,25 +1,30 @@
 # SecPath Radar
 
-رادار روزانه امنیت سایبری، CVEها و تهدیدهای مهم.
+Local Rust generator for a Persian daily cybersecurity radar.
 
-## Run modes
+## Modes
 
 ```bash
-cargo run                 # sample mode: no network calls
-cargo run -- --fetch      # RSS only
-cargo run -- --cves       # NVD + CISA KEV + EPSS only
-cargo run -- --full       # RSS + CVE engine
-cargo run -- --offline    # same as --full but cache only
-cargo run -- --offline --full
+cargo run                    # render sample JSON only
+cargo run -- --full          # RSS + CVE/KEV/EPSS, no Gemini
+cargo run -- --offline       # build from HTTP cache only
+cargo run -- --full --ai     # one Gemini call max, with AI cache
+cargo run -- --full --ai --refresh-ai
 cargo run -- --full --refresh-cache
 ```
 
-## Cache
+## Gemini
 
-HTTP responses are cached under `data/cache/http` by default. This keeps local tests fast and reduces unnecessary calls to RSS, NVD, CISA KEV and EPSS.
+Create `.env` locally:
 
-- `--offline` uses cached responses only.
-- `--refresh-cache` ignores fresh cache and refetches.
-- If a network request fails, the app falls back to stale cache when available.
+```env
+GEMINI_API_KEY=your_google_ai_studio_key
+```
 
-Gemini is not called in this phase.
+The key is never written to `site/` or JSON output. Keep `.env` out of git.
+
+## Output
+
+- `site/index.html`
+- `data/latest_brief.json`
+- `site/CNAME` -> `radar.secpath.space`

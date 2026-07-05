@@ -278,6 +278,11 @@
         <span class="chip danger">وضعیت امروز: {{ brief.risk_level }}</span>
         <span class="chip info">Iran Radar: {{ brief.stats.iran_items }} مورد</span>
         <span class="chip ok">Generated: {{ brief.generated_at }}</span>
+        {% if brief.ai_status.enabled %}
+        <span class="chip info">AI: {{ brief.ai_status.model }}{% if brief.ai_status.cache_hit %} cache{% endif %}</span>
+        {% else %}
+        <span class="chip">AI: off</span>
+        {% endif %}
       </div>
     </header>
 
@@ -408,8 +413,8 @@
     </section>
 
     <footer>
-      <p>🛡️ SecPath Radar — نسخه لوکال فاز ۳</p>
-      <p>در حالت --fetch خبرها، در حالت --cves آسیب‌پذیری‌ها، و در حالت --full هر دو ساخته می‌شوند؛ Gemini هنوز صدا زده نمی‌شود.</p>
+      <p>🛡️ SecPath Radar — نسخه لوکال فاز ۴</p>
+      <p>Gemini فقط با --ai فعال می‌شود، خروجی AI cache می‌شود، و بدون --ai هیچ call مصرف نمی‌شود.</p>
     </footer>
   </main>
 </body>
