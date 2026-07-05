@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.10 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.11.1 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -36,6 +36,11 @@ intel:
     max_threatfox: 18
     urlhaus_recent_csv_url: "https://urlhaus.abuse.ch/downloads/csv_recent/"
     threatfox_recent_csv_url: "https://threatfox.abuse.ch/export/csv/recent/"
+  infrastructure:
+    enabled: true
+    max_ips: 12
+    shodan_base_url: "https://internetdb.shodan.io"
+    dshield_top_ips_url: "https://feeds.dshield.org/feeds/topips.txt"
 
 cache:
   enabled: true
@@ -48,8 +53,8 @@ gemini:
   cache_dir: "data/cache/ai"
   temperature: 0.15
   max_iran_items: 5
-  max_global_news: 8
-  max_cves: 7
+  max_global_news: 6
+  max_cves: 5
 
 filters:
   iran_keywords:

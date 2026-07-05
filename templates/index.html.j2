@@ -38,7 +38,7 @@
         <div class="status-row"><span>Generated</span><b>{{ brief.generated_at }}</b></div>
         <div class="status-row"><span>HTTP cache</span><b>{% if brief.source_health.http_cache %}ON{% else %}OFF{% endif %}</b></div>
         <div class="status-row"><span>AI model</span><b>{% if brief.ai_status.enabled %}{{ brief.ai_status.model }}{% else %}disabled{% endif %}</b></div>
-        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield + IOC</b></div>
+        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield + IOC + InternetDB</b></div>
       </aside>
     </header>
 
@@ -51,6 +51,7 @@
       <div class="metric"><span>Sources</span><strong>{{ brief.stats.rss_sources }}</strong><small>RSS فعال در config</small></div>
       <div class="metric text-metric"><span>Attack Pressure</span><strong>{{ brief.attack_pressure.level }}</strong><small>DShield telemetry</small></div>
       <div class="metric"><span>IOC Radar</span><strong>{{ brief.stats.iocs }}</strong><small>URLhaus + ThreatFox</small></div>
+      <div class="metric"><span>Suspicious Infra</span><strong>{{ brief.stats.infrastructure_hosts }}</strong><small>Shodan InternetDB</small></div>
     </section>
 
     {% if brief.brief_notes | length > 0 %}
@@ -193,6 +194,68 @@
       <p class="source-note">IOCها برای آگاهی موقعیتی و correlation دفاعی defanged شده‌اند؛ هیچ URL مخرب در این بخش قابل کلیک نیست.</p>
     </section>
 
+    <section id="infrastructure-radar" class="panel infrastructure-panel" aria-label="Suspicious Infrastructure Radar">
+      <div class="panel-head">
+        <div><span class="eyebrow">Suspicious Infrastructure Radar</span><h2>زیرساخت‌های مشکوک استخراج‌شده از IOCها</h2></div>
+        <span class="count">{{ brief.infrastructure_radar.provider }} · {{ brief.infrastructure_radar.level }}</span>
+      </div>
+      <div class="pressure-summary">
+        <p>{{ brief.infrastructure_radar.summary_fa }}</p>
+        <div class="meta">
+          <span class="pill {% if brief.infrastructure_radar.ok %}green{% else %}amber{% endif %}">{% if brief.infrastructure_radar.ok %}internetdb ok{% else %}internetdb fallback{% endif %}</span>
+          <span class="pill">hosts {{ brief.infrastructure_radar.totals.hosts }}</span>
+          <span class="pill">candidates {{ brief.infrastructure_radar.totals.candidates }}</span>
+          <span class="pill">vulns {{ brief.infrastructure_radar.totals.vulns }}</span>
+        </div>
+      </div>
+
+      <div class="infra-chart-board" aria-label="نمودار زیرساخت مشکوک">
+        <div class="chart-panel chart-panel-wide">
+          <div class="chart-title"><span>Exposure Score</span><small>Shodan InternetDB enrichment</small></div>
+          <div class="bar-chart" role="img" aria-label="نمودار شدت exposure برای IPهای منتخب">
+            {% for host in brief.infrastructure_radar.hosts %}
+            <div class="bar-row risk-{{ host.risk }}">
+              <div class="bar-label"><code>{{ host.ip }}</code><span>{{ host.source }}</span></div>
+              <div class="bar-track"><span class="bar-fill" style="--bar: {{ host.bar_width }}%"></span></div>
+              <b>{{ host.exposure_score }}</b>
+            </div>
+            {% endfor %}
+            {% if brief.infrastructure_radar.hosts | length == 0 %}<div class="chart-empty">IP عمومی enrich شده‌ای برای این اجرا موجود نیست.</div>{% endif %}
+          </div>
+        </div>
+        <div class="mini-chart-grid">
+          <div class="chart-panel">
+            <div class="chart-title"><span>Observed Ports</span><small>frequency</small></div>
+            <div class="tiny-bars" aria-label="نمودار پورت‌های مشاهده‌شده">
+              {% for row in brief.infrastructure_radar.port_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+              {% if brief.infrastructure_radar.port_chart | length == 0 %}<div class="chart-empty">پورت قابل نمایش نیست.</div>{% endif %}
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title"><span>Risk Split</span><small>hosts</small></div>
+            <div class="tiny-bars" aria-label="نمودار ریسک زیرساخت">
+              {% for row in brief.infrastructure_radar.risk_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+              {% if brief.infrastructure_radar.risk_chart | length == 0 %}<div class="chart-empty">داده ریسک موجود نیست.</div>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="infra-list" aria-label="IPهای enrich شده">
+        {% for host in brief.infrastructure_radar.hosts %}
+        <article class="infra-row risk-{{ host.risk }}">
+          <div class="infra-main"><code>{{ host.ip }}</code><span>{{ host.reason }} · {{ host.source }}</span></div>
+          <div class="infra-meta"><span>ports {{ host.port_count }}</span><span>vulns {{ host.vuln_count }}</span>{% if host.hostnames | length > 0 %}<span>{% for hostname in host.hostnames %}{{ hostname }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}</div>
+          {% if host.ports | length > 0 %}<div class="infra-ports">{% for port in host.ports %}<span>{{ port }}</span>{% endfor %}</div>{% endif %}
+          {% if host.vulns | length > 0 %}<div class="infra-vulns">{% for vuln in host.vulns %}<span>{{ vuln }}</span>{% endfor %}</div>{% endif %}
+          <small>{{ host.note_fa }}</small>
+        </article>
+        {% endfor %}
+        {% if brief.infrastructure_radar.hosts | length == 0 %}<article class="infra-row empty">در این اجرا زیرساخت عمومی قابل enrich از IOCها استخراج نشد.</article>{% endif %}
+      </div>
+      <p class="source-note">این بخش فقط IPهای انتخاب‌شده از IOCهای همین اجرا را enrich می‌کند؛ هیچ جستجوی کاربر، اسکن فعال یا اقدام عملیاتی انجام نمی‌شود.</p>
+    </section>
+
     <div class="grid">
       <div class="stack">
         <section id="priority" class="panel priority">
@@ -279,7 +342,7 @@
 
         <section id="sources" class="panel">
           <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.intel_sources }} telemetry</span></div>
-          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span></div>
+          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span><span>Shodan InternetDB</span></div>
         </section>
       </aside>
     </div>

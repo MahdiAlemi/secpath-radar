@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.9-attack-pressure-chart",
+  "version": "v0.4.11.1-infra-fallback",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -13,7 +13,8 @@
     "critical_cves": 1,
     "kev": 0,
     "rss_sources": 18,
-    "intel_sources": 1
+    "intel_sources": 1,
+    "infrastructure_hosts": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -26,7 +27,7 @@
     "http_cache": true,
     "cache_ttl_minutes": 720,
     "ai_cache_dir": "data/cache/ai",
-    "intel_sources": 1,
+    "intel_sources": 4,
     "intel_cache_dir": "data/cache/intel"
   },
   "ai_status": {
@@ -173,5 +174,24 @@
     ],
     "reported_ports": [],
     "targeted_ports": []
+  },
+  "infrastructure_radar": {
+    "enabled": true,
+    "ok": false,
+    "provider": "Shodan InternetDB",
+    "level": "Unknown",
+    "summary_fa": "داده Suspicious Infrastructure در نمونه محلی موجود نیست.",
+    "last_updated": "",
+    "refresh_hours": 1,
+    "totals": {
+      "candidates": 0,
+      "hosts": 0,
+      "high": 0,
+      "vulns": 0,
+      "ports": 0
+    },
+    "hosts": [],
+    "port_chart": [],
+    "risk_chart": []
   }
 }

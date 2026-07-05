@@ -306,3 +306,27 @@ footer { margin-top: 22px; }
 .ioc-row.risk-watch code { color: #c67b34; }
 @media (max-width: 1120px) { .ioc-chart-board, .ioc-lists { grid-template-columns: 1fr; } .metrics { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 640px) { .tiny-bars div { grid-template-columns: 90px minmax(90px, 1fr) 28px; } }
+
+
+/* Suspicious Infrastructure Radar: passive IP enrichment view. */
+.infrastructure-panel {
+  margin-bottom: 18px;
+  background:
+    linear-gradient(135deg, rgba(255,122,24,.13), rgba(0,0,0,.94)),
+    repeating-linear-gradient(0deg, rgba(255,122,24,.035) 0 1px, transparent 1px 36px);
+  border-color: rgba(255,122,24,.34);
+}
+.infra-chart-board { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 12px; align-items: stretch; }
+.infra-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.infra-row { border: 1px solid var(--line); background: rgba(0,0,0,.42); padding: 12px; display: grid; gap: 8px; }
+.infra-row.risk-high { border-color: rgba(255,61,0,.52); background: rgba(255,61,0,.07); }
+.infra-row.risk-medium { border-color: rgba(255,122,24,.42); background: rgba(255,122,24,.06); }
+.infra-main { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.infra-main code { direction: ltr; color: var(--amber); font-weight: 950; }
+.infra-main span { color: var(--muted); font-size: .72rem; text-align: left; direction: ltr; }
+.infra-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.infra-meta span, .infra-ports span, .infra-vulns span { border: 1px solid var(--line); background: rgba(0,0,0,.36); color: var(--muted); padding: .12rem .42rem; font-size: .68rem; }
+.infra-ports, .infra-vulns { display: flex; flex-wrap: wrap; gap: 5px; direction: ltr; justify-content: flex-end; }
+.infra-vulns span { color: var(--red); border-color: rgba(255,61,0,.42); }
+.infra-row small { color: var(--faint); font-size: .72rem; line-height: 1.7; }
+@media (max-width: 980px) { .infra-chart-board, .infra-list { grid-template-columns: 1fr; } }

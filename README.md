@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.10-ioc-radar**
+Current phase: **v0.4.11.1-infra-fallback**
 
 ## What changed in v0.4.8
 
@@ -104,3 +104,15 @@ DShield/SANS recommends using static feeds where possible and not downloading th
 - Attack Pressure must render as static charts, not statistic-only cards.
 - IOC Radar must defang URLs/domains/IPs and never make malware/phishing URLs clickable.
 - Radar remains read-only: no forms, inputs, filters, or user workflows.
+
+
+## v0.4.11 — Suspicious Infrastructure Radar
+
+Adds a passive infrastructure enrichment layer. SecPath Radar extracts public IPs from the current IOC Radar output and enriches a small capped set through Shodan InternetDB. InternetDB is used as a lightweight, no-key lookup source for open ports, hostnames, tags, CPEs, and vulnerability hints. The dashboard remains static/read-only: no forms, no search, no filters, and no active scanning.
+
+
+## v0.4.11.1 infra fallback
+
+- Adds DShield top source IPs as passive infrastructure candidates.
+- Keeps candidate-only infrastructure rows when Shodan InternetDB has no record, so the radar does not render empty.
+- Tightens the Gemini JSON prompt and reduces AI payload size to reduce truncated JSON.
