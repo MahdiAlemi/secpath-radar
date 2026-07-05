@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.8-redesign-sources**
+Current phase: **v0.4.8.1-frontend-split**
 
 ## What changed in v0.4.8
 
@@ -63,3 +63,17 @@ http://localhost:8000
 Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecurity, The Hacker News, Dark Reading, SANS ISC, Cisco advisories, Cisco Talos, Microsoft Security Blog, Google security blogs, Cloudflare Security, Unit 42, Rapid7, CERT/CC, Infosecurity Magazine, and PortSwigger Research.
 
 NVD, CISA KEV, and EPSS are still used by the CVE engine.
+
+
+## v0.4.8.1 Frontend split
+
+This release keeps SecPath Radar as a static, observational dashboard:
+
+- `templates/index.html.j2` contains markup only.
+- `assets/css/radar.css` contains the dashboard styling.
+- `assets/js/radar.js` is passive only and must not add user-input workflows.
+- `site/assets/` is copied automatically during render.
+- Internal navigation links and collapsible cards were removed to keep the output read-only.
+- Tools, tips, and action-item sections remain removed.
+
+No deployment, GitHub Pages, or DNS changes are included in this phase.

@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.8-redesign-sources",
+  "version": "v0.4.8.1-frontend-split",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -16,7 +16,12 @@
   },
   "source_health": {
     "rss_sources": 18,
-    "source_names": ["CISA Advisories", "BleepingComputer", "SecurityWeek", "KrebsOnSecurity"],
+    "source_names": [
+      "CISA Advisories",
+      "BleepingComputer",
+      "SecurityWeek",
+      "KrebsOnSecurity"
+    ],
     "http_cache": true,
     "cache_ttl_minutes": 720,
     "ai_cache_dir": "data/cache/ai"
@@ -43,7 +48,10 @@
     "source": "Sample",
     "url": "#",
     "risk_score": 9,
-    "tags": ["Active Exploit", "Microsoft"]
+    "tags": [
+      "Active Exploit",
+      "Microsoft"
+    ]
   },
   "iran_radar": [
     {
@@ -58,7 +66,9 @@
       "published": "",
       "risk_score": 5,
       "category": "general",
-      "tags": ["Iran"],
+      "tags": [
+        "Iran"
+      ],
       "iran_related": true,
       "iran_context": "mentioned"
     }
@@ -76,7 +86,9 @@
       "published": "",
       "risk_score": 8,
       "category": "malware_incident",
-      "tags": ["Ransomware"],
+      "tags": [
+        "Ransomware"
+      ],
       "iran_related": false,
       "iran_context": "global"
     },
@@ -92,7 +104,9 @@
       "published": "",
       "risk_score": 4,
       "category": "ai_security",
-      "tags": ["AI Security"],
+      "tags": [
+        "AI Security"
+      ],
       "iran_related": false,
       "iran_context": "global"
     }
@@ -121,7 +135,9 @@
       "url": "#",
       "recommended_action": "بررسی exposure و اعمال patch یا mitigation.",
       "risk_score": 9,
-      "tags": ["CVE"]
+      "tags": [
+        "CVE"
+      ]
     }
   ]
 }

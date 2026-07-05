@@ -416,6 +416,7 @@ fn main() -> Result<()> {
     .context("failed to write data/latest_brief.json")?;
 
     render_html(&brief, &args.template, &args.out)?;
+    copy_static_assets(&args.out)?;
     println!("✅ rendered {}", args.out.display());
     println!("✅ wrote data/latest_brief.json");
     println!("ℹ️ Gemini calls used: {gemini_calls_used}");
@@ -1555,7 +1556,7 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.8-redesign-sources");
+    brief["version"] = json!("v0.4.8.1-frontend-split");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -1924,6 +1925,47 @@ fn render_html(brief: &Value, template_path: &PathBuf, out_path: &PathBuf) -> Re
 
     fs::write(out_path, rendered)
         .with_context(|| format!("failed to write output HTML: {}", out_path.display()))?;
+    Ok(())
+}
+
+fn copy_static_assets(out_path: &PathBuf) -> Result<()> {
+    let Some(site_dir) = out_path.parent() else {
+        return Ok(());
+    };
+
+    let src = PathBuf::from("assets");
+    if !src.exists() {
+        return Ok(());
+    }
+
+    let dest = site_dir.join("assets");
+    copy_dir_recursive(&src, &dest)
+}
+
+fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<()> {
+    fs::create_dir_all(dest)
+        .with_context(|| format!("failed to create asset directory: {}", dest.display()))?;
+
+    for entry in fs::read_dir(src)
+        .with_context(|| format!("failed to read asset directory: {}", src.display()))?
+    {
+        let entry = entry?;
+        let path = entry.path();
+        let target = dest.join(entry.file_name());
+
+        if path.is_dir() {
+            copy_dir_recursive(&path, &target)?;
+        } else {
+            fs::copy(&path, &target).with_context(|| {
+                format!(
+                    "failed to copy static asset from {} to {}",
+                    path.display(),
+                    target.display()
+                )
+            })?;
+        }
+    }
+
     Ok(())
 }
 
