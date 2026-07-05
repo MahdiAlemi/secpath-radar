@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 12
   max_total_items: 40
   sleep_ms_between_sources: 900
-  user_agent: "SecPathRadar/0.3 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.5 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 12
@@ -96,7 +96,7 @@ sources:
     url: "https://www.cisa.gov/cybersecurity-advisories/all.xml"
   - name: "BleepingComputer"
     url: "https://www.bleepingcomputer.com/feed/"
-  - name: "The Hacker News"
-    url: "https://thehackernews.com/feeds/posts/default"
+  - name: "SecurityWeek"
+    url: "https://www.securityweek.com/feed/"
   - name: "KrebsOnSecurity"
     url: "https://krebsonsecurity.com/feed/"

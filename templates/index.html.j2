@@ -121,6 +121,28 @@
     .chip.danger { color: var(--red); border-color: rgba(255, 123, 114, .35); background: rgba(255, 123, 114, .09); }
     .chip.info { color: var(--blue); border-color: rgba(88, 166, 255, .35); background: rgba(88, 166, 255, .09); }
     .chip.ok { color: var(--green); border-color: rgba(126, 231, 135, .35); background: rgba(126, 231, 135, .08); }
+    .chip.warn { color: var(--yellow); border-color: rgba(210, 153, 34, .38); background: rgba(210, 153, 34, .10); }
+
+    .brief-notes {
+      display: grid;
+      gap: 8px;
+      margin: -6px 0 18px;
+    }
+
+    .brief-notes div {
+      background: rgba(13, 17, 23, .48);
+      border: 1px solid var(--border-soft);
+      border-radius: 14px;
+      padding: .65rem .85rem;
+      color: var(--muted);
+      font-size: .84rem;
+    }
+
+    .empty {
+      border-style: dashed;
+      color: var(--muted);
+      background: rgba(13, 17, 23, .38);
+    }
 
     .stats {
       display: grid;
@@ -278,13 +300,25 @@
         <span class="chip danger">وضعیت امروز: {{ brief.risk_level }}</span>
         <span class="chip info">Iran Radar: {{ brief.stats.iran_items }} مورد</span>
         <span class="chip ok">Generated: {{ brief.generated_at }}</span>
+        <span class="chip info">RSS sources: {{ brief.source_health.rss_sources }}</span>
+        {% if brief.source_health.http_cache %}<span class="chip ok">HTTP cache: on</span>{% endif %}
         {% if brief.ai_status.enabled %}
-        <span class="chip info">AI: {{ brief.ai_status.model }}{% if brief.ai_status.cache_hit %} cache{% endif %}</span>
+          {% if brief.ai_status.ok %}
+          <span class="chip ok">AI: {{ brief.ai_status.model }}{% if brief.ai_status.cache_hit %} · cache{% else %} · live{% endif %}</span>
+          {% else %}
+          <span class="chip danger">AI: failed</span>
+          {% endif %}
         {% else %}
-        <span class="chip">AI: off</span>
+        <span class="chip warn">AI: off</span>
         {% endif %}
       </div>
     </header>
+
+    {% if brief.brief_notes | length > 0 %}
+    <section class="brief-notes" aria-label="یادداشت وضعیت ساخت">
+      {% for note in brief.brief_notes %}<div>ℹ️ {{ note }}</div>{% endfor %}
+    </section>
+    {% endif %}
 
     <section class="stats" aria-label="آمار روز">
       <div class="stat"><strong>{{ brief.stats.cves }}</strong><span>🧨 CVE</span></div>
@@ -315,6 +349,9 @@
         <div><span class="eyebrow">🇮🇷 IRAN CYBER RADAR</span><h2>خبرها و هشدارهای مرتبط با ایران</h2></div>
         <span class="count">{{ brief.iran_radar | length }} مورد</span>
       </div>
+      {% if brief.iran_radar | length == 0 %}
+      <article class="card empty">فعلاً آیتم مستقیمی برای Iran Radar پیدا نشد. این به معنی نبود تهدید نیست؛ فقط در RSSهای امروز نشانه مشخصی از کلیدواژه‌های ایران دیده نشده است.</article>
+      {% endif %}
       {% for item in brief.iran_radar %}
       <article class="card">
         <div class="meta">
@@ -334,6 +371,9 @@
         <div><span class="eyebrow">🌍 GLOBAL CYBER NEWS</span><h2>خبرهای مهم جهانی</h2></div>
         <span class="count">{{ brief.global_news | length }} مورد</span>
       </div>
+      {% if brief.global_news | length == 0 %}
+      <article class="card empty">خبر جهانی مهمی در این اجرا وارد خروجی نشد. برای داده تازه، یک بار با <code>cargo run -- --full --refresh-cache</code> اجرا کن.</article>
+      {% endif %}
       {% for item in brief.global_news %}
       <article class="card">
         <div class="meta">
@@ -382,6 +422,9 @@
         <div><span class="eyebrow">🛠️ TOOLS & TECHNIQUES</span><h2>ابزار و تکنیک قابل توجه</h2></div>
         <span class="count">{{ brief.tools | length }} مورد</span>
       </div>
+      {% if brief.tools | length == 0 %}
+      <article class="card empty">در این نسخه هنوز feed جداگانه ابزارها فعال نیست؛ آیتم‌های ابزار/تکنیک فعلاً داخل خبرهای جهانی و CVE Watch دیده می‌شوند.</article>
+      {% endif %}
       {% for tool in brief.tools %}
       <article class="card">
         <div class="meta">{% for tag in tool.tags %}<span class="pill">{{ tag }}</span>{% endfor %}</div>
@@ -413,7 +456,7 @@
     </section>
 
     <footer>
-      <p>🛡️ SecPath Radar — نسخه لوکال فاز ۴</p>
+      <p>🛡️ SecPath Radar — {{ brief.version }}</p>
       <p>Gemini فقط با --ai فعال می‌شود، خروجی AI cache می‌شود، و بدون --ai هیچ call مصرف نمی‌شود.</p>
     </footer>
   </main>

@@ -415,6 +415,8 @@ fn main() -> Result<()> {
         });
     }
 
+    apply_local_polish(&mut brief);
+
     fs::create_dir_all("data").context("failed to create data directory")?;
     fs::write(
         "data/latest_brief.json",
@@ -818,7 +820,7 @@ fn derive_cve_title(cve_id: &str, summary: &str) -> String {
     if first_sentence.is_empty() {
         cve_id.to_string()
     } else {
-        truncate_chars(&first_sentence, 100)
+        concise_title(&first_sentence, 84)
     }
 }
 
@@ -994,6 +996,12 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "kev": kev_count,
             "tools": 0
         },
+        "source_health": {
+            "rss_sources": config.sources.len(),
+            "http_cache": config.cache.enabled,
+            "cache_ttl_minutes": config.cache.ttl_minutes,
+            "ai_cache_dir": config.gemini.cache_dir.clone()
+        },
         "priority_alert": priority,
         "iran_radar": iran,
         "global_news": global,
@@ -1060,36 +1068,26 @@ fn build_action_items(
     critical_count: usize,
     kev_count: usize,
 ) -> Vec<String> {
-    let mut items = vec![
-        "خبرهای High Risk را با دارایی‌های exposed مثل VPN، firewall و سرویس‌های public مقایسه کن.".to_string(),
-        "اگر نام vendor یا محصولی در محیط خودت دیده شد، changelog و advisory رسمی همان vendor را بررسی کن.".to_string(),
-        "لاگ‌های edge deviceها و authentication را برای رفتار غیرعادی مرور کن.".to_string(),
-    ];
+    let mut items = Vec::new();
 
-    if iran_count > 0 {
-        items.push(
-            "آیتم‌های Iran Radar را جداگانه برای دامنه‌ها، برندها و زیرساخت‌های مرتبط بررسی کن."
-                .to_string(),
-        );
-    }
-    if cve_count > 0 {
-        items.push(
-            "CVEهای امروز را با asset inventory تطبیق بده و public-facing بودنشان را چک کن."
-                .to_string(),
-        );
+    if kev_count > 0 {
+        items.push("فوری: CVEهای KEV را با asset inventory تطبیق بده و برای patch/mitigation همان‌روز تصمیم بگیر.".to_string());
     }
     if critical_count > 0 {
-        items
-            .push("CVEهای Critical را از چرخه patch عادی جدا کن و اولویت اضطراری بده.".to_string());
+        items.push("Critical: CVEهای CVSS 9+ را از چرخه patch عادی جدا کن و exposure اینترنتی آن‌ها را اول چک کن.".to_string());
     }
-    if kev_count > 0 {
-        items.push(
-            "CVEهای KEV را فوراً برای exploitation احتمالی، patch و mitigation بررسی کن."
-                .to_string(),
-        );
+    if iran_count > 0 {
+        items.push("Iran Radar: آیتم‌های مرتبط با ایران را برای دامنه، برند، vendor، زیرساخت و attribution جداگانه triage کن.".to_string());
+    }
+    if cve_count > 0 {
+        items.push("Inventory: نام محصول‌ها و vendorهای CVE Watch را با CMDB، EDR inventory یا لیست سرویس‌های exposed مقایسه کن.".to_string());
     }
 
-    items
+    items.push("Edge Review: VPN، firewall، gateway، mail و پنل‌های ادمین public-facing را با خبرهای High Risk امروز تطبیق بده.".to_string());
+    items.push("Detection: برای vendorهای دیده‌شده، لاگ‌های authentication، EDR، WAF و edge device را در ۲۴ تا ۴۸ ساعت اخیر مرور کن.".to_string());
+    items.push("Report: برای هر مورد مهم، وضعیت affected / not affected / unknown را در یک یادداشت کوتاه ثبت کن.".to_string());
+
+    items.into_iter().take(7).collect()
 }
 
 struct GeminiEditResult {
@@ -1230,6 +1228,9 @@ Rules:
 - Prefer defensive recommendations and safe operational guidance.
 - Do not provide exploit chains, payloads, or instructions for unauthorized access.
 - Keep summaries short: 1-2 Persian sentences per item.
+- Keep titles concise: preferably under 12 Persian words or 85 characters.
+- For CVEs, keep the CVE ID untouched and make title product/impact oriented; avoid repeating the full NVD sentence.
+- Action items must be concrete, defensive, and suitable for a daily SOC/ops checklist.
 - Return valid JSON only, with this exact top-level shape:
 {{
   "priority_alert": {{...}},
@@ -1370,6 +1371,150 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
     }
 
     None
+}
+
+fn apply_local_polish(brief: &mut Value) {
+    brief["version"] = json!("v0.4.5-polish");
+
+    if brief.get("source_health").is_none() {
+        brief["source_health"] = json!({
+            "rss_sources": 0,
+            "http_cache": true,
+            "cache_ttl_minutes": 0,
+            "ai_cache_dir": "data/cache/ai"
+        });
+    }
+
+    polish_priority(brief);
+    polish_array_items(brief, "iran_radar", 88, 240);
+    polish_array_items(brief, "global_news", 88, 240);
+    polish_cves(brief);
+    brief["brief_notes"] = json!(build_brief_notes(brief));
+}
+
+fn polish_priority(brief: &mut Value) {
+    let Some(priority) = brief
+        .get_mut("priority_alert")
+        .and_then(|v| v.as_object_mut())
+    else {
+        return;
+    };
+
+    if let Some(Value::String(title)) = priority.get_mut("title") {
+        *title = concise_title(title, 92);
+    }
+    if let Some(Value::String(summary)) = priority.get_mut("summary") {
+        *summary = non_empty_summary(summary, 260);
+    }
+}
+
+fn polish_array_items(brief: &mut Value, key: &str, title_max: usize, summary_max: usize) {
+    let Some(items) = brief.get_mut(key).and_then(|v| v.as_array_mut()) else {
+        return;
+    };
+
+    for item in items {
+        let Some(obj) = item.as_object_mut() else {
+            continue;
+        };
+        if let Some(Value::String(title)) = obj.get_mut("title") {
+            *title = concise_title(title, title_max);
+        }
+        if let Some(Value::String(summary)) = obj.get_mut("summary") {
+            *summary = non_empty_summary(summary, summary_max);
+        }
+    }
+}
+
+fn polish_cves(brief: &mut Value) {
+    let Some(items) = brief.get_mut("cves").and_then(|v| v.as_array_mut()) else {
+        return;
+    };
+
+    for item in items {
+        let Some(obj) = item.as_object_mut() else {
+            continue;
+        };
+        if let Some(Value::String(title)) = obj.get_mut("title") {
+            *title = concise_title(title, 84);
+        }
+        if let Some(Value::String(summary)) = obj.get_mut("summary") {
+            *summary = non_empty_summary(summary, 260);
+        }
+        if let Some(Value::String(action)) = obj.get_mut("recommended_action") {
+            *action = non_empty_summary(action, 170);
+        }
+    }
+}
+
+fn build_brief_notes(brief: &Value) -> Vec<String> {
+    let mut notes = Vec::new();
+    let ai = brief.get("ai_status").unwrap_or(&Value::Null);
+    let ai_enabled = ai.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+    let ai_ok = ai.get("ok").and_then(|v| v.as_bool()).unwrap_or(false);
+    let ai_cache = ai
+        .get("cache_hit")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let calls = ai.get("calls_used").and_then(|v| v.as_u64()).unwrap_or(0);
+
+    if ai_enabled && ai_ok && ai_cache {
+        notes.push("AI polish از cache خوانده شد؛ برای این ورودی call جدید مصرف نشد.".to_string());
+    } else if ai_enabled && ai_ok {
+        notes.push(format!(
+            "AI polish فعال بود و {calls} call مصرف شد؛ خروجی برای اجراهای بعدی cache شد."
+        ));
+    } else if ai_enabled {
+        notes.push(
+            "AI polish خطا داد؛ سایت با fallback محلی و داده‌های خام/کش‌شده ساخته شد.".to_string(),
+        );
+    } else {
+        notes.push("AI خاموش است؛ خروجی فقط با ruleهای محلی ساخته شده است.".to_string());
+    }
+
+    if brief
+        .get("source_health")
+        .and_then(|v| v.get("http_cache"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+    {
+        notes.push(
+            "HTTP cache فعال است؛ حالت offline از پاسخ‌های ذخیره‌شده استفاده می‌کند.".to_string(),
+        );
+    }
+
+    notes.into_iter().take(3).collect()
+}
+
+fn concise_title(input: &str, max_chars: usize) -> String {
+    let mut title = clean_text(input);
+    let replacements = [
+        ("A vulnerability was found in ", ""),
+        ("A vulnerability has been found in ", ""),
+        ("A vulnerability in ", ""),
+        ("A flaw was found in ", ""),
+        ("An issue was discovered in ", ""),
+        ("This vulnerability allows ", "Allows "),
+        ("The vulnerability allows ", "Allows "),
+        ("Multiple vulnerabilities in ", ""),
+    ];
+
+    for (from, to) in replacements {
+        if title.starts_with(from) {
+            title = title.replacen(from, to, 1);
+        }
+    }
+
+    truncate_chars(title.trim(), max_chars)
+}
+
+fn non_empty_summary(input: &str, max_chars: usize) -> String {
+    let cleaned = clean_text(input);
+    if cleaned.trim().is_empty() {
+        "جزئیات کافی در منبع وجود نداشت؛ برای تصمیم‌گیری، advisory اصلی را بررسی کن.".to_string()
+    } else {
+        truncate_chars(&cleaned, max_chars)
+    }
 }
 
 fn render_html(brief: &Value, template_path: &PathBuf, out_path: &PathBuf) -> Result<()> {
