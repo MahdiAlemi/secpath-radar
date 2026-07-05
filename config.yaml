@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 12
   max_total_items: 40
   sleep_ms_between_sources: 900
-  user_agent: "SecPathRadar/0.4.5 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.6 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 12
@@ -29,8 +29,8 @@ gemini:
   cache_dir: "data/cache/ai"
   temperature: 0.2
   max_iran_items: 5
-  max_global_news: 7
-  max_cves: 8
+  max_global_news: 6
+  max_cves: 6
 
 filters:
   iran_keywords:

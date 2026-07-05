@@ -2,7 +2,18 @@
 
 Local Rust generator for a Persian daily cybersecurity radar.
 
-Current checkpoint: `v0.4.5-polish`
+### v0.4.6 AI JSON guard
+
+This checkpoint hardens the Gemini editorial layer:
+
+- Adds a shallow JSON response schema to the Gemini request.
+- Keeps `responseMimeType: application/json`.
+- Validates the returned AI JSON shape before merging it into the brief.
+- Uses smaller default AI edit windows for more reliable JSON output.
+- Preserves the safe API-key header flow and SOCKS proxy support.
+
+
+Current checkpoint: `v0.4.6-ai-json-guard`
 
 Highlights:
 

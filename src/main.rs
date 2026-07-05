@@ -1126,7 +1126,10 @@ fn enhance_brief_with_gemini(
         }],
         "generationConfig": {
             "temperature": config.gemini.temperature,
-            "responseMimeType": "application/json"
+            "candidateCount": 1,
+            "maxOutputTokens": 8192,
+            "responseMimeType": "application/json",
+            "responseSchema": gemini_response_schema()
         }
     });
 
@@ -1154,8 +1157,14 @@ fn enhance_brief_with_gemini(
 
     let text =
         extract_gemini_text(&response_json).context("Gemini response did not include text")?;
-    let ai_json: Value = serde_json::from_str(&clean_json_block(&text))
-        .context("Gemini returned text, but it was not valid JSON")?;
+    let cleaned = clean_json_block(&text);
+    let ai_json: Value = serde_json::from_str(&cleaned).with_context(|| {
+        format!(
+            "Gemini returned text, but it was not valid JSON: {}",
+            json_parse_hint(&cleaned)
+        )
+    })?;
+    let ai_json = validate_ai_result_shape(&ai_json)?;
 
     write_ai_cache(config, &cache_key, &ai_json)?;
 
@@ -1214,6 +1223,32 @@ fn truncate_value_strings(value: &mut Value, max_chars: usize) {
     }
 }
 
+fn gemini_response_schema() -> Value {
+    json!({
+        "type": "OBJECT",
+        "properties": {
+            "priority_alert": {"type": "OBJECT"},
+            "iran_radar": {
+                "type": "ARRAY",
+                "items": {"type": "OBJECT"}
+            },
+            "global_news": {
+                "type": "ARRAY",
+                "items": {"type": "OBJECT"}
+            },
+            "cves": {
+                "type": "ARRAY",
+                "items": {"type": "OBJECT"}
+            },
+            "action_items": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"}
+            }
+        },
+        "required": ["priority_alert", "iran_radar", "global_news", "cves", "action_items"]
+    })
+}
+
 fn build_gemini_prompt(compact: &Value) -> Result<String> {
     Ok(format!(
         r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
@@ -1231,7 +1266,9 @@ Rules:
 - Keep titles concise: preferably under 12 Persian words or 85 characters.
 - For CVEs, keep the CVE ID untouched and make title product/impact oriented; avoid repeating the full NVD sentence.
 - Action items must be concrete, defensive, and suitable for a daily SOC/ops checklist.
-- Return valid JSON only, with this exact top-level shape:
+- Return valid JSON only. No markdown fences, comments, trailing commas, or explanatory text.
+- If a field is uncertain, keep the original input value instead of inventing a replacement.
+- Return this exact top-level shape:
 {{
   "priority_alert": {{...}},
   "iran_radar": [...],
@@ -1271,6 +1308,56 @@ fn clean_json_block(text: &str) -> String {
         out = out.trim_end_matches("```").trim().to_string();
     }
     out
+}
+
+fn json_parse_hint(text: &str) -> String {
+    let char_count = text.chars().count();
+    let preview: String = text.chars().take(180).collect();
+    format!("{} chars; starts with {:?}", char_count, preview)
+}
+
+fn validate_ai_result_shape(ai_json: &Value) -> Result<Value> {
+    let obj = ai_json
+        .as_object()
+        .context("Gemini returned JSON, but the top-level value was not an object")?;
+
+    let mut clean = serde_json::Map::new();
+
+    if let Some(value) = obj.get("priority_alert") {
+        if value.is_object() {
+            clean.insert("priority_alert".to_string(), value.clone());
+        }
+    }
+
+    for key in ["iran_radar", "global_news", "cves"] {
+        if let Some(value) = obj.get(key) {
+            if let Some(items) = value.as_array() {
+                let safe_items = items
+                    .iter()
+                    .filter(|item| item.is_object())
+                    .cloned()
+                    .collect::<Vec<_>>();
+                clean.insert(key.to_string(), Value::Array(safe_items));
+            }
+        }
+    }
+
+    if let Some(value) = obj.get("action_items") {
+        if let Some(items) = value.as_array() {
+            let safe_items = items
+                .iter()
+                .filter_map(|item| item.as_str().map(|s| Value::String(s.trim().to_string())))
+                .filter(|item| item.as_str().is_some_and(|s| !s.is_empty()))
+                .collect::<Vec<_>>();
+            clean.insert("action_items".to_string(), Value::Array(safe_items));
+        }
+    }
+
+    if clean.is_empty() {
+        anyhow::bail!("Gemini returned JSON, but it did not contain any usable brief fields");
+    }
+
+    Ok(Value::Object(clean))
 }
 
 fn merge_ai_result(mut brief: Value, ai_json: &Value) -> Value {
@@ -1374,7 +1461,7 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.5-polish");
+    brief["version"] = json!("v0.4.6-ai-json-guard");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
