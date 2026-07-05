@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.8.1-frontend-split",
+  "version": "v0.4.9-attack-pressure-chart",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -12,7 +12,8 @@
     "cves": 1,
     "critical_cves": 1,
     "kev": 0,
-    "rss_sources": 18
+    "rss_sources": 18,
+    "intel_sources": 1
   },
   "source_health": {
     "rss_sources": 18,
@@ -24,7 +25,9 @@
     ],
     "http_cache": true,
     "cache_ttl_minutes": 720,
-    "ai_cache_dir": "data/cache/ai"
+    "ai_cache_dir": "data/cache/ai",
+    "intel_sources": 1,
+    "intel_cache_dir": "data/cache/intel"
   },
   "ai_status": {
     "enabled": false,
@@ -139,5 +142,36 @@
         "CVE"
       ]
     }
-  ]
+  ],
+  "attack_pressure": {
+    "enabled": true,
+    "ok": true,
+    "provider": "SANS ISC / DShield",
+    "level": "Medium",
+    "summary_fa": "نمونه نمایشی: چند پورت رایج اینترنتی در داده DShield دیده شده‌اند.",
+    "last_updated": "2026-07-05T16:00:00Z",
+    "refresh_hours": 1,
+    "top_ports": [
+      {
+        "rank": 1,
+        "port": 443,
+        "service": "https",
+        "description": "HTTP over TLS",
+        "risk": "medium",
+        "note_fa": "فشار روی سرویس‌های وب؛ exposure و لاگ‌های edge را پایش کن."
+      }
+    ],
+    "scanning_ports": [
+      {
+        "rank": 1,
+        "port": 22,
+        "service": "ssh",
+        "description": "SSH",
+        "risk": "high",
+        "note_fa": "اسکن SSH؛ دسترسی public را بررسی کن."
+      }
+    ],
+    "reported_ports": [],
+    "targeted_ports": []
+  }
 }

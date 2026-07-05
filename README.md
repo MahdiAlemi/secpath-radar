@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.8.1-frontend-split**
+Current phase: **v0.4.9-attack-pressure-chart**
 
 ## What changed in v0.4.8
 
@@ -77,3 +77,25 @@ This release keeps SecPath Radar as a static, observational dashboard:
 - Tools, tips, and action-item sections remain removed.
 
 No deployment, GitHub Pages, or DNS changes are included in this phase.
+
+
+## v0.4.9 — Attack Pressure Radar chart
+
+This phase adds a read-only DShield/SANS telemetry layer. It fetches static DShield top-port feeds, stores them in `data/cache/intel`, and renders passive attack-pressure cards. There are no forms, search boxes, filters, or user input workflows.
+
+Telemetry sources:
+
+- `topports.txt` — top firewall-log ports
+- `topports_source.txt` — ports sorted by source IP scanning pressure
+- `topports_reports.txt` — ports sorted by report volume
+- `topports_targets.txt` — ports sorted by target exposure
+
+DShield/SANS recommends using static feeds where possible and not downloading them more than once per hour. The default `intel.refresh_hours` is `1`.
+
+
+### UI preference locked
+
+- Black/orange SOC-console theme.
+- No border radius.
+- Attack Pressure must render as static charts, not statistic-only cards.
+- Radar remains read-only: no forms, inputs, filters, or user workflows.

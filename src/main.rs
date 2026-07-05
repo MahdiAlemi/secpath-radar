@@ -51,6 +51,8 @@ struct Config {
     fetch: FetchConfig,
     #[serde(default)]
     cache: CacheConfig,
+    #[serde(default)]
+    intel: IntelConfig,
     filters: FiltersConfig,
     limits: LimitsConfig,
     sources: Vec<SourceConfig>,
@@ -105,6 +107,101 @@ fn default_cache_dir() -> String {
 
 fn default_cache_ttl_minutes() -> u64 {
     720
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct IntelConfig {
+    #[serde(default = "default_intel_enabled")]
+    enabled: bool,
+    #[serde(default = "default_intel_cache_dir")]
+    cache_dir: String,
+    #[serde(default = "default_intel_refresh_hours")]
+    refresh_hours: u64,
+    #[serde(default = "default_intel_sleep_ms")]
+    sleep_ms_between_sources: u64,
+    #[serde(default)]
+    attack_pressure: AttackPressureConfig,
+}
+
+impl Default for IntelConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_intel_enabled(),
+            cache_dir: default_intel_cache_dir(),
+            refresh_hours: default_intel_refresh_hours(),
+            sleep_ms_between_sources: default_intel_sleep_ms(),
+            attack_pressure: AttackPressureConfig::default(),
+        }
+    }
+}
+
+fn default_intel_enabled() -> bool {
+    true
+}
+
+fn default_intel_cache_dir() -> String {
+    "data/cache/intel".to_string()
+}
+
+fn default_intel_refresh_hours() -> u64 {
+    1
+}
+
+fn default_intel_sleep_ms() -> u64 {
+    350
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct AttackPressureConfig {
+    #[serde(default = "default_attack_pressure_enabled")]
+    enabled: bool,
+    #[serde(default = "default_attack_pressure_max_ports")]
+    max_ports: usize,
+    #[serde(default = "default_top_ports_url")]
+    top_ports_url: String,
+    #[serde(default = "default_top_ports_source_url")]
+    top_ports_source_url: String,
+    #[serde(default = "default_top_ports_reports_url")]
+    top_ports_reports_url: String,
+    #[serde(default = "default_top_ports_targets_url")]
+    top_ports_targets_url: String,
+}
+
+impl Default for AttackPressureConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_attack_pressure_enabled(),
+            max_ports: default_attack_pressure_max_ports(),
+            top_ports_url: default_top_ports_url(),
+            top_ports_source_url: default_top_ports_source_url(),
+            top_ports_reports_url: default_top_ports_reports_url(),
+            top_ports_targets_url: default_top_ports_targets_url(),
+        }
+    }
+}
+
+fn default_attack_pressure_enabled() -> bool {
+    true
+}
+
+fn default_attack_pressure_max_ports() -> usize {
+    10
+}
+
+fn default_top_ports_url() -> String {
+    "https://feeds.dshield.org/feeds//topports.txt".to_string()
+}
+
+fn default_top_ports_source_url() -> String {
+    "https://feeds.dshield.org/feeds//topports_source.txt".to_string()
+}
+
+fn default_top_ports_reports_url() -> String {
+    "https://feeds.dshield.org/feeds//topports_reports.txt".to_string()
+}
+
+fn default_top_ports_targets_url() -> String {
+    "https://feeds.dshield.org/feeds//topports_targets.txt".to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -279,6 +376,18 @@ struct CveItem {
     tags: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct AttackPort {
+    rank: usize,
+    port: u16,
+    service: String,
+    description: String,
+    risk: String,
+    note_fa: String,
+    pressure_score: usize,
+    bar_width: usize,
+}
+
 fn parse_args() -> Result<Args> {
     let mut args = Args::default();
     let mut iter = env::args().skip(1);
@@ -367,7 +476,11 @@ fn main() -> Result<()> {
             Vec::new()
         };
 
-        build_brief(&config, items, cves)?
+        let mut brief = build_brief(&config, items, cves)?;
+        let attack_pressure =
+            fetch_attack_pressure_or_fallback(&config, args.offline, args.refresh_cache);
+        brief["attack_pressure"] = attack_pressure;
+        brief
     } else {
         let brief_raw = fs::read_to_string(&args.input)
             .with_context(|| format!("failed to read input JSON: {}", args.input.display()))?;
@@ -982,6 +1095,238 @@ fn category_label(category: &str) -> &'static str {
     }
 }
 
+fn fetch_attack_pressure_or_fallback(config: &Config, offline: bool, refresh_cache: bool) -> Value {
+    if !config.intel.enabled || !config.intel.attack_pressure.enabled {
+        return empty_attack_pressure("disabled");
+    }
+
+    match fetch_attack_pressure(config, offline, refresh_cache) {
+        Ok(value) => value,
+        Err(err) => {
+            eprintln!("⚠️  Attack Pressure Radar skipped: {err:#}");
+            let mut fallback = empty_attack_pressure("error");
+            fallback["error"] = json!(err.to_string());
+            fallback
+        }
+    }
+}
+
+fn fetch_attack_pressure(config: &Config, offline: bool, refresh_cache: bool) -> Result<Value> {
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(18))
+        .build()
+        .context("failed to build HTTP client for Attack Pressure Radar")?;
+
+    let ap = &config.intel.attack_pressure;
+    eprintln!("→ fetching DShield Attack Pressure feeds");
+
+    let headline = fetch_dshield_port_feed(
+        &client,
+        config,
+        &ap.top_ports_url,
+        "DShield top ports",
+        offline,
+        refresh_cache,
+        ap.max_ports,
+    )?;
+    thread::sleep(Duration::from_millis(config.intel.sleep_ms_between_sources));
+
+    let scanning = fetch_dshield_port_feed(
+        &client,
+        config,
+        &ap.top_ports_source_url,
+        "DShield top ports by source IPs",
+        offline,
+        refresh_cache,
+        ap.max_ports,
+    )?;
+    thread::sleep(Duration::from_millis(config.intel.sleep_ms_between_sources));
+
+    let reports = fetch_dshield_port_feed(
+        &client,
+        config,
+        &ap.top_ports_reports_url,
+        "DShield top ports by reports",
+        offline,
+        refresh_cache,
+        ap.max_ports,
+    )?;
+    thread::sleep(Duration::from_millis(config.intel.sleep_ms_between_sources));
+
+    let targets = fetch_dshield_port_feed(
+        &client,
+        config,
+        &ap.top_ports_targets_url,
+        "DShield top ports by targets",
+        offline,
+        refresh_cache,
+        ap.max_ports,
+    )?;
+
+    let all_ports = headline
+        .iter()
+        .chain(scanning.iter())
+        .chain(reports.iter())
+        .chain(targets.iter())
+        .collect::<Vec<_>>();
+    let high_risk_count = all_ports.iter().filter(|port| port.risk == "high").count();
+    let medium_risk_count = all_ports
+        .iter()
+        .filter(|port| port.risk == "medium")
+        .count();
+    let level = if high_risk_count >= 6 {
+        "High"
+    } else if high_risk_count >= 2 || medium_risk_count >= 8 {
+        "Medium"
+    } else {
+        "Low"
+    };
+
+    let summary_fa = match level {
+        "High" => "چندین پورت حساس در feedهای DShield تکرار شده‌اند؛ فشار اسکن اینترنتی بالا ارزیابی می‌شود.",
+        "Medium" => "چند سرویس پرریسک در بین پورت‌های هدف دیده می‌شود؛ وضعیت برای پایش روزانه قابل توجه است.",
+        _ => "داده‌های DShield فشار غیرعادی شدیدی را نشان نمی‌دهد، اما سرویس‌های رایج همچنان زیر اسکن هستند.",
+    };
+
+    Ok(json!({
+        "enabled": true,
+        "ok": true,
+        "provider": "SANS ISC / DShield",
+        "source_url": "https://www.dshield.org/feeds_doc.html",
+        "level": level,
+        "summary_fa": summary_fa,
+        "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
+        "cache_dir": config.intel.cache_dir.clone(),
+        "refresh_hours": config.intel.refresh_hours,
+        "top_ports": headline,
+        "scanning_ports": scanning,
+        "reported_ports": reports,
+        "targeted_ports": targets
+    }))
+}
+
+fn fetch_dshield_port_feed(
+    client: &Client,
+    config: &Config,
+    url: &str,
+    label: &str,
+    offline: bool,
+    refresh_cache: bool,
+    limit: usize,
+) -> Result<Vec<AttackPort>> {
+    let bytes = get_bytes_cached_intel(client, config, url, label, offline, refresh_cache)?;
+    let text = String::from_utf8_lossy(&bytes);
+    let mut ports = parse_dshield_ports(&text);
+    ports.truncate(limit);
+    annotate_attack_ports(&mut ports);
+    Ok(ports)
+}
+
+fn annotate_attack_ports(ports: &mut [AttackPort]) {
+    let total = ports.len().max(1);
+    for (idx, port) in ports.iter_mut().enumerate() {
+        let relative = (((total - idx) as f64 / total as f64) * 100.0).round() as usize;
+        port.pressure_score = relative.max(10);
+        port.bar_width = relative.clamp(10, 100);
+    }
+}
+
+fn parse_dshield_ports(text: &str) -> Vec<AttackPort> {
+    let tokens = text.split_whitespace().collect::<Vec<_>>();
+    let mut out = Vec::new();
+    let mut i = 0;
+
+    while i < tokens.len() {
+        let Some(port) = tokens[i].parse::<u16>().ok() else {
+            i += 1;
+            continue;
+        };
+        i += 1;
+
+        let service = tokens
+            .get(i)
+            .filter(|token| token.parse::<u16>().is_err())
+            .map(|token| (*token).to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+        if i < tokens.len() && tokens[i].parse::<u16>().is_err() {
+            i += 1;
+        }
+
+        let mut desc_parts = Vec::new();
+        while i < tokens.len() && tokens[i].parse::<u16>().is_err() {
+            desc_parts.push(tokens[i]);
+            i += 1;
+        }
+
+        let description = if desc_parts.is_empty() {
+            service.clone()
+        } else {
+            desc_parts.join(" ")
+        };
+
+        let rank = out.len() + 1;
+        out.push(AttackPort {
+            rank,
+            port,
+            service: normalize_port_service(&service),
+            description: clean_text(&description),
+            risk: attack_port_risk(port).to_string(),
+            note_fa: attack_port_note(port),
+            pressure_score: 0,
+            bar_width: 0,
+        });
+    }
+
+    out
+}
+
+fn normalize_port_service(service: &str) -> String {
+    let cleaned = service.trim_matches('-').trim();
+    if cleaned.is_empty() {
+        "unknown".to_string()
+    } else {
+        cleaned.to_string()
+    }
+}
+
+fn attack_port_risk(port: u16) -> &'static str {
+    match port {
+        21 | 22 | 23 | 445 | 3389 | 5900 | 6379 | 9200 | 11211 | 27017 => "high",
+        80 | 443 | 8080 | 8443 | 8000 | 2222 | 5060 | 53 | 853 => "medium",
+        _ => "watch",
+    }
+}
+
+fn attack_port_note(port: u16) -> String {
+    match port {
+        22 | 2222 => "اسکن SSH؛ کلیدها، MFA، rate-limit و دسترسی public را بررسی کن.".to_string(),
+        23 => "Telnet روی اینترنت پرریسک است؛ وجود آن در assetها باید سریع حذف یا محدود شود.".to_string(),
+        80 | 443 | 8080 | 8000 | 8443 | 8081 => "فشار روی سرویس‌های وب؛ exposure، WAF، patch و لاگ‌های edge را پایش کن.".to_string(),
+        445 => "SMB نباید public-facing باشد؛ هر exposure اینترنتی را بحرانی فرض کن.".to_string(),
+        3389 => "RDP اینترنتی هدف رایج brute-force و exploit است؛ دسترسی را محدود و مانیتور کن.".to_string(),
+        53 | 853 => "فعالیت DNS دیده می‌شود؛ resolverهای باز و policyهای recursive را بررسی کن.".to_string(),
+        5060 => "SIP/VoIP زیر اسکن است؛ brute-force و تنظیمات exposed PBX را بررسی کن.".to_string(),
+        _ => "این پورت در داده‌های DShield دیده شده؛ در صورت وجود در سطح اینترنت، مالکیت و ضرورت آن را بررسی کن.".to_string(),
+    }
+}
+
+fn empty_attack_pressure(status: &str) -> Value {
+    json!({
+        "enabled": status != "disabled",
+        "ok": false,
+        "provider": "SANS ISC / DShield",
+        "level": "Unknown",
+        "summary_fa": "داده Attack Pressure در این اجرا در دسترس نبود.",
+        "last_updated": "",
+        "refresh_hours": 1,
+        "top_ports": [],
+        "scanning_ports": [],
+        "reported_ports": [],
+        "targeted_ports": []
+    })
+}
+
 fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) -> Result<Value> {
     let now = Local::now();
     let date_en = format!("{}-{:02}-{:02}", now.year(), now.month(), now.day());
@@ -1034,14 +1379,17 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "cves": cve_count,
             "critical_cves": critical_count,
             "kev": kev_count,
-            "rss_sources": config.sources.len()
+            "rss_sources": config.sources.len(),
+            "intel_sources": if config.intel.enabled && config.intel.attack_pressure.enabled { 1 } else { 0 }
         },
         "source_health": {
             "rss_sources": config.sources.len(),
             "source_names": config.sources.iter().map(|source| source.name.clone()).collect::<Vec<_>>(),
             "http_cache": config.cache.enabled,
             "cache_ttl_minutes": config.cache.ttl_minutes,
-            "ai_cache_dir": config.gemini.cache_dir.clone()
+            "ai_cache_dir": config.gemini.cache_dir.clone(),
+            "intel_sources": if config.intel.enabled && config.intel.attack_pressure.enabled { 1 } else { 0 },
+            "intel_cache_dir": config.intel.cache_dir.clone()
         },
         "priority_alert": priority,
         "iran_radar": iran,
@@ -1556,7 +1904,7 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.8.1-frontend-split");
+    brief["version"] = json!("v0.4.9-attack-pressure-chart");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -1564,11 +1912,19 @@ fn apply_local_polish(brief: &mut Value) {
             "source_names": [],
             "http_cache": true,
             "cache_ttl_minutes": 0,
-            "ai_cache_dir": "data/cache/ai"
+            "ai_cache_dir": "data/cache/ai",
+            "intel_sources": 0,
+            "intel_cache_dir": "data/cache/intel"
         });
     }
     if brief["source_health"].get("source_names").is_none() {
         brief["source_health"]["source_names"] = json!([]);
+    }
+    if brief["source_health"].get("intel_sources").is_none() {
+        brief["source_health"]["intel_sources"] = json!(0);
+    }
+    if brief.get("attack_pressure").is_none() {
+        brief["attack_pressure"] = empty_attack_pressure("missing");
     }
 
     polish_priority(brief);
@@ -1845,6 +2201,11 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         .and_then(|v| v.get("rss_sources"))
         .and_then(|v| v.as_u64())
         .unwrap_or(0);
+    let attack_pressure_ok = brief
+        .get("attack_pressure")
+        .and_then(|v| v.get("ok"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
     if ai_enabled && ai_ok && ai_cache {
         notes.push(
@@ -1868,9 +2229,13 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
     }
 
     if sources > 0 {
-        notes.push(format!(
+        let mut coverage = format!(
             "پوشش خبری این نسخه از {sources} منبع RSS به‌همراه NVD، CISA KEV و EPSS ساخته شده است."
-        ));
+        );
+        if attack_pressure_ok {
+            coverage.push_str(" لایه Attack Pressure نیز از DShield/SANS اضافه شده است.");
+        }
+        notes.push(coverage);
     }
 
     notes.into_iter().take(2).collect()
@@ -1966,6 +2331,105 @@ fn copy_dir_recursive(src: &PathBuf, dest: &PathBuf) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn get_bytes_cached_intel(
+    client: &Client,
+    config: &Config,
+    url: &str,
+    label: &str,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Vec<u8>> {
+    let cache_key = cache_key(url, &[]);
+    let ttl_minutes = config.intel.refresh_hours.saturating_mul(60).max(60);
+
+    if !refresh_cache {
+        if let Some(bytes) =
+            read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, false)?
+        {
+            eprintln!("  ↳ cache hit: {label}");
+            return Ok(bytes);
+        }
+    }
+
+    if offline {
+        return read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
+            .with_context(|| format!("offline mode has no cached response for {label}"));
+    }
+
+    match client
+        .get(url)
+        .send()
+        .and_then(|response| response.error_for_status())
+    {
+        Ok(response) => {
+            let bytes = response
+                .bytes()
+                .with_context(|| format!("failed to read response body for {label}"))?
+                .to_vec();
+            write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)?;
+            Ok(bytes)
+        }
+        Err(err) => {
+            if let Some(bytes) =
+                read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
+            {
+                eprintln!("⚠️  using stale intel cache for {label}: {err}");
+                Ok(bytes)
+            } else {
+                Err(err).with_context(|| format!("request failed for {label}: {url}"))
+            }
+        }
+    }
+}
+
+fn cache_path_in_dir(cache_dir: &str, cache_key: &str) -> PathBuf {
+    let mut hasher = DefaultHasher::new();
+    cache_key.hash(&mut hasher);
+    let hash = hasher.finish();
+    PathBuf::from(cache_dir).join(format!("{hash:016x}.bin"))
+}
+
+fn read_cache_from_dir(
+    cache_dir: &str,
+    cache_key: &str,
+    ttl_minutes: u64,
+    allow_stale: bool,
+) -> Result<Option<Vec<u8>>> {
+    let path = cache_path_in_dir(cache_dir, cache_key);
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    if !allow_stale {
+        let metadata = fs::metadata(&path)
+            .with_context(|| format!("failed to read cache metadata: {}", path.display()))?;
+        let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+        let age = SystemTime::now()
+            .duration_since(modified)
+            .unwrap_or_else(|_| Duration::from_secs(0));
+        let ttl = Duration::from_secs(ttl_minutes.saturating_mul(60));
+
+        if age > ttl {
+            return Ok(None);
+        }
+    }
+
+    fs::read(&path)
+        .map(Some)
+        .with_context(|| format!("failed to read cache file: {}", path.display()))
+}
+
+fn write_cache_to_dir(cache_dir: &str, cache_key: &str, bytes: &[u8]) -> Result<()> {
+    let path = cache_path_in_dir(cache_dir, cache_key);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create cache directory: {}", parent.display()))?;
+    }
+    fs::write(&path, bytes)
+        .with_context(|| format!("failed to write cache file: {}", path.display()))?;
     Ok(())
 }
 

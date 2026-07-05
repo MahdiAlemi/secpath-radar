@@ -13,7 +13,8 @@
       <div class="brand"><span class="brand-mark">🛡️</span><span>SecPath Radar</span></div>
       <div class="topbar-status" aria-label="وضعیت رادار">
         <span>{{ brief.date_fa }}</span>
-        <span>{{ brief.source_health.rss_sources }} منبع</span>
+        <span>{{ brief.source_health.rss_sources }} منبع RSS</span>
+        <span>{{ brief.source_health.intel_sources }} منبع telemetry</span>
         <span>{% if brief.ai_status.enabled and brief.ai_status.ok %}AI آماده{% elif brief.ai_status.enabled %}AI fallback{% else %}AI خاموش{% endif %}</span>
       </div>
     </nav>
@@ -28,6 +29,7 @@
             <span class="badge hot">وضعیت: {{ brief.risk_level }}</span>
             <span class="badge info">{{ brief.date_fa }} · {{ brief.date_en }}</span>
             <span class="badge ok">{{ brief.source_health.rss_sources }} منبع RSS</span>
+            <span class="badge info">{{ brief.source_health.intel_sources }} منبع telemetry</span>
             {% if brief.ai_status.enabled and brief.ai_status.ok %}<span class="badge ok">AI {% if brief.ai_status.cache_hit %}cache{% else %}live{% endif %}</span>{% elif brief.ai_status.enabled %}<span class="badge warn">AI fallback</span>{% else %}<span class="badge warn">AI off</span>{% endif %}
           </div>
         </div>
@@ -36,7 +38,7 @@
         <div class="status-row"><span>Generated</span><b>{{ brief.generated_at }}</b></div>
         <div class="status-row"><span>HTTP cache</span><b>{% if brief.source_health.http_cache %}ON{% else %}OFF{% endif %}</b></div>
         <div class="status-row"><span>AI model</span><b>{% if brief.ai_status.enabled %}{{ brief.ai_status.model }}{% else %}disabled{% endif %}</b></div>
-        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS</b></div>
+        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield</b></div>
       </aside>
     </header>
 
@@ -47,6 +49,7 @@
       <div class="metric"><span>Iran Radar</span><strong>{{ brief.stats.iran_items }}</strong><small>کلیدواژه/attribution</small></div>
       <div class="metric"><span>Global News</span><strong>{{ brief.stats.global_news }}</strong><small>خبرهای rank شده</small></div>
       <div class="metric"><span>Sources</span><strong>{{ brief.stats.rss_sources }}</strong><small>RSS فعال در config</small></div>
+      <div class="metric text-metric"><span>Attack Pressure</span><strong>{{ brief.attack_pressure.level }}</strong><small>DShield telemetry</small></div>
     </section>
 
     {% if brief.brief_notes | length > 0 %}
@@ -54,6 +57,65 @@
       {% for note in brief.brief_notes %}<div class="note">{{ note }}</div>{% endfor %}
     </section>
     {% endif %}
+
+    <section id="attack-pressure" class="panel attack-pressure-panel" aria-label="Attack Pressure Radar">
+      <div class="panel-head">
+        <div><span class="eyebrow">Attack Pressure Radar</span><h2>فشار اسکن و حملات اینترنتی</h2></div>
+        <span class="count">{{ brief.attack_pressure.provider }} · {{ brief.attack_pressure.level }}</span>
+      </div>
+      <div class="pressure-summary">
+        <p>{{ brief.attack_pressure.summary_fa }}</p>
+        <div class="meta">
+          <span class="pill {% if brief.attack_pressure.ok %}green{% else %}amber{% endif %}">{% if brief.attack_pressure.ok %}telemetry ok{% else %}telemetry fallback{% endif %}</span>
+          <span class="pill">refresh {{ brief.attack_pressure.refresh_hours }}h</span>
+          {% if brief.attack_pressure.last_updated %}<span class="pill">{{ brief.attack_pressure.last_updated }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="pressure-chart-board" aria-label="نمودار فشار حملات DShield">
+        <div class="chart-panel chart-panel-wide">
+          <div class="chart-title"><span>نمودار شدت نسبی پورت‌های هدف</span><small>Top Ports · rank-based pressure</small></div>
+          <div class="bar-chart" role="img" aria-label="نمودار میله‌ای پورت‌های پرتکرار در DShield">
+            {% for port in brief.attack_pressure.top_ports %}
+            <div class="bar-row risk-{{ port.risk }}">
+              <div class="bar-label"><code>{{ port.port }}</code><span>{{ port.service }}</span></div>
+              <div class="bar-track"><span class="bar-fill" style="--bar: {{ port.bar_width }}%"></span></div>
+              <b>{{ port.pressure_score }}</b>
+            </div>
+            {% endfor %}
+            {% if brief.attack_pressure.top_ports | length == 0 %}<div class="chart-empty">داده‌ای برای نمودار موجود نیست.</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="mini-chart-grid">
+          <div class="chart-panel">
+            <div class="chart-title"><span>Scanning Sources</span><small>source IP pressure</small></div>
+            <div class="spark-bars" aria-label="نمودار منابع اسکن">
+              {% for port in brief.attack_pressure.scanning_ports %}<span class="spark risk-{{ port.risk }}" style="--bar: {{ port.bar_width }}%"><i>{{ port.port }}</i></span>{% endfor %}
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title"><span>Reports Volume</span><small>report pressure</small></div>
+            <div class="spark-bars" aria-label="نمودار حجم گزارش‌ها">
+              {% for port in brief.attack_pressure.reported_ports %}<span class="spark risk-{{ port.risk }}" style="--bar: {{ port.bar_width }}%"><i>{{ port.port }}</i></span>{% endfor %}
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title"><span>Target Exposure</span><small>target count pressure</small></div>
+            <div class="spark-bars" aria-label="نمودار exposure هدف‌ها">
+              {% for port in brief.attack_pressure.targeted_ports %}<span class="spark risk-{{ port.risk }}" style="--bar: {{ port.bar_width }}%"><i>{{ port.port }}</i></span>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pressure-legend">
+        <span><i class="risk-dot high"></i>high</span>
+        <span><i class="risk-dot medium"></i>medium</span>
+        <span><i class="risk-dot watch"></i>watch</span>
+        <small>نمودار بر اساس رتبه feedهای DShield ساخته شده و برای آگاهی موقعیتی است، نه blocklist مستقیم.</small>
+      </div>
+    </section>
 
     <div class="grid">
       <div class="stack">
@@ -140,8 +202,8 @@
         </section>
 
         <section id="sources" class="panel">
-          <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }}</span></div>
-          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}</div>
+          <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.intel_sources }} telemetry</span></div>
+          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span></div>
         </section>
       </aside>
     </div>
