@@ -7,3 +7,4 @@ data/latest_brief.json
 *.patch
 .env
 .DS_Store
+data/cache/

@@ -6,11 +6,12 @@ use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::DefaultHasher, HashMap, HashSet},
     env, fs,
+    hash::{Hash, Hasher},
     path::PathBuf,
     thread,
-    time::Duration,
+    time::{Duration, SystemTime},
 };
 
 #[derive(Debug)]
@@ -21,6 +22,8 @@ struct Args {
     config: PathBuf,
     fetch: bool,
     cves: bool,
+    offline: bool,
+    refresh_cache: bool,
 }
 
 impl Default for Args {
@@ -32,6 +35,8 @@ impl Default for Args {
             config: PathBuf::from("config.yaml"),
             fetch: false,
             cves: false,
+            offline: false,
+            refresh_cache: false,
         }
     }
 }
@@ -40,6 +45,8 @@ impl Default for Args {
 struct Config {
     site: SiteConfig,
     fetch: FetchConfig,
+    #[serde(default)]
+    cache: CacheConfig,
     filters: FiltersConfig,
     limits: LimitsConfig,
     sources: Vec<SourceConfig>,
@@ -60,6 +67,38 @@ struct FetchConfig {
     max_total_items: usize,
     sleep_ms_between_sources: u64,
     user_agent: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct CacheConfig {
+    #[serde(default = "default_cache_enabled")]
+    enabled: bool,
+    #[serde(default = "default_cache_dir")]
+    dir: String,
+    #[serde(default = "default_cache_ttl_minutes")]
+    ttl_minutes: u64,
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_cache_enabled(),
+            dir: default_cache_dir(),
+            ttl_minutes: default_cache_ttl_minutes(),
+        }
+    }
+}
+
+fn default_cache_enabled() -> bool {
+    true
+}
+
+fn default_cache_dir() -> String {
+    "data/cache/http".to_string()
+}
+
+fn default_cache_ttl_minutes() -> u64 {
+    720
 }
 
 #[derive(Debug, Deserialize)]
@@ -191,6 +230,8 @@ fn parse_args() -> Result<Args> {
         match flag.as_str() {
             "--fetch" => args.fetch = true,
             "--cves" => args.cves = true,
+            "--offline" => args.offline = true,
+            "--refresh-cache" => args.refresh_cache = true,
             "--full" => {
                 args.fetch = true;
                 args.cves = true;
@@ -221,14 +262,19 @@ fn parse_args() -> Result<Args> {
             }
             "--help" | "-h" => {
                 println!(
-                    "Usage: cyberbrief [--fetch] [--cves] [--full] [--config PATH] [--input PATH] [--template PATH] [--out PATH]"
+                    "Usage: secpath-radar [--fetch] [--cves] [--full] [--offline] [--refresh-cache] [--config PATH] [--input PATH] [--template PATH] [--out PATH]"
                 );
                 println!("Default mode renders samples/sample_brief.json without network calls.");
-                println!("Use --fetch for RSS, --cves for NVD/CISA KEV/EPSS, or --full for both.");
+                println!("Use --fetch for RSS, --cves for NVD/CISA KEV/EPSS, --full for both, or --offline --full to use cache only.");
                 std::process::exit(0);
             }
             unknown => anyhow::bail!("unknown argument: {unknown}"),
         }
+    }
+
+    if args.offline && !args.fetch && !args.cves {
+        args.fetch = true;
+        args.cves = true;
     }
 
     Ok(args)
@@ -243,13 +289,13 @@ fn main() -> Result<()> {
         let config = load_config(&args.config)?;
 
         let items = if args.fetch {
-            fetch_and_score(&config)?
+            fetch_and_score(&config, args.offline, args.refresh_cache)?
         } else {
             Vec::new()
         };
 
         let cves = if args.cves {
-            match fetch_cves(&config) {
+            match fetch_cves(&config, args.offline, args.refresh_cache) {
                 Ok(cves) => cves,
                 Err(err) => {
                     eprintln!("⚠️  CVE engine skipped: {err:#}");
@@ -280,6 +326,9 @@ fn main() -> Result<()> {
     if network_mode {
         println!("✅ wrote data/latest_brief.json");
         println!("ℹ️ Gemini calls used: 0");
+        if args.offline {
+            println!("ℹ️ offline mode: used cached HTTP responses only");
+        }
     }
     Ok(())
 }
@@ -290,7 +339,7 @@ fn load_config(path: &PathBuf) -> Result<Config> {
     serde_yaml::from_str(&raw).with_context(|| format!("invalid YAML in {}", path.display()))
 }
 
-fn fetch_and_score(config: &Config) -> Result<Vec<FeedItem>> {
+fn fetch_and_score(config: &Config, offline: bool, refresh_cache: bool) -> Result<Vec<FeedItem>> {
     let client = Client::builder()
         .user_agent(&config.fetch.user_agent)
         .timeout(Duration::from_secs(18))
@@ -303,7 +352,7 @@ fn fetch_and_score(config: &Config) -> Result<Vec<FeedItem>> {
     for source in &config.sources {
         eprintln!("→ fetching {}", source.name);
 
-        match fetch_source(&client, source, config) {
+        match fetch_source(&client, source, config, offline, refresh_cache) {
             Ok(mut items) => all.append(&mut items),
             Err(err) => eprintln!("⚠️  skipped {}: {err:#}", source.name),
         }
@@ -326,15 +375,22 @@ fn fetch_and_score(config: &Config) -> Result<Vec<FeedItem>> {
     Ok(deduped)
 }
 
-fn fetch_source(client: &Client, source: &SourceConfig, config: &Config) -> Result<Vec<FeedItem>> {
-    let bytes = client
-        .get(&source.url)
-        .send()
-        .with_context(|| format!("request failed: {}", source.url))?
-        .error_for_status()
-        .with_context(|| format!("bad HTTP status: {}", source.url))?
-        .bytes()
-        .context("failed to read response body")?;
+fn fetch_source(
+    client: &Client,
+    source: &SourceConfig,
+    config: &Config,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Vec<FeedItem>> {
+    let bytes = get_bytes_cached(
+        client,
+        config,
+        &source.url,
+        &[],
+        &format!("RSS {}", source.name),
+        offline,
+        refresh_cache,
+    )?;
 
     let feed = parser::parse(&bytes[..]).context("failed to parse RSS/Atom feed")?;
     let mut out = Vec::new();
@@ -390,7 +446,7 @@ fn fetch_source(client: &Client, source: &SourceConfig, config: &Config) -> Resu
     Ok(out)
 }
 
-fn fetch_cves(config: &Config) -> Result<Vec<CveItem>> {
+fn fetch_cves(config: &Config, offline: bool, refresh_cache: bool) -> Result<Vec<CveItem>> {
     let client = Client::builder()
         .user_agent(&config.fetch.user_agent)
         .timeout(Duration::from_secs(28))
@@ -398,33 +454,35 @@ fn fetch_cves(config: &Config) -> Result<Vec<CveItem>> {
         .context("failed to build HTTP client for CVE engine")?;
 
     let cve_config = &config.cve;
-    let end = Utc::now();
-    let start = end - ChronoDuration::days(cve_config.lookback_days.max(1));
+    let now = Utc::now();
+    let rounded_end =
+        chrono::DateTime::<Utc>::from_timestamp((now.timestamp() / 3600) * 3600, 0).unwrap_or(now);
+    let start = rounded_end - ChronoDuration::days(cve_config.lookback_days.max(1));
     let start_s = start.to_rfc3339_opts(SecondsFormat::Millis, true);
-    let end_s = end.to_rfc3339_opts(SecondsFormat::Millis, true);
+    let end_s = rounded_end.to_rfc3339_opts(SecondsFormat::Millis, true);
     let results_per_page = (cve_config.max_cves * 4).max(20).min(2000).to_string();
 
     eprintln!("→ fetching NVD CVEs from {start_s} to {end_s}");
 
-    let nvd_bytes = client
-        .get(&cve_config.nvd_url)
-        .query(&[
+    let nvd_bytes = get_bytes_cached(
+        &client,
+        config,
+        &cve_config.nvd_url,
+        &[
             ("pubStartDate", start_s.as_str()),
             ("pubEndDate", end_s.as_str()),
             ("resultsPerPage", results_per_page.as_str()),
-        ])
-        .send()
-        .context("NVD request failed")?
-        .error_for_status()
-        .context("NVD returned bad HTTP status")?
-        .bytes()
-        .context("failed to read NVD response body")?;
+        ],
+        "NVD CVE API",
+        offline,
+        refresh_cache,
+    )?;
 
     let nvd_json: Value = serde_json::from_slice(&nvd_bytes).context("invalid JSON from NVD")?;
 
     thread::sleep(Duration::from_millis(cve_config.sleep_ms_between_sources));
 
-    let kev_set = match fetch_kev_set(&client, cve_config) {
+    let kev_set = match fetch_kev_set(&client, config, cve_config, offline, refresh_cache) {
         Ok(set) => set,
         Err(err) => {
             eprintln!("⚠️  skipped CISA KEV enrichment: {err:#}");
@@ -437,7 +495,7 @@ fn fetch_cves(config: &Config) -> Result<Vec<CveItem>> {
     if cve_config.include_epss && !cves.is_empty() {
         thread::sleep(Duration::from_millis(cve_config.sleep_ms_between_sources));
         let ids: Vec<String> = cves.iter().map(|c| c.cve_id.clone()).collect();
-        match fetch_epss_map(&client, cve_config, &ids) {
+        match fetch_epss_map(&client, config, cve_config, &ids, offline, refresh_cache) {
             Ok(epss_map) => {
                 for cve in &mut cves {
                     if let Some(epss) = epss_map.get(&cve.cve_id) {
@@ -467,16 +525,23 @@ fn fetch_cves(config: &Config) -> Result<Vec<CveItem>> {
     Ok(cves)
 }
 
-fn fetch_kev_set(client: &Client, cve_config: &CveConfig) -> Result<HashSet<String>> {
+fn fetch_kev_set(
+    client: &Client,
+    config: &Config,
+    cve_config: &CveConfig,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<HashSet<String>> {
     eprintln!("→ fetching CISA KEV catalog");
-    let bytes = client
-        .get(&cve_config.kev_url)
-        .send()
-        .context("CISA KEV request failed")?
-        .error_for_status()
-        .context("CISA KEV returned bad HTTP status")?
-        .bytes()
-        .context("failed to read CISA KEV response body")?;
+    let bytes = get_bytes_cached(
+        client,
+        config,
+        &cve_config.kev_url,
+        &[],
+        "CISA KEV catalog",
+        offline,
+        refresh_cache,
+    )?;
 
     let json: Value = serde_json::from_slice(&bytes).context("invalid JSON from CISA KEV")?;
     let mut out = HashSet::new();
@@ -494,20 +559,23 @@ fn fetch_kev_set(client: &Client, cve_config: &CveConfig) -> Result<HashSet<Stri
 
 fn fetch_epss_map(
     client: &Client,
+    config: &Config,
     cve_config: &CveConfig,
     cve_ids: &[String],
+    offline: bool,
+    refresh_cache: bool,
 ) -> Result<HashMap<String, f64>> {
     eprintln!("→ fetching EPSS for {} CVEs", cve_ids.len());
     let joined = cve_ids.join(",");
-    let bytes = client
-        .get(&cve_config.epss_url)
-        .query(&[("cve", joined.as_str())])
-        .send()
-        .context("EPSS request failed")?
-        .error_for_status()
-        .context("EPSS returned bad HTTP status")?
-        .bytes()
-        .context("failed to read EPSS response body")?;
+    let bytes = get_bytes_cached(
+        client,
+        config,
+        &cve_config.epss_url,
+        &[("cve", joined.as_str())],
+        "EPSS API",
+        offline,
+        refresh_cache,
+    )?;
 
     let json: Value = serde_json::from_slice(&bytes).context("invalid JSON from EPSS")?;
     let mut map = HashMap::new();
@@ -943,6 +1011,123 @@ fn render_html(brief: &Value, template_path: &PathBuf, out_path: &PathBuf) -> Re
 
     fs::write(out_path, rendered)
         .with_context(|| format!("failed to write output HTML: {}", out_path.display()))?;
+    Ok(())
+}
+
+fn get_bytes_cached(
+    client: &Client,
+    config: &Config,
+    url: &str,
+    query: &[(&str, &str)],
+    label: &str,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Vec<u8>> {
+    let cache_key = cache_key(url, query);
+
+    if !refresh_cache {
+        if let Some(bytes) = read_cache(config, &cache_key, false)? {
+            eprintln!("  ↳ cache hit: {label}");
+            return Ok(bytes);
+        }
+    }
+
+    if offline {
+        return read_cache(config, &cache_key, true)?
+            .with_context(|| format!("offline mode has no cached response for {label}"));
+    }
+
+    let mut request = client.get(url);
+    if !query.is_empty() {
+        request = request.query(query);
+    }
+
+    match request
+        .send()
+        .and_then(|response| response.error_for_status())
+    {
+        Ok(response) => {
+            let bytes = response
+                .bytes()
+                .with_context(|| format!("failed to read response body for {label}"))?
+                .to_vec();
+            write_cache(config, &cache_key, &bytes)?;
+            Ok(bytes)
+        }
+        Err(err) => {
+            if let Some(bytes) = read_cache(config, &cache_key, true)? {
+                eprintln!("⚠️  using stale cache for {label}: {err}");
+                Ok(bytes)
+            } else {
+                Err(err).with_context(|| format!("request failed for {label}: {url}"))
+            }
+        }
+    }
+}
+
+fn cache_key(url: &str, query: &[(&str, &str)]) -> String {
+    let mut key = url.to_string();
+    if !query.is_empty() {
+        let parts = query
+            .iter()
+            .map(|(k, v)| format!("{k}={v}"))
+            .collect::<Vec<_>>()
+            .join("&");
+        key.push('?');
+        key.push_str(&parts);
+    }
+    key
+}
+
+fn cache_path(config: &Config, cache_key: &str) -> PathBuf {
+    let mut hasher = DefaultHasher::new();
+    cache_key.hash(&mut hasher);
+    let hash = hasher.finish();
+    PathBuf::from(&config.cache.dir).join(format!("{hash:016x}.bin"))
+}
+
+fn read_cache(config: &Config, cache_key: &str, allow_stale: bool) -> Result<Option<Vec<u8>>> {
+    if !config.cache.enabled {
+        return Ok(None);
+    }
+
+    let path = cache_path(config, cache_key);
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    if !allow_stale {
+        let metadata = fs::metadata(&path)
+            .with_context(|| format!("failed to read cache metadata: {}", path.display()))?;
+        let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+        let age = SystemTime::now()
+            .duration_since(modified)
+            .unwrap_or_else(|_| Duration::from_secs(0));
+        let ttl = Duration::from_secs(config.cache.ttl_minutes.saturating_mul(60));
+
+        if age > ttl {
+            return Ok(None);
+        }
+    }
+
+    fs::read(&path)
+        .map(Some)
+        .with_context(|| format!("failed to read cache file: {}", path.display()))
+}
+
+fn write_cache(config: &Config, cache_key: &str, bytes: &[u8]) -> Result<()> {
+    if !config.cache.enabled {
+        return Ok(());
+    }
+
+    let path = cache_path(config, cache_key);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create cache directory: {}", parent.display()))?;
+    }
+
+    fs::write(&path, bytes)
+        .with_context(|| format!("failed to write cache file: {}", path.display()))?;
     Ok(())
 }
 

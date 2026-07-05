@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 12
   max_total_items: 40
   sleep_ms_between_sources: 900
-  user_agent: "SecPath RadarLocal/0.3 (+https://localhost)"
+  user_agent: "SecPathRadar/0.3 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 12
@@ -17,6 +17,11 @@ cve:
   kev_url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
   epss_url: "https://api.first.org/data/v1/epss"
   include_epss: true
+
+cache:
+  enabled: true
+  dir: "data/cache/http"
+  ttl_minutes: 720
 
 filters:
   iran_keywords:
