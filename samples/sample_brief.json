@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.12-supply-chain-radar",
+  "version": "v0.4.13.1-ransomware-fix",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -15,7 +15,8 @@
     "rss_sources": 18,
     "intel_sources": 1,
     "infrastructure_hosts": 0,
-    "supply_chain_advisories": 0
+    "supply_chain_advisories": 0,
+    "ransomware_victims": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -214,5 +215,25 @@
     "ecosystem_chart": [],
     "severity_chart": [],
     "package_chart": []
+  },
+  "ransomware_pulse": {
+    "enabled": true,
+    "ok": false,
+    "provider": "Ransomware.live public API",
+    "level": "Unknown",
+    "summary_fa": "داده Ransomware Pulse در نمونه محلی موجود نیست.",
+    "totals": {
+      "victims": 0,
+      "groups": 0,
+      "countries": 0,
+      "sectors": 0,
+      "recent_24h": 0,
+      "recent_7d": 0
+    },
+    "victims": [],
+    "group_chart": [],
+    "country_chart": [],
+    "sector_chart": [],
+    "activity_chart": []
   }
 }

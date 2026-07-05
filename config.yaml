@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.12 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.13 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -54,6 +54,10 @@ intel:
       - rust
       - composer
       - nuget
+  ransomware:
+    enabled: true
+    max_victims: 30
+    recent_victims_url: "https://api.ransomware.live/v2/recentvictims"
 
 cache:
   enabled: true

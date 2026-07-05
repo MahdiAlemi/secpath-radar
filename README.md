@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.12-supply-chain-radar**
+Current phase: **v0.4.13.1-ransomware-fix**
 
 ## What changed in v0.4.8
 
@@ -121,3 +121,10 @@ Adds a passive infrastructure enrichment layer. SecPath Radar extracts public IP
 ## Supply Chain Radar
 
 This local, static radar adds passive open-source package advisory awareness from GitHub Global Security Advisories and OSV vulnerability reference pages. It does not accept package input, does not scan dependencies, and does not perform any user-driven workflow.
+
+
+## v0.4.13 — Ransomware Pulse
+
+Adds a passive, high-level ransomware activity radar from the public Ransomware.live API. The dashboard shows aggregate counts, active groups, country/sector distribution, and a short recent-claims list. It intentionally does **not** link to leak sites, onion addresses, stolen data, negotiation chats, or victim content. This is a defensive situational-awareness panel only.
+
+Ransomware Pulse remains read-only: no forms, no search, no filters, no user input, and no deployment changes.

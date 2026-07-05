@@ -38,7 +38,7 @@
         <div class="status-row"><span>Generated</span><b>{{ brief.generated_at }}</b></div>
         <div class="status-row"><span>HTTP cache</span><b>{% if brief.source_health.http_cache %}ON{% else %}OFF{% endif %}</b></div>
         <div class="status-row"><span>AI model</span><b>{% if brief.ai_status.enabled %}{{ brief.ai_status.model }}{% else %}disabled{% endif %}</b></div>
-        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield + IOC + InternetDB + Supply Chain</b></div>
+        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS + DShield + IOC + InternetDB + Supply Chain + Ransomware</b></div>
       </aside>
     </header>
 
@@ -53,6 +53,7 @@
       <div class="metric"><span>IOC Radar</span><strong>{{ brief.stats.iocs }}</strong><small>URLhaus + ThreatFox</small></div>
       <div class="metric"><span>Suspicious Infra</span><strong>{{ brief.stats.infrastructure_hosts }}</strong><small>Shodan InternetDB</small></div>
       <div class="metric"><span>Supply Chain</span><strong>{{ brief.stats.supply_chain_advisories }}</strong><small>GitHub + OSV</small></div>
+      <div class="metric"><span>Ransomware</span><strong>{{ brief.stats.ransomware_victims }}</strong><small>Ransomware.live</small></div>
     </section>
 
     {% if brief.brief_notes | length > 0 %}
@@ -317,6 +318,72 @@
       <p class="source-note">این بخش فقط advisory عمومی اکوسیستم‌ها را نمایش می‌دهد؛ dependency scan، ورودی package یا ارزیابی دارایی کاربر انجام نمی‌شود.</p>
     </section>
 
+
+    <section id="ransomware-pulse" class="panel ransomware-panel" aria-label="Ransomware Pulse">
+      <div class="panel-head">
+        <div><span class="eyebrow">Ransomware Pulse</span><h2>ریتم claimهای عمومی باج‌افزاری</h2></div>
+        <span class="count">{{ brief.ransomware_pulse.provider }} · {{ brief.ransomware_pulse.level }}</span>
+      </div>
+      <div class="pressure-summary">
+        <p>{{ brief.ransomware_pulse.summary_fa }}</p>
+        <div class="meta">
+          <span class="pill {% if brief.ransomware_pulse.ok %}green{% else %}amber{% endif %}">{% if brief.ransomware_pulse.ok %}ransomware telemetry ok{% else %}ransomware fallback{% endif %}</span>
+          <span class="pill">{{ brief.ransomware_pulse.totals.victims }} claim</span>
+          <span class="pill">{{ brief.ransomware_pulse.totals.groups }} group</span>
+          <span class="pill">{{ brief.ransomware_pulse.totals.recent_7d }} recent 7d</span>
+        </div>
+      </div>
+
+      <div class="ransomware-chart-board" aria-label="نمودار Ransomware Pulse">
+        <div class="chart-panel chart-panel-wide">
+          <div class="chart-title"><span>Active Groups</span><small>public claim distribution</small></div>
+          <div class="bar-chart compact-bars" role="img" aria-label="نمودار گروه‌های فعال ransomware">
+            {% for row in brief.ransomware_pulse.group_chart %}
+            <div class="bar-row risk-high">
+              <div class="bar-label"><code>{{ row.count }}</code><span>{{ row.name }}</span></div>
+              <div class="bar-track"><span class="bar-fill" style="--bar: {{ row.bar_width }}%"></span></div>
+              <b>{{ row.count }}</b>
+            </div>
+            {% endfor %}
+            {% if brief.ransomware_pulse.group_chart | length == 0 %}<div class="chart-empty">داده‌ای برای نمودار ransomware موجود نیست.</div>{% endif %}
+          </div>
+        </div>
+        <div class="mini-chart-grid">
+          <div class="chart-panel">
+            <div class="chart-title"><span>Countries</span><small>claimed victims</small></div>
+            <div class="tiny-bars" aria-label="کشورهای ransomware claim">
+              {% for row in brief.ransomware_pulse.country_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title"><span>Sectors</span><small>sector split</small></div>
+            <div class="tiny-bars" aria-label="بخش‌های ransomware claim">
+              {% for row in brief.ransomware_pulse.sector_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+            </div>
+          </div>
+          <div class="chart-panel">
+            <div class="chart-title"><span>Claim Dates</span><small>public disclosure dates</small></div>
+            <div class="tiny-bars" aria-label="توزیع زمانی claimهای ransomware">
+              {% for row in brief.ransomware_pulse.activity_chart %}<div><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ransomware-list" aria-label="claimهای عمومی ransomware">
+        {% for victim in brief.ransomware_pulse.victims %}
+        <article class="ransomware-row risk-{{ victim.risk }}">
+          <div class="ransomware-main"><code>{{ victim.victim_safe }}</code><span>{{ victim.group }} · {{ victim.country }}</span></div>
+          <div class="bar-track"><span class="bar-fill" style="--bar: {{ victim.bar_width }}%"></span></div>
+          <div class="infra-meta"><span>{{ victim.sector }}</span><span>{{ victim.claimed_date }}</span><span>score {{ victim.recency_score }}</span></div>
+          <small>{{ victim.note_fa }}</small>
+        </article>
+        {% endfor %}
+        {% if brief.ransomware_pulse.victims | length == 0 %}<article class="ransomware-row empty">در این اجرا claim قابل نمایش برای Ransomware Pulse دریافت نشد.</article>{% endif %}
+      </div>
+      <p class="source-note">این بخش فقط آمار claimهای عمومی را نمایش می‌دهد؛ لینک leak، آدرس onion، محتوای سرقت‌شده یا مسیر مذاکره نمایش داده نمی‌شود.</p>
+    </section>
+
     <div class="grid">
       <div class="stack">
         <section id="priority" class="panel priority">
@@ -403,14 +470,14 @@
 
         <section id="sources" class="panel">
           <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.intel_sources }} telemetry</span></div>
-          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span><span>Shodan InternetDB</span><span>GitHub Advisories</span><span>OSV References</span></div>
+          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}<span>DShield Attack Pressure</span><span>URLhaus IOC</span><span>ThreatFox IOC</span><span>Shodan InternetDB</span><span>GitHub Advisories</span><span>OSV References</span><span>Ransomware.live</span></div>
         </section>
       </aside>
     </div>
 
     <footer>
       <div class="footer-card">
-        <p><b>SecPath Radar {{ brief.version }}</b> — نمای ایستا و روزانه از سیگنال‌های امنیت سایبری، آسیب‌پذیری‌ها و پوشش منابع عمومی.</p>
+        <p><b>SecPath Radar {{ brief.version }}</b> — نمای ایستا و روزانه از سیگنال‌های امنیت سایبری، آسیب‌پذیری‌ها، فشار حملات، IOCها، زیرساخت مشکوک، supply chain و ransomware pulse.</p>
         <p>این رادار فقط برای آگاهی موقعیتی است؛ متن منبع حفظ می‌شود و خروجی جایگزین advisory رسمی یا تصمیم incident response نیست.</p>
       </div>
     </footer>
