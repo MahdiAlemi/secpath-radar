@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.20 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.23 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -81,6 +81,10 @@ intel:
     enabled: true
     max_urls: 24
     openphish_feed_url: "https://openphish.com/feed.txt"
+  ics_ot:
+    enabled: true
+    max_advisories: 12
+    ics_advisories_feed_url: "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml"
 
 cache:
   enabled: true

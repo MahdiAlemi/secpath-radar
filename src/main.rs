@@ -135,6 +135,8 @@ struct IntelConfig {
     greynoise: GreyNoiseConfig,
     #[serde(default)]
     phishing: PhishingPulseConfig,
+    #[serde(default)]
+    ics_ot: IcsOtConfig,
 }
 
 impl Default for IntelConfig {
@@ -152,6 +154,7 @@ impl Default for IntelConfig {
             botnet_c2: BotnetC2Config::default(),
             greynoise: GreyNoiseConfig::default(),
             phishing: PhishingPulseConfig::default(),
+            ics_ot: IcsOtConfig::default(),
         }
     }
 }
@@ -504,6 +507,38 @@ impl Default for PhishingPulseConfig {
             enabled: default_phishing_enabled(),
             max_urls: default_phishing_max_urls(),
             openphish_feed_url: default_openphish_feed_url(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct IcsOtConfig {
+    #[serde(default = "default_ics_ot_enabled")]
+    enabled: bool,
+    #[serde(default = "default_ics_ot_max_advisories")]
+    max_advisories: usize,
+    #[serde(default = "default_ics_ot_advisories_feed_url")]
+    ics_advisories_feed_url: String,
+}
+
+fn default_ics_ot_enabled() -> bool {
+    true
+}
+
+fn default_ics_ot_max_advisories() -> usize {
+    12
+}
+
+fn default_ics_ot_advisories_feed_url() -> String {
+    "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml".to_string()
+}
+
+impl Default for IcsOtConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_ics_ot_enabled(),
+            max_advisories: default_ics_ot_max_advisories(),
+            ics_advisories_feed_url: default_ics_ot_advisories_feed_url(),
         }
     }
 }
@@ -897,6 +932,25 @@ struct PhishingUrlIndicator {
     note_fa: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct IcsAdvisoryItem {
+    rank: usize,
+    advisory_id: String,
+    title: String,
+    vendor: String,
+    equipment: String,
+    sector: String,
+    cves: Vec<String>,
+    cve_count: usize,
+    cvss: f64,
+    published: String,
+    risk: String,
+    score: usize,
+    bar_width: usize,
+    source: String,
+    note_fa: String,
+}
+
 fn parse_args() -> Result<Args> {
     let mut args = Args::default();
     let mut iter = env::args().skip(1);
@@ -1084,6 +1138,14 @@ fn main() -> Result<()> {
         brief["stats"]["phishing_high"] = json!(path_u64(&phishing_pulse, &["totals", "high"]));
         brief["stats"]["phishing_tlds"] = json!(path_u64(&phishing_pulse, &["totals", "tlds"]));
         brief["phishing_pulse"] = phishing_pulse;
+
+        let ics_ot_pulse =
+            fetch_ics_ot_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        brief["stats"]["ics_advisories"] =
+            json!(path_u64(&ics_ot_pulse, &["totals", "advisories"]));
+        brief["stats"]["ics_high"] = json!(path_u64(&ics_ot_pulse, &["totals", "high"]));
+        brief["stats"]["ics_vendors"] = json!(path_u64(&ics_ot_pulse, &["totals", "vendors"]));
+        brief["ics_ot_pulse"] = ics_ot_pulse;
 
         let executive_snapshot = build_executive_snapshot(&brief);
         brief["executive_snapshot"] = executive_snapshot;
@@ -4525,6 +4587,363 @@ fn empty_phishing_pulse(status: &str) -> Value {
     })
 }
 
+fn fetch_ics_ot_pulse_or_fallback(config: &Config, offline: bool, refresh_cache: bool) -> Value {
+    if !config.intel.enabled || !config.intel.ics_ot.enabled {
+        return empty_ics_ot_pulse("disabled");
+    }
+
+    match fetch_ics_ot_pulse(config, offline, refresh_cache) {
+        Ok(value) => value,
+        Err(err) => {
+            eprintln!("⚠️  ICS/OT Advisory Pulse skipped: {err:#}");
+            empty_ics_ot_pulse("fetch_error")
+        }
+    }
+}
+
+fn fetch_ics_ot_pulse(config: &Config, offline: bool, refresh_cache: bool) -> Result<Value> {
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(18))
+        .build()
+        .context("failed to build HTTP client for ICS/OT Advisory Pulse")?;
+
+    eprintln!("→ fetching ICS/OT Advisory Pulse");
+    let bytes = get_bytes_cached_intel(
+        &client,
+        config,
+        &config.intel.ics_ot.ics_advisories_feed_url,
+        "CISA ICS advisories feed",
+        offline,
+        refresh_cache,
+    )?;
+
+    let feed = parser::parse(&bytes[..]).context("failed to parse CISA ICS advisories feed")?;
+    let mut advisories = Vec::new();
+
+    for entry in feed.entries.iter().take(config.intel.ics_ot.max_advisories) {
+        let title = entry
+            .title
+            .as_ref()
+            .map(|t| clean_text(&t.content))
+            .unwrap_or_else(|| "ICS advisory".to_string());
+        let url = entry
+            .links
+            .first()
+            .map(|link| link.href.clone())
+            .unwrap_or_else(|| config.intel.ics_ot.ics_advisories_feed_url.clone());
+        let raw_summary = entry
+            .summary
+            .as_ref()
+            .map(|s| s.content.clone())
+            .or_else(|| entry.content.as_ref().and_then(|c| c.body.clone()))
+            .unwrap_or_default();
+        let detail = clean_ics_description(&raw_summary);
+        let published = entry
+            .published
+            .or(entry.updated)
+            .map(|d| d.to_rfc3339())
+            .unwrap_or_default();
+
+        let advisory_id = extract_ics_advisory_id(&title, &url);
+        let vendor = extract_labeled_field(
+            &detail,
+            "Vendor:",
+            &[
+                "Equipment:",
+                "Vulnerabilities:",
+                "CRITICAL INFRASTRUCTURE SECTORS:",
+                "COUNTRIES/AREAS DEPLOYED:",
+            ],
+        )
+        .unwrap_or_else(|| infer_vendor_from_title(&title));
+        let equipment = extract_labeled_field(
+            &detail,
+            "Equipment:",
+            &[
+                "Vulnerabilities:",
+                "CRITICAL INFRASTRUCTURE SECTORS:",
+                "COUNTRIES/AREAS DEPLOYED:",
+                "COMPANY HEADQUARTERS LOCATION:",
+            ],
+        )
+        .unwrap_or_else(|| infer_equipment_from_title(&title, &vendor));
+        let sector = extract_labeled_field(
+            &detail,
+            "CRITICAL INFRASTRUCTURE SECTORS:",
+            &[
+                "COUNTRIES/AREAS DEPLOYED:",
+                "COMPANY HEADQUARTERS LOCATION:",
+                "RESEARCHER",
+                "MITIGATIONS",
+            ],
+        )
+        .map(|value| first_list_value(&value))
+        .unwrap_or_else(|| infer_ics_sector(&detail));
+        let cves = extract_cve_ids(&detail);
+        let cvss = extract_cvss_score(&detail);
+        let (risk, score) = ics_risk_from_detail(cvss, &detail);
+        let rank = advisories.len() + 1;
+        advisories.push(IcsAdvisoryItem {
+            rank,
+            advisory_id,
+            title: truncate_chars(&title, 90),
+            vendor: truncate_chars(&vendor, 42),
+            equipment: truncate_chars(&equipment, 58),
+            sector: truncate_chars(&sector, 42),
+            cve_count: cves.len(),
+            cves,
+            cvss,
+            published,
+            risk,
+            score,
+            bar_width: score.max(12).min(100),
+            source: "CISA ICS Advisories".to_string(),
+            note_fa: ics_note_fa(cvss, &detail),
+        });
+    }
+
+    finalize_ics_advisories(&mut advisories);
+    let mut vendor_counts: HashMap<String, usize> = HashMap::new();
+    let mut sector_counts: HashMap<String, usize> = HashMap::new();
+    let mut severity_counts: HashMap<String, usize> = HashMap::new();
+    for item in &advisories {
+        *vendor_counts.entry(item.vendor.clone()).or_insert(0) += 1;
+        *sector_counts.entry(item.sector.clone()).or_insert(0) += 1;
+        *severity_counts.entry(item.risk.clone()).or_insert(0) += 1;
+    }
+
+    let high = advisories.iter().filter(|item| item.risk == "high").count();
+    let cves_total: usize = advisories.iter().map(|item| item.cve_count).sum();
+    let summary_fa = if advisories.is_empty() {
+        "در این اجرا advisory تازه ICS/OT از CISA در cache فعلی دیده نشد.".to_string()
+    } else if high > 0 {
+        format!("{} advisory صنعتی/OT از CISA خوانده شد؛ {} مورد سطح بالا و {} CVE برای triage دفاعی دیده می‌شود.", advisories.len(), high, cves_total)
+    } else {
+        format!("{} advisory صنعتی/OT از CISA خوانده شد؛ تمرکز روی vendor، تجهیز و CVE برای مرور دفاعی است.", advisories.len())
+    };
+
+    Ok(json!({
+        "ok": true,
+        "provider": "CISA ICS Advisories",
+        "source_url": config.intel.ics_ot.ics_advisories_feed_url,
+        "summary_fa": summary_fa,
+        "totals": {
+            "advisories": advisories.len(),
+            "high": high,
+            "vendors": vendor_counts.len(),
+            "sectors": sector_counts.len(),
+            "cves": cves_total
+        },
+        "advisories": advisories,
+        "vendor_chart": count_chart_from_counts(vendor_counts, 6),
+        "sector_chart": count_chart_from_counts(sector_counts, 6),
+        "risk_chart": count_chart_from_counts(severity_counts, 4),
+        "safe_mode": "metadata only; no active scan; no exploit content"
+    }))
+}
+
+fn clean_ics_description(raw: &str) -> String {
+    let once = clean_text(raw);
+    let twice = clean_text(&once);
+    clean_text(&twice)
+}
+
+fn extract_labeled_field(text: &str, label: &str, next_labels: &[&str]) -> Option<String> {
+    let lower = text.to_lowercase();
+    let needle = label.to_lowercase();
+    let start = lower.find(&needle)? + needle.len();
+    let tail = &text[start..];
+    let lower_tail = &lower[start..];
+    let mut end = tail.len();
+    for next in next_labels {
+        if let Some(idx) = lower_tail.find(&next.to_lowercase()) {
+            if idx > 0 && idx < end {
+                end = idx;
+            }
+        }
+    }
+    let value = clean_text(&tail[..end])
+        .trim_matches(|ch: char| ch == ':' || ch == '-' || ch == '–' || ch.is_whitespace())
+        .to_string();
+    if value.is_empty() {
+        None
+    } else {
+        Some(truncate_chars(&value, 90))
+    }
+}
+
+fn extract_ics_advisory_id(title: &str, url: &str) -> String {
+    for raw in title.split_whitespace().chain(url.split('/')) {
+        let token = raw
+            .trim_matches(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '-'))
+            .to_ascii_uppercase();
+        if token.starts_with("ICSA-") || token.starts_with("ICSMA-") {
+            return token;
+        }
+    }
+    url.rsplit('/')
+        .next()
+        .unwrap_or("ics-advisory")
+        .to_ascii_uppercase()
+}
+
+fn infer_vendor_from_title(title: &str) -> String {
+    let words = title
+        .split_whitespace()
+        .take(3)
+        .collect::<Vec<_>>()
+        .join(" ");
+    if words.trim().is_empty() {
+        "Unknown vendor".to_string()
+    } else {
+        words
+    }
+}
+
+fn infer_equipment_from_title(title: &str, vendor: &str) -> String {
+    let value = title.replacen(vendor, "", 1).trim().to_string();
+    if value.is_empty() {
+        "Unknown equipment".to_string()
+    } else {
+        value
+    }
+}
+
+fn first_list_value(value: &str) -> String {
+    value
+        .split(|ch| ch == ',' || ch == ';' || ch == '/')
+        .next()
+        .unwrap_or(value)
+        .trim()
+        .to_string()
+}
+
+fn infer_ics_sector(text: &str) -> String {
+    let lower = text.to_lowercase();
+    let pairs = [
+        ("energy", "Energy"),
+        ("water", "Water/Wastewater"),
+        ("manufacturing", "Critical Manufacturing"),
+        ("transport", "Transportation"),
+        ("health", "Healthcare"),
+        ("chemical", "Chemical"),
+        ("communications", "Communications"),
+        ("commercial", "Commercial Facilities"),
+    ];
+    for (needle, label) in pairs {
+        if lower.contains(needle) {
+            return label.to_string();
+        }
+    }
+    "ICS/OT".to_string()
+}
+
+fn extract_cve_ids(text: &str) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    for raw in text.split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '-')) {
+        let token = raw.to_ascii_uppercase();
+        if token.starts_with("CVE-") && token.len() >= 13 && seen.insert(token.clone()) {
+            out.push(token);
+        }
+        if out.len() >= 8 {
+            break;
+        }
+    }
+    out
+}
+
+fn extract_cvss_score(text: &str) -> f64 {
+    let lower = text.to_lowercase();
+    let Some(start) = lower.find("cvss") else {
+        return 0.0;
+    };
+    let end = text.len().min(start + 80);
+    let tail = &text[start..end];
+    for token in tail.split(|ch: char| !(ch.is_ascii_digit() || ch == '.')) {
+        if token.is_empty() || token == "." {
+            continue;
+        }
+        if let Ok(score) = token.parse::<f64>() {
+            if (0.0..=10.0).contains(&score) {
+                return score;
+            }
+        }
+    }
+    0.0
+}
+
+fn ics_risk_from_detail(cvss: f64, detail: &str) -> (String, usize) {
+    let lower = detail.to_lowercase();
+    let mut score = if cvss >= 9.0 {
+        88
+    } else if cvss >= 7.0 {
+        72
+    } else if cvss >= 4.0 {
+        48
+    } else {
+        32
+    };
+    if lower.contains("exploitable remotely")
+        || lower.contains("public exploits")
+        || lower.contains("low attack complexity")
+    {
+        score += 8;
+    }
+    if lower.contains("internet") || lower.contains("remote access") {
+        score += 4;
+    }
+    let score = score.min(100);
+    let risk = if score >= 82 {
+        "high"
+    } else if score >= 58 {
+        "medium"
+    } else {
+        "watch"
+    };
+    (risk.to_string(), score)
+}
+
+fn ics_note_fa(cvss: f64, detail: &str) -> String {
+    let lower = detail.to_lowercase();
+    if cvss >= 9.0 {
+        "Advisory صنعتی با CVSS بحرانی؛ برای assetهای OT/ICS باید اولویت patch، segmentation و exposure review بررسی شود.".to_string()
+    } else if lower.contains("exploitable remotely") || lower.contains("low attack complexity") {
+        "در متن CISA نشانه قابلیت بهره‌برداری remote/low-complexity دیده می‌شود؛ برای triage دفاعی با موجودی OT تطبیق بده.".to_string()
+    } else {
+        "این advisory برای آگاهی OT/ICS و تطبیق با vendor/equipment محیط نگه داشته شده است."
+            .to_string()
+    }
+}
+
+fn finalize_ics_advisories(items: &mut [IcsAdvisoryItem]) {
+    items.sort_by(|a, b| {
+        b.score
+            .cmp(&a.score)
+            .then_with(|| b.cve_count.cmp(&a.cve_count))
+    });
+    for (idx, item) in items.iter_mut().enumerate() {
+        item.rank = idx + 1;
+        item.bar_width = item.score.max(12).min(100);
+    }
+}
+
+fn empty_ics_ot_pulse(reason: &str) -> Value {
+    json!({
+        "ok": false,
+        "reason": reason,
+        "provider": "CISA ICS Advisories",
+        "summary_fa": "داده ICS/OT Advisory Pulse در این اجرا در دسترس نبود.",
+        "totals": {"advisories": 0, "high": 0, "vendors": 0, "sectors": 0, "cves": 0},
+        "advisories": [],
+        "vendor_chart": [],
+        "sector_chart": [],
+        "risk_chart": [],
+        "safe_mode": "metadata only; no active scan; no exploit content"
+    })
+}
+
 fn fetch_supply_chain_radar_or_fallback(
     config: &Config,
     offline: bool,
@@ -5340,6 +5759,9 @@ fn intel_source_count(config: &Config) -> usize {
     if config.intel.phishing.enabled {
         count += 1;
     }
+    if config.intel.ics_ot.enabled {
+        count += 1;
+    }
     count
 }
 
@@ -5420,6 +5842,9 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "phishing_urls": 0,
             "phishing_high": 0,
             "phishing_tlds": 0,
+            "ics_advisories": 0,
+            "ics_high": 0,
+            "ics_vendors": 0,
             "rss_sources": config.sources.len(),
             "intel_sources": intel_source_count(config)
         },
@@ -6013,6 +6438,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
     let greynoise_malicious = stat_u64(brief, "greynoise_malicious");
     let phishing_urls = stat_u64(brief, "phishing_urls");
     let phishing_high = stat_u64(brief, "phishing_high");
+    let ics_advisories = stat_u64(brief, "ics_advisories");
+    let ics_high = stat_u64(brief, "ics_high");
     let infrastructure_hosts = stat_u64(brief, "infrastructure_hosts");
     let supply_advisories = stat_u64(brief, "supply_chain_advisories");
     let ransomware_victims = stat_u64(brief, "ransomware_victims");
@@ -6033,6 +6460,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         + greynoise_malicious * 12
         + phishing_urls.min(20)
         + phishing_high * 6
+        + ics_advisories.min(18)
+        + ics_high * 8
         + infrastructure_hosts.min(25)
         + infra_high * 10
         + supply_critical * 12
@@ -6050,6 +6479,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         + greynoise_malicious * 12
         + phishing_urls.min(20)
         + phishing_high * 6
+        + ics_advisories.min(18)
+        + ics_high * 8
         + infrastructure_hosts.min(25)
         + infra_high * 10)
         .min(100)
@@ -6082,8 +6513,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         "bar_width": score.max(12),
         "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
         "summary_fa": format!(
-            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} C2 botnet، {} URL فیشینگ، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
-            total_items, cves, iocs, botnet_c2, phishing_urls, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
+            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} C2 botnet، {} URL فیشینگ، {} advisory ICS/OT، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
+            total_items, cves, iocs, botnet_c2, phishing_urls, ics_advisories, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
         ),
         "risk_cards": [
             {
@@ -6095,10 +6526,10 @@ fn build_executive_snapshot(brief: &Value) -> Value {
             },
             {
                 "title": "IOC و زیرساخت مشکوک",
-                "metric": format!("{} IOC / {} C2 / {} phish", iocs, botnet_c2, phishing_urls),
+                "metric": format!("{} IOC / {} C2 / {} phish / {} ICS", iocs, botnet_c2, phishing_urls, ics_advisories),
                 "level": snapshot_level(intel_score),
                 "bar_width": intel_score,
-                "note_fa": if phishing_high > 0 { "URLهای فیشینگ defanged کنار IOC/C2 برای correlation دفاعی آمده‌اند." } else if greynoise_malicious > 0 { "GreyNoise برای برخی IPها classification بدخواه داده و با C2/IOC باید correlation شود." } else if botnet_c2 > 0 { "سیگنال‌های C2 و زیرساخت برای correlation دفاعی کنار هم دیده می‌شوند." } else if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
+                "note_fa": if ics_high > 0 { "Advisoryهای ICS/OT سطح بالا کنار IOC/C2 برای اولویت‌بندی دفاعی OT دیده شوند." } else if phishing_high > 0 { "URLهای فیشینگ defanged کنار IOC/C2 برای correlation دفاعی آمده‌اند." } else if greynoise_malicious > 0 { "GreyNoise برای برخی IPها classification بدخواه داده و با C2/IOC باید correlation شود." } else if botnet_c2 > 0 { "سیگنال‌های C2 و زیرساخت برای correlation دفاعی کنار هم دیده می‌شوند." } else if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
             },
             {
                 "title": "Supply Chain و Ransomware",
@@ -6245,7 +6676,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.22-snapshot-history");
+    brief["version"] = json!("v0.4.23-ics-ot-advisory-pulse");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -6293,6 +6724,9 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief.get("phishing_pulse").is_none() {
         brief["phishing_pulse"] = empty_phishing_pulse("missing");
+    }
+    if brief.get("ics_ot_pulse").is_none() {
+        brief["ics_ot_pulse"] = empty_ics_ot_pulse("missing");
     }
     if brief.get("executive_snapshot").is_none() {
         brief["executive_snapshot"] = json!({});
@@ -6498,6 +6932,25 @@ fn apply_local_polish(brief: &mut Value) {
     {
         brief["stats"]["phishing_tlds"] =
             json!(path_u64(brief, &["phishing_pulse", "totals", "tlds"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("ics_advisories"))
+        .is_none()
+    {
+        brief["stats"]["ics_advisories"] =
+            json!(path_u64(brief, &["ics_ot_pulse", "totals", "advisories"]));
+    }
+    if brief.get("stats").and_then(|v| v.get("ics_high")).is_none() {
+        brief["stats"]["ics_high"] = json!(path_u64(brief, &["ics_ot_pulse", "totals", "high"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("ics_vendors"))
+        .is_none()
+    {
+        brief["stats"]["ics_vendors"] =
+            json!(path_u64(brief, &["ics_ot_pulse", "totals", "vendors"]));
     }
 
     polish_priority(brief);
@@ -6710,6 +7163,18 @@ fn history_metrics() -> Vec<HistoryMetric> {
             baseline: 50,
         },
         HistoryMetric {
+            key: "ics_advisories",
+            label_fa: "ICS/OT advisory",
+            path: &["stats", "ics_advisories"],
+            baseline: 20,
+        },
+        HistoryMetric {
+            key: "ics_high",
+            label_fa: "ICS/OT سطح بالا",
+            path: &["stats", "ics_high"],
+            baseline: 10,
+        },
+        HistoryMetric {
             key: "supply_chain_advisories",
             label_fa: "زنجیره تأمین",
             path: &["stats", "supply_chain_advisories"],
@@ -6753,6 +7218,7 @@ fn history_delta_level(key: &str, delta: i64) -> &'static str {
         | "malicious_tls"
         | "greynoise_malicious"
         | "phishing_urls"
+        | "ics_high"
         | "ransomware_victims"
             if delta > 0 =>
         {
@@ -7361,6 +7827,14 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
             coverage.push_str(
                 " GreyNoise Context نیز برای IPهای منتخب به‌صورت passive lookup اضافه شده است.",
             );
+        }
+        if brief
+            .get("ics_ot_pulse")
+            .and_then(|v| v.get("ok"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
+            coverage.push_str(" ICS/OT Advisory Pulse هم از CISA ICS Advisories به‌صورت metadata-only ساخته شده است.");
         }
         if failed_sources > 0 {
             coverage.push_str(&format!(

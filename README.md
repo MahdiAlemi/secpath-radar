@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.22-snapshot-history**
+Current phase: **v0.4.23-ics-ot-advisory-pulse**
 
 ## What changed in v0.4.8
 
@@ -210,3 +210,18 @@ Adds local-only viewing interactions for the production dashboard:
 This phase adds a local, read-only snapshot history layer. Before writing `data/latest_brief.json`, the generator reads the previous brief if present, compares key operational counters, attaches `history_snapshot` to the current JSON, and writes compact runtime snapshots under `snapshots/history/`.
 
 The comparison is local only. It does not add network sources, forms, inputs, backend workflows, scanning, submission, or operational security actions.
+
+
+## v0.4.23 — ICS/OT Advisory Pulse
+
+Adds a passive industrial-control advisory layer from the CISA ICS Advisories feed. The module extracts advisory title, vendor, equipment, CVSS, CVE count, sector hints and compact risk buckets for defensive OT/ICS triage. It is metadata-only: no scanning, no exploit content, no submission workflow and no dangerous links in the dashboard.
+
+Quick checks:
+
+```bash
+cargo run -- --full --refresh-cache
+jq '.version, .stats.ics_advisories, .stats.ics_high, .stats.ics_vendors, .ics_ot_pulse.totals, .ics_ot_pulse.vendor_chart[:5]' data/latest_brief.json
+
+cargo run -- --offline
+jq '.version, .stats.ics_advisories, .stats.ics_high, .stats.ics_vendors, .ics_ot_pulse.totals, .stats.failed_rss_sources' data/latest_brief.json
+```
