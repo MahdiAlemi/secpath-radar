@@ -1,70 +1,65 @@
 # SecPath Radar
 
-Local Rust generator for a Persian daily cybersecurity radar.
+SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-### v0.4.7 AI JSON guard
+Current phase: **v0.4.8-redesign-sources**
 
-This checkpoint hardens the Gemini editorial layer:
+## What changed in v0.4.8
 
-- Adds a shallow JSON response schema to the Gemini request.
-- Keeps `responseMimeType: application/json`.
-- Validates the returned AI JSON shape before merging it into the brief.
-- Uses smaller default AI edit windows for more reliable JSON output.
-- Preserves the safe API-key header flow and SOCKS proxy support.
+- Full UI redesign into a modern SOC / command-center style dashboard.
+- Removed **Tools & Techniques**, **Tip of the Day**, and **Today Action Items** from UI and generation code.
+- Expanded RSS source coverage from a small list to a wider threat-intelligence/news set.
+- Added news lanes: active exploitation, vulnerabilities, malware/incidents, AI security.
+- Footer rewritten as product/help text instead of build-log text.
+- Original source text remains available in each card while Persian editorial fields are shown first.
+- No deployment, GitHub Pages, or DNS changes in this phase.
 
-
-Current checkpoint: `v0.4.7-ai-json-guard`
-
-Highlights:
-
-- RSS + NVD + CISA KEV + EPSS
-- HTTP cache and offline mode
-- Gemini editorial polish with AI cache
-- SOCKS proxy support for WSL/VPN setups
-- Safer API key handling via `x-goog-api-key` header
-- Persian UI polish and better daily action items
-
-## Modes
+## Run locally
 
 ```bash
-cargo run                    # render sample JSON only
-cargo run -- --full          # RSS + CVE/KEV/EPSS, no Gemini
-cargo run -- --offline       # build from HTTP cache only
-cargo run -- --full --ai     # one Gemini call max, with AI cache
-cargo run -- --full --ai --refresh-ai
-cargo run -- --full --refresh-cache
-```
-
-For WSL + local SOCKS proxy:
-
-```bash
-export ALL_PROXY="socks5h://127.0.0.1:9090"
 cargo run -- --offline --ai
 ```
 
-## Gemini
+With fresh network/cache:
 
-Create `.env` locally:
-
-```env
-GEMINI_API_KEY=your_google_ai_studio_key
+```bash
+cargo run -- --full --ai
 ```
 
-The key is sent in the `x-goog-api-key` header and is never written to `site/` or JSON output. Keep `.env` out of git.
+With Gemini refresh:
 
-## Output
+```bash
+cargo run -- --offline --ai --refresh-ai
+```
 
-- `site/index.html`
-- `data/latest_brief.json`
-- `site/CNAME` -> `radar.secpath.space`
+When using a SOCKS proxy in WSL:
 
+```bash
+export ALL_PROXY="socks5h://127.0.0.1:9090"
+```
 
-## v0.4.7 — Persian content quality layer
+Preview:
 
-This phase keeps deployment untouched and improves only local content quality:
+```bash
+python3 -m http.server 8000 --directory site
+```
 
-- Adds Persian display fields (`title_fa`, `summary_fa`, `why_it_matters`, `ops_note`) without replacing source fields.
-- Protects immutable fields during Gemini merge (`url`, `source`, `cve_id`, `cvss`, `epss`, `kev`, `severity`, `risk_score`, `published`, `summary`, `title`, `tags`).
-- Shows Persian editorial text in the UI while keeping the original source text in a collapsible block.
-- Adds template guards for missing CVSS/EPSS values.
-- Keeps the one-call AI policy and AI cache behavior unchanged.
+Open:
+
+```text
+http://localhost:8000
+```
+
+## Privacy and cost controls
+
+- Gemini is used only with `--ai`.
+- API key is loaded from `.env` or environment and sent via `x-goog-api-key` header.
+- AI results are cached in `data/cache/ai`.
+- HTTP responses are cached in `data/cache/http`.
+- `.env`, caches, generated HTML, and latest JSON are ignored by Git.
+
+## Current source set
+
+Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecurity, The Hacker News, Dark Reading, SANS ISC, Cisco advisories, Cisco Talos, Microsoft Security Blog, Google security blogs, Cloudflare Security, Unit 42, Rapid7, CERT/CC, Infosecurity Magazine, and PortSwigger Research.
+
+NVD, CISA KEV, and EPSS are still used by the CVE engine.

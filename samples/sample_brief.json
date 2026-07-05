@@ -1,107 +1,127 @@
 {
   "site_title": "SecPath Radar",
-  "date_fa": "۱۵ تیر ۱۴۰۵",
-  "date_en": "6 July 2026",
-  "risk_level": "High",
-  "generated_at": "2026-07-06 08:00",
+  "date_fa": "امروز",
+  "date_en": "2026-07-05",
+  "risk_level": "Medium",
+  "generated_at": "2026-07-05 19:30",
+  "version": "v0.4.8-redesign-sources",
   "stats": {
-    "total_items": 31,
-    "iran_items": 3,
-    "global_news": 6,
-    "cves": 8,
-    "critical_cves": 3,
-    "kev": 1,
-    "tools": 2
+    "total_items": 4,
+    "iran_items": 1,
+    "global_news": 2,
+    "cves": 1,
+    "critical_cves": 1,
+    "kev": 0,
+    "rss_sources": 18
   },
+  "source_health": {
+    "rss_sources": 18,
+    "source_names": ["CISA Advisories", "BleepingComputer", "SecurityWeek", "KrebsOnSecurity"],
+    "http_cache": true,
+    "cache_ttl_minutes": 720,
+    "ai_cache_dir": "data/cache/ai"
+  },
+  "ai_status": {
+    "enabled": false,
+    "ok": true,
+    "model": "none",
+    "calls_used": 0,
+    "cache_hit": false,
+    "error": null
+  },
+  "brief_notes": [
+    "نمونه محلی برای تست template است.",
+    "در اجرای واقعی داده از RSS، NVD، CISA KEV و EPSS ساخته می‌شود."
+  ],
   "priority_alert": {
-    "title": "افزایش سوءاستفاده فعال از یک آسیب‌پذیری در تجهیزات مرزی",
-    "summary": "چند منبع امنیتی گزارش کرده‌اند که تجهیزات اینترنت‌-facing در چند سازمان هدف اسکن و بهره‌برداری قرار گرفته‌اند. اولویت امروز: بررسی exposure و اعمال patch یا mitigation.",
-    "source": "Sample Brief",
+    "title": "Critical SharePoint vulnerability is actively exploited",
+    "title_fa": "بهره‌برداری فعال از آسیب‌پذیری SharePoint",
+    "summary": "A critical Microsoft SharePoint vulnerability is being exploited in the wild.",
+    "summary_fa": "یک آسیب‌پذیری مهم SharePoint در حال بهره‌برداری فعال گزارش شده است.",
+    "why_it_matters": "سرویس‌های public-facing می‌توانند در اولویت ریسک قرار بگیرند.",
+    "ops_note": "وضعیت patch و exposure سرورهای SharePoint را همان روز بررسی کن.",
+    "source": "Sample",
     "url": "#",
     "risk_score": 9,
-    "tags": ["Active Exploit", "Edge Device", "Patch Now"]
+    "tags": ["Active Exploit", "Microsoft"]
   },
   "iran_radar": [
     {
-      "title": "افزایش تلاش‌های فیشینگ با تمرکز روی کاربران فارسی‌زبان",
-      "summary": "چند دامنه تازه‌ثبت‌شده با ظاهر مشابه سرویس‌های بانکی و پرداخت مشاهده شده‌اند. پیشنهاد: مانیتورینگ دامنه‌های مشابه برند و آموزش سریع کاربران.",
-      "source": "Sample OSINT",
+      "title": "Iran-linked activity mentioned in new threat report",
+      "title_fa": "اشاره به فعالیت مرتبط با ایران در گزارش تهدید",
+      "summary": "A threat report mentions activity associated with Iran-linked actors.",
+      "summary_fa": "یک گزارش تهدید به فعالیت منتسب به بازیگران مرتبط با ایران اشاره کرده است.",
+      "why_it_matters": "برای attribution باید متن منبع و زیرساخت هدف جداگانه بررسی شود.",
+      "ops_note": "دامنه‌ها، برندها و vendorهای مرتبط را با محیط خود تطبیق بده.",
+      "source": "Sample",
       "url": "#",
-      "risk_score": 6,
-      "iran_context": "domestic",
-      "tags": ["Phishing", "Iran", "Brand Abuse"]
-    },
-    {
-      "title": "اشاره به یک گروه تهدید مرتبط با ایران در گزارش جهانی",
-      "summary": "گزارش نمونه، یک کمپین جاسوسی سایبری را بررسی کرده که در آن نام یک actor مرتبط با ایران آمده است. این مورد به معنی attribution قطعی جدید نیست.",
-      "source": "Sample Report",
-      "url": "#",
+      "published": "",
       "risk_score": 5,
-      "iran_context": "threat_actor",
-      "tags": ["Threat Actor", "Mentioned"]
+      "category": "general",
+      "tags": ["Iran"],
+      "iran_related": true,
+      "iran_context": "mentioned"
     }
   ],
   "global_news": [
     {
-      "title": "انتشار گزارش جدید درباره افزایش حملات زنجیره تأمین",
-      "summary": "گزارش نمونه نشان می‌دهد مهاجمان بیشتر به dependencyها، CI/CD و package registryها توجه دارند.",
-      "source": "Sample News",
+      "title": "Ransomware group abuses exposed edge devices",
+      "title_fa": "سوءاستفاده باج‌افزار از تجهیزات edge exposed",
+      "summary": "Researchers observed ransomware activity involving exposed edge devices.",
+      "summary_fa": "پژوهشگران فعالیت باج‌افزاری مرتبط با تجهیزات edge در معرض اینترنت را گزارش کرده‌اند.",
+      "why_it_matters": "تجهیزات edge معمولاً مسیر اولیه نفوذ به شبکه هستند.",
+      "ops_note": "VPN، firewall و gatewayهای exposed را با IOCهای منبع تطبیق بده.",
+      "source": "Sample",
       "url": "#",
-      "risk_score": 7,
-      "tags": ["Supply Chain", "CI/CD"]
+      "published": "",
+      "risk_score": 8,
+      "category": "malware_incident",
+      "tags": ["Ransomware"],
+      "iran_related": false,
+      "iran_context": "global"
     },
     {
-      "title": "یک vendor امنیتی ابزار جدیدی برای تحلیل لاگ منتشر کرد",
-      "summary": "این ابزار نمونه به تیم‌های SOC کمک می‌کند رخدادهای مشکوک را سریع‌تر دسته‌بندی کنند.",
-      "source": "Sample Vendor",
+      "title": "New AI security guidance released",
+      "title_fa": "راهنمای تازه برای امنیت هوش مصنوعی منتشر شد",
+      "summary": "A new AI security guidance document was released for defenders.",
+      "summary_fa": "راهنمایی تازه برای مدیریت ریسک‌های امنیتی هوش مصنوعی منتشر شده است.",
+      "why_it_matters": "کنترل‌های AI باید وارد governance و monitoring شوند.",
+      "ops_note": "کاربردهای AI داخلی را فهرست و کنترل دسترسی آن‌ها را بررسی کن.",
+      "source": "Sample",
       "url": "#",
+      "published": "",
       "risk_score": 4,
-      "tags": ["SOC", "Tooling"]
+      "category": "ai_security",
+      "tags": ["AI Security"],
+      "iran_related": false,
+      "iran_context": "global"
     }
   ],
+  "news_lanes": {
+    "active_exploitation": [],
+    "vulnerabilities": [],
+    "malware_incidents": [],
+    "ai_security": [],
+    "general": []
+  },
   "cves": [
     {
       "cve_id": "CVE-2026-0001",
-      "title": "نمونه آسیب‌پذیری اجرای کد از راه دور در محصول پرکاربرد",
-      "severity": "Critical",
+      "title": "Sample critical vulnerability",
+      "title_fa": "آسیب‌پذیری بحرانی نمونه",
+      "summary": "Sample CVE summary.",
+      "summary_fa": "این CVE نمونه برای تست نمایش بخش آسیب‌پذیری‌ها است.",
+      "why_it_matters": "اگر محصول مرتبط در محیط باشد، اولویت patch بالا است.",
+      "ops_note": "با asset inventory تطبیق بده و وضعیت affected را ثبت کن.",
+      "severity": "CRITICAL",
       "cvss": 9.8,
-      "epss": 0.72,
-      "kev": true,
-      "summary": "این نمونه برای تست UI است. در نسخه واقعی، داده از NVD، CISA KEV و EPSS می‌آید.",
-      "recommended_action": "دارایی‌های exposed را پیدا کن، patch را اولویت بده و لاگ‌ها را بررسی کن.",
-      "url": "#"
-    },
-    {
-      "cve_id": "CVE-2026-0002",
-      "title": "نمونه آسیب‌پذیری privilege escalation",
-      "severity": "High",
-      "cvss": 8.1,
-      "epss": 0.31,
+      "epss": 0.42,
       "kev": false,
-      "summary": "آسیب‌پذیری نمونه با ریسک متوسط‌روبه‌بالا برای تست نمایش کارت CVE.",
-      "recommended_action": "patch window را برنامه‌ریزی کن و سیستم‌های حساس را زودتر به‌روزرسانی کن.",
-      "url": "#"
-    }
-  ],
-  "tools": [
-    {
-      "name": "Log Pattern Watch",
-      "summary": "ایده ابزار روز: یک rule ساده برای پیدا کردن spike در خطاهای auth و درخواست‌های غیرعادی.",
+      "published": "",
       "url": "#",
-      "tags": ["Blue Team", "Detection"]
+      "recommended_action": "بررسی exposure و اعمال patch یا mitigation.",
+      "risk_score": 9,
+      "tags": ["CVE"]
     }
-  ],
-  "tip_of_the_day": {
-    "title": "SMB Signing را در ارزیابی داخلی چک کن",
-    "type": "Pentest / Defensive",
-    "body": "خاموش بودن SMB signing می‌تواند ریسک NTLM relay را بالا ببرد. در گزارش، هم finding را توضیح بده و هم مسیر hardening را پیشنهاد کن.",
-    "command": "Get-SmbServerConfiguration | Select EnableSecuritySignature, RequireSecuritySignature",
-    "takeaway": "نکته عملی: روی scope مجاز تست کن و برای production، enforce کردن signing را با تیم زیرساخت هماهنگ کن."
-  },
-  "action_items": [
-    "CVEهای Critical امروز را با asset inventory تطبیق بده.",
-    "اگر موردی در CISA KEV بود، patch یا mitigation را فوری‌تر بررسی کن.",
-    "خبرهای ایران را جداگانه برای دامنه‌ها، برندها و زیرساخت‌های مرتبط مرور کن.",
-    "لاگ‌های edge deviceها و VPNها را برای رفتار غیرعادی چک کن."
   ]
 }

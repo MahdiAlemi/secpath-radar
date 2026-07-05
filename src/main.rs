@@ -249,16 +249,6 @@ fn default_gemini_max_cves() -> usize {
     8
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct Tip {
-    title: String,
-    #[serde(rename = "type")]
-    tip_type: String,
-    body: String,
-    command: String,
-    takeaway: String,
-}
-
 #[derive(Debug, Clone, Serialize)]
 struct FeedItem {
     title: String,
@@ -267,6 +257,7 @@ struct FeedItem {
     url: String,
     published: String,
     risk_score: i64,
+    category: String,
     tags: Vec<String>,
     iran_related: bool,
     iran_context: String,
@@ -535,6 +526,7 @@ fn fetch_source(
             url,
             published,
             risk_score: 1,
+            category: "general".to_string(),
             tags: Vec::new(),
             iran_related: false,
             iran_context: "global".to_string(),
@@ -939,8 +931,54 @@ fn classify_and_score(item: &mut FeedItem, config: &Config) {
         push_tag(&mut tags, "Iran".to_string());
     }
 
+    item.category = classify_news_category(&haystack).to_string();
+    if item.category != "general" {
+        push_tag(&mut tags, category_label(&item.category).to_string());
+    }
     item.risk_score = score.clamp(1, 10);
-    item.tags = tags.into_iter().take(4).collect();
+    item.tags = tags.into_iter().take(5).collect();
+}
+
+fn classify_news_category(haystack: &str) -> &'static str {
+    if haystack.contains("actively exploited")
+        || haystack.contains("exploited in the wild")
+        || haystack.contains("zero-day")
+        || haystack.contains("zeroday")
+        || haystack.contains("exploit")
+    {
+        "active_exploitation"
+    } else if haystack.contains("cve-")
+        || haystack.contains("vulnerability")
+        || haystack.contains("patch")
+        || haystack.contains("advisory")
+    {
+        "vulnerability"
+    } else if haystack.contains("ransomware")
+        || haystack.contains("malware")
+        || haystack.contains("botnet")
+        || haystack.contains("phishing")
+        || haystack.contains("stealer")
+    {
+        "malware_incident"
+    } else if haystack.contains(" ai ")
+        || haystack.contains("artificial intelligence")
+        || haystack.contains("llm")
+        || haystack.contains("agentic")
+    {
+        "ai_security"
+    } else {
+        "general"
+    }
+}
+
+fn category_label(category: &str) -> &'static str {
+    match category {
+        "active_exploitation" => "Active Exploit",
+        "vulnerability" => "Vulnerability",
+        "malware_incident" => "Malware/Incident",
+        "ai_security" => "AI Security",
+        _ => "General",
+    }
 }
 
 fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) -> Result<Value> {
@@ -954,6 +992,7 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
     global.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
     iran.truncate(config.limits.iran_radar);
     global.truncate(config.limits.global_news);
+    let news_lanes = build_news_lanes(&global);
 
     cves.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
     cves.truncate(config.limits.cves);
@@ -994,10 +1033,11 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "cves": cve_count,
             "critical_cves": critical_count,
             "kev": kev_count,
-            "tools": 0
+            "rss_sources": config.sources.len()
         },
         "source_health": {
             "rss_sources": config.sources.len(),
+            "source_names": config.sources.iter().map(|source| source.name.clone()).collect::<Vec<_>>(),
             "http_cache": config.cache.enabled,
             "cache_ttl_minutes": config.cache.ttl_minutes,
             "ai_cache_dir": config.gemini.cache_dir.clone()
@@ -1005,11 +1045,35 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
         "priority_alert": priority,
         "iran_radar": iran,
         "global_news": global,
-        "cves": cves,
-        "tools": [],
-        "tip_of_the_day": pick_tip()?,
-        "action_items": build_action_items(iran.len(), cve_count, critical_count, kev_count)
+        "news_lanes": news_lanes,
+        "cves": cves
     }))
+}
+
+fn build_news_lanes(global: &[FeedItem]) -> Value {
+    let mut active_exploitation = Vec::new();
+    let mut vulnerabilities = Vec::new();
+    let mut malware_incidents = Vec::new();
+    let mut ai_security = Vec::new();
+    let mut general = Vec::new();
+
+    for item in global {
+        match item.category.as_str() {
+            "active_exploitation" => active_exploitation.push(item.clone()),
+            "vulnerability" => vulnerabilities.push(item.clone()),
+            "malware_incident" => malware_incidents.push(item.clone()),
+            "ai_security" => ai_security.push(item.clone()),
+            _ => general.push(item.clone()),
+        }
+    }
+
+    json!({
+        "active_exploitation": active_exploitation.into_iter().take(6).collect::<Vec<_>>(),
+        "vulnerabilities": vulnerabilities.into_iter().take(6).collect::<Vec<_>>(),
+        "malware_incidents": malware_incidents.into_iter().take(6).collect::<Vec<_>>(),
+        "ai_security": ai_security.into_iter().take(6).collect::<Vec<_>>(),
+        "general": general.into_iter().take(8).collect::<Vec<_>>()
+    })
 }
 
 fn priority_from_item(item: &FeedItem) -> Value {
@@ -1043,51 +1107,6 @@ fn empty_priority() -> Value {
         "risk_score": 1,
         "tags": ["No Data"]
     })
-}
-
-fn pick_tip() -> Result<Value> {
-    let raw = fs::read_to_string("data/tips.yaml").context("failed to read data/tips.yaml")?;
-    let tips: Vec<Tip> = serde_yaml::from_str(&raw).context("invalid YAML in data/tips.yaml")?;
-    let day = Local::now().ordinal() as usize;
-    let tip = tips
-        .get(day % tips.len().max(1))
-        .context("data/tips.yaml has no tips")?;
-
-    Ok(json!({
-        "title": tip.title,
-        "type": tip.tip_type,
-        "body": tip.body,
-        "command": tip.command,
-        "takeaway": tip.takeaway
-    }))
-}
-
-fn build_action_items(
-    iran_count: usize,
-    cve_count: usize,
-    critical_count: usize,
-    kev_count: usize,
-) -> Vec<String> {
-    let mut items = Vec::new();
-
-    if kev_count > 0 {
-        items.push("فوری: CVEهای KEV را با asset inventory تطبیق بده و برای patch/mitigation همان‌روز تصمیم بگیر.".to_string());
-    }
-    if critical_count > 0 {
-        items.push("Critical: CVEهای CVSS 9+ را از چرخه patch عادی جدا کن و exposure اینترنتی آن‌ها را اول چک کن.".to_string());
-    }
-    if iran_count > 0 {
-        items.push("Iran Radar: آیتم‌های مرتبط با ایران را برای دامنه، برند، vendor، زیرساخت و attribution جداگانه triage کن.".to_string());
-    }
-    if cve_count > 0 {
-        items.push("Inventory: نام محصول‌ها و vendorهای CVE Watch را با CMDB، EDR inventory یا لیست سرویس‌های exposed مقایسه کن.".to_string());
-    }
-
-    items.push("Edge Review: VPN، firewall، gateway، mail و پنل‌های ادمین public-facing را با خبرهای High Risk امروز تطبیق بده.".to_string());
-    items.push("Detection: برای vendorهای دیده‌شده، لاگ‌های authentication، EDR، WAF و edge device را در ۲۴ تا ۴۸ ساعت اخیر مرور کن.".to_string());
-    items.push("Report: برای هر مورد مهم، وضعیت affected / not affected / unknown را در یک یادداشت کوتاه ثبت کن.".to_string());
-
-    items.into_iter().take(7).collect()
 }
 
 struct GeminiEditResult {
@@ -1187,8 +1206,6 @@ fn compact_brief_for_ai(config: &Config, brief: &Value) -> Value {
         "iran_radar": take_array_items(brief.get("iran_radar"), config.gemini.max_iran_items),
         "global_news": take_array_items(brief.get("global_news"), config.gemini.max_global_news),
         "cves": take_array_items(brief.get("cves"), config.gemini.max_cves),
-        "tip_of_the_day": brief.get("tip_of_the_day").cloned().unwrap_or(Value::Null),
-        "action_items": brief.get("action_items").cloned().unwrap_or(Value::Null),
     });
 
     truncate_value_strings(&mut compact, 900);
@@ -1272,13 +1289,9 @@ fn gemini_response_schema() -> Value {
                         "ops_note": {"type": "STRING"}
                     }
                 }
-            },
-            "action_items": {
-                "type": "ARRAY",
-                "items": {"type": "STRING"}
             }
         },
-        "required": ["priority_alert", "iran_radar", "global_news", "cves", "action_items"]
+        "required": ["priority_alert", "iran_radar", "global_news", "cves"]
     })
 }
 
@@ -1291,7 +1304,7 @@ Input is JSON generated from RSS, NVD, CISA KEV, and EPSS. Your job is to add a 
 Hard rules:
 - Do not invent facts, CVEs, sources, URLs, exploitation status, affected products, victim geography, attribution, or exploit details.
 - Do not rewrite or return immutable fields such as url, source, cve_id, risk_score, cvss, epss, kev, severity, published, iran_context, tags, title, or summary.
-- Return editorial fields only: title_fa, summary_fa, why_it_matters, ops_note, recommended_action for CVEs, and action_items.
+- Return editorial fields only: title_fa, summary_fa, why_it_matters, ops_note, and recommended_action for CVEs.
 - Keep the same item order and approximate same item count for iran_radar, global_news, and cves.
 - If an item is unclear, write a cautious Persian summary and say the original advisory should be checked.
 - Do not move Iran-related items between sections. If Iran appears only as attribution, do not imply the target is inside Iran.
@@ -1300,7 +1313,6 @@ Hard rules:
 - why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
 - ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
 - title_fa: concise Persian headline, max 70 characters. For CVEs, include product/impact, not a full NVD sentence.
-- action_items: 5 to 7 concrete Persian checklist items for today's defensive work.
 - Return valid JSON only. No markdown fences, comments, trailing commas, or explanatory text.
 
 Return this exact top-level shape:
@@ -1308,8 +1320,7 @@ Return this exact top-level shape:
   "priority_alert": {{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}},
   "iran_radar": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}}],
   "global_news": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}}],
-  "cves": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "recommended_action":"...", "ops_note":"..."}}],
-  "action_items": ["..."]
+  "cves": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "recommended_action":"...", "ops_note":"..."}}]
 }}
 
 Input JSON:
@@ -1377,17 +1388,6 @@ fn validate_ai_result_shape(ai_json: &Value) -> Result<Value> {
         }
     }
 
-    if let Some(value) = obj.get("action_items") {
-        if let Some(items) = value.as_array() {
-            let safe_items = items
-                .iter()
-                .filter_map(|item| item.as_str().map(|s| Value::String(s.trim().to_string())))
-                .filter(|item| item.as_str().is_some_and(|s| !s.is_empty()))
-                .collect::<Vec<_>>();
-            clean.insert("action_items".to_string(), Value::Array(safe_items));
-        }
-    }
-
     if clean.is_empty() {
         anyhow::bail!("Gemini returned JSON, but it did not contain any usable brief fields");
     }
@@ -1403,12 +1403,6 @@ fn merge_ai_result(mut brief: Value, ai_json: &Value) -> Value {
     for key in ["iran_radar", "global_news", "cves"] {
         if let Some(value) = ai_json.get(key) {
             merge_array_items_by_index(&mut brief[key], value);
-        }
-    }
-
-    if let Some(value) = ai_json.get("action_items") {
-        if value.as_array().is_some_and(|items| !items.is_empty()) {
-            brief["action_items"] = value.clone();
         }
     }
 
@@ -1471,6 +1465,7 @@ fn protected_ai_field(key: &str) -> bool {
             | "summary"
             | "title"
             | "tags"
+            | "category"
     )
 }
 
@@ -1560,15 +1555,19 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.7-persian-quality");
+    brief["version"] = json!("v0.4.8-redesign-sources");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
             "rss_sources": 0,
+            "source_names": [],
             "http_cache": true,
             "cache_ttl_minutes": 0,
             "ai_cache_dir": "data/cache/ai"
         });
+    }
+    if brief["source_health"].get("source_names").is_none() {
+        brief["source_health"]["source_names"] = json!([]);
     }
 
     polish_priority(brief);
@@ -1840,34 +1839,40 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
         .get("cache_hit")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-    let calls = ai.get("calls_used").and_then(|v| v.as_u64()).unwrap_or(0);
+    let sources = brief
+        .get("source_health")
+        .and_then(|v| v.get("rss_sources"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
 
     if ai_enabled && ai_ok && ai_cache {
-        notes.push("AI polish از cache خوانده شد؛ برای این ورودی call جدید مصرف نشد.".to_string());
+        notes.push(
+            "نسخه فارسی این رادار از cache هوش مصنوعی آماده شده و داده خام منابع حفظ شده است."
+                .to_string(),
+        );
     } else if ai_enabled && ai_ok {
-        notes.push(format!(
-            "AI polish فعال بود و {calls} call مصرف شد؛ خروجی برای اجراهای بعدی cache شد."
-        ));
+        notes.push(
+            "نسخه فارسی این رادار با یک ویرایش هوش مصنوعی ساخته و برای اجرای بعدی cache شد."
+                .to_string(),
+        );
     } else if ai_enabled {
         notes.push(
-            "AI polish خطا داد؛ سایت با fallback محلی و داده‌های خام/کش‌شده ساخته شد.".to_string(),
+            "لایه فارسی‌سازی هوش مصنوعی در این اجرا کامل نشد؛ خروجی با fallback محلی ساخته شده است."
+                .to_string(),
         );
     } else {
-        notes.push("AI خاموش است؛ خروجی فقط با ruleهای محلی ساخته شده است.".to_string());
-    }
-
-    if brief
-        .get("source_health")
-        .and_then(|v| v.get("http_cache"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false)
-    {
         notes.push(
-            "HTTP cache فعال است؛ حالت offline از پاسخ‌های ذخیره‌شده استفاده می‌کند.".to_string(),
+            "این خروجی بدون هوش مصنوعی ساخته شده و فقط از ruleهای محلی استفاده می‌کند.".to_string(),
         );
     }
 
-    notes.into_iter().take(3).collect()
+    if sources > 0 {
+        notes.push(format!(
+            "پوشش خبری این نسخه از {sources} منبع RSS به‌همراه NVD، CISA KEV و EPSS ساخته شده است."
+        ));
+    }
+
+    notes.into_iter().take(2).collect()
 }
 
 fn concise_title(input: &str, max_chars: usize) -> String {

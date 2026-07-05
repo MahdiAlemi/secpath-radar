@@ -6,487 +6,363 @@
   <title>{{ brief.site_title }} — {{ brief.date_fa }}</title>
   <style>
     :root {
-      --bg: #0b0f14;
-      --panel: #111821;
-      --panel-2: #16202b;
-      --border: #263241;
-      --border-soft: rgba(148, 163, 184, .16);
-      --text: #d8dee9;
-      --muted: #8b949e;
-      --muted-2: #657080;
-      --blue: #58a6ff;
-      --green: #7ee787;
-      --yellow: #d29922;
-      --red: #ff7b72;
-      --purple: #bc8cff;
-      --radius: 18px;
-      --shadow: 0 20px 50px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+      --bg: #06080d;
+      --bg-2: #0b1020;
+      --surface: rgba(15, 23, 42, .72);
+      --surface-2: rgba(10, 16, 30, .82);
+      --surface-3: rgba(2, 6, 23, .78);
+      --line: rgba(148, 163, 184, .16);
+      --line-strong: rgba(148, 163, 184, .28);
+      --text: #eef6ff;
+      --muted: #98a6b8;
+      --faint: #64748b;
+      --cyan: #22d3ee;
+      --blue: #60a5fa;
+      --violet: #a78bfa;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --red: #fb7185;
+      --radius: 22px;
+      --radius-sm: 14px;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .35);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
+    html { scroll-behavior: smooth; }
     body {
       font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background:
-        radial-gradient(circle at 20% -10%, rgba(88, 166, 255, .16), transparent 32rem),
-        radial-gradient(circle at 100% 10%, rgba(188, 140, 255, .12), transparent 28rem),
-        var(--bg);
+        radial-gradient(circle at 10% -10%, rgba(34, 211, 238, .18), transparent 30rem),
+        radial-gradient(circle at 100% 0%, rgba(167, 139, 250, .16), transparent 34rem),
+        linear-gradient(180deg, var(--bg), var(--bg-2) 45%, #05070b);
       color: var(--text);
-      line-height: 1.9;
-      padding: 28px 18px 48px;
+      line-height: 1.85;
+      padding: 24px;
     }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--cyan); }
+    code { direction: ltr; display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    .shell { max-width: 1320px; margin: 0 auto; }
 
-    .shell { max-width: 980px; margin: 0 auto; }
+    .topbar {
+      position: sticky;
+      top: 12px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(2, 6, 23, .72);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 14px 40px rgba(0,0,0,.22);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 950; letter-spacing: -.03em; }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 12px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, rgba(34,211,238,.22), rgba(96,165,250,.16));
+      border: 1px solid rgba(34,211,238,.32);
+      box-shadow: inset 0 0 20px rgba(34,211,238,.08);
+    }
+    .navlinks { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .navlinks a {
+      color: var(--muted); font-size: .78rem; font-weight: 800;
+      padding: .38rem .65rem; border-radius: 999px;
+      border: 1px solid transparent;
+    }
+    .navlinks a:hover { border-color: var(--line); background: rgba(15, 23, 42, .72); color: var(--text); }
 
     .hero {
-      background: linear-gradient(135deg, rgba(17, 24, 33, .92), rgba(22, 32, 43, .78));
-      border: 1px solid var(--border-soft);
-      border-radius: 26px;
-      box-shadow: var(--shadow);
-      padding: 26px;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
+      gap: 18px;
       margin-bottom: 18px;
+    }
+    .hero-main, .hero-side, .panel, .metric, .card, .lane, .footer-card {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+    .hero-main {
+      border-radius: 34px;
+      padding: 28px;
+      min-height: 300px;
       position: relative;
       overflow: hidden;
     }
-
-    .hero::after {
+    .hero-main::before {
       content: "";
       position: absolute;
-      inset-inline-end: -80px;
-      top: -90px;
-      width: 230px;
-      height: 230px;
-      background: rgba(88, 166, 255, .12);
-      border-radius: 999px;
-      filter: blur(6px);
+      inset: -2px;
+      background:
+        linear-gradient(90deg, rgba(34,211,238,.16), transparent 34%, rgba(167,139,250,.12)),
+        repeating-linear-gradient(90deg, rgba(148,163,184,.04) 0 1px, transparent 1px 54px);
+      mask: linear-gradient(#000, transparent 78%);
+      pointer-events: none;
     }
-
-    .nav {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: center;
-      position: relative;
-      z-index: 1;
+    .hero-content { position: relative; z-index: 1; }
+    .kicker { color: var(--cyan); font-size: .78rem; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { font-size: clamp(2.1rem, 4vw, 4.4rem); line-height: 1.2; letter-spacing: -.06em; margin: 8px 0 12px; }
+    .lead { color: var(--muted); max-width: 760px; font-size: .98rem; }
+    .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 1px solid var(--line); background: rgba(2, 6, 23, .52);
+      color: var(--muted); border-radius: 999px; padding: .42rem .72rem;
+      font-size: .78rem; font-weight: 850;
     }
+    .badge.hot { color: var(--red); border-color: rgba(251,113,133,.34); background: rgba(251,113,133,.08); }
+    .badge.ok { color: var(--green); border-color: rgba(52,211,153,.32); background: rgba(52,211,153,.08); }
+    .badge.info { color: var(--cyan); border-color: rgba(34,211,238,.32); background: rgba(34,211,238,.08); }
+    .badge.warn { color: var(--amber); border-color: rgba(251,191,36,.32); background: rgba(251,191,36,.08); }
 
-    .brand {
-      font-size: 1.8rem;
-      font-weight: 900;
-      color: #f0f6fc;
-      letter-spacing: -0.03em;
-    }
+    .hero-side { border-radius: 30px; padding: 18px; display: grid; gap: 10px; align-content: start; }
+    .status-row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+    .status-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .status-row span { color: var(--muted); font-size: .78rem; }
+    .status-row b { font-size: .88rem; text-align: left; direction: ltr; }
 
-    .brand span { color: var(--blue); }
-    .sub { color: var(--muted); font-size: .92rem; margin-top: 4px; }
-
-    .date-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-      background: rgba(13, 17, 23, .72);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: .38rem .75rem;
-      color: var(--muted);
-      font-size: .8rem;
-      white-space: nowrap;
-    }
-
-    .risk-line {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .55rem;
-      margin-top: 20px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-      background: rgba(33, 38, 45, .78);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 999px;
-      padding: .26rem .65rem;
-      font-size: .78rem;
-      font-weight: 700;
-    }
-
-    .chip.danger { color: var(--red); border-color: rgba(255, 123, 114, .35); background: rgba(255, 123, 114, .09); }
-    .chip.info { color: var(--blue); border-color: rgba(88, 166, 255, .35); background: rgba(88, 166, 255, .09); }
-    .chip.ok { color: var(--green); border-color: rgba(126, 231, 135, .35); background: rgba(126, 231, 135, .08); }
-    .chip.warn { color: var(--yellow); border-color: rgba(210, 153, 34, .38); background: rgba(210, 153, 34, .10); }
-
-    .brief-notes {
+    .metrics {
       display: grid;
-      gap: 8px;
-      margin: -6px 0 18px;
-    }
-
-    .brief-notes div {
-      background: rgba(13, 17, 23, .48);
-      border: 1px solid var(--border-soft);
-      border-radius: 14px;
-      padding: .65rem .85rem;
-      color: var(--muted);
-      font-size: .84rem;
-    }
-
-    .empty {
-      border-style: dashed;
-      color: var(--muted);
-      background: rgba(13, 17, 23, .38);
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 10px;
-      margin: 18px 0 22px;
+      margin: 18px 0;
     }
+    .metric { border-radius: 20px; padding: 16px; min-height: 104px; }
+    .metric span { color: var(--muted); font-size: .78rem; font-weight: 800; }
+    .metric strong { display: block; margin-top: 8px; font-size: 2rem; line-height: 1; letter-spacing: -.04em; }
+    .metric small { color: var(--faint); font-size: .72rem; }
 
-    .stat {
-      background: rgba(17, 24, 33, .78);
-      border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      padding: 14px 10px;
-      text-align: center;
-    }
+    .notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .note { border: 1px solid var(--line); background: rgba(2, 6, 23, .42); border-radius: 18px; padding: 12px 14px; color: var(--muted); font-size: .84rem; }
 
-    .stat strong { display: block; font-size: 1.35rem; color: #f0f6fc; line-height: 1.2; }
-    .stat span { display: block; font-size: .74rem; color: var(--muted); margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+    .stack { display: grid; gap: 18px; }
+    .side-stack { display: grid; gap: 18px; position: sticky; top: 86px; }
 
-    .section {
-      margin-top: 22px;
-      background: rgba(17, 24, 33, .58);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius);
-      padding: 18px;
-    }
+    .panel { border-radius: var(--radius); padding: 18px; }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .eyebrow { display: block; color: var(--cyan); font-size: .72rem; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+    h2 { font-size: 1.18rem; letter-spacing: -.03em; }
+    .count { color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: .2rem .58rem; font-size: .73rem; white-space: nowrap; }
 
-    .section.iran {
-      background: linear-gradient(180deg, rgba(88,166,255,.08), rgba(17, 24, 33, .55));
-      border-color: rgba(88,166,255,.22);
-    }
-
-    .section.tip {
-      background: linear-gradient(135deg, rgba(88,166,255,.10), rgba(188,140,255,.07));
-      border-color: rgba(88,166,255,.24);
-    }
-
-    .section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .eyebrow {
-      display: block;
-      color: var(--blue);
-      font-weight: 900;
-      font-size: .74rem;
-      letter-spacing: .04em;
-      margin-bottom: 2px;
-    }
-
-    .section h2 { color: #f0f6fc; font-size: 1.08rem; }
-    .count { color: var(--muted); border: 1px solid var(--border); background: #101721; border-radius: 999px; padding: .2rem .62rem; font-size: .75rem; white-space: nowrap; }
-
-    .priority {
-      border-color: rgba(255, 123, 114, .28);
-      background: linear-gradient(135deg, rgba(255,123,114,.10), rgba(17,24,33,.62));
-    }
+    .priority { background: linear-gradient(135deg, rgba(251,113,133,.11), rgba(15,23,42,.72)); border-color: rgba(251,113,133,.28); }
+    .iran { background: linear-gradient(135deg, rgba(34,211,238,.10), rgba(15,23,42,.72)); border-color: rgba(34,211,238,.26); }
 
     .card {
-      background: rgba(13, 17, 23, .62);
-      border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      padding: 14px;
+      border-radius: 18px;
+      padding: 15px;
+      background: var(--surface-2);
       margin-bottom: 10px;
+      box-shadow: none;
     }
-
     .card:last-child { margin-bottom: 0; }
-    .card h3 { color: #f0f6fc; font-size: 1rem; line-height: 1.65; margin: 8px 0 4px; }
-    .card p { color: var(--muted); font-size: .9rem; }
-
-    .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-
-    .pill {
-      background: rgba(33, 38, 45, .78);
-      border: 1px solid var(--border);
-      color: #c9d1d9;
-      border-radius: 999px;
-      padding: .08rem .5rem;
-      font-size: .7rem;
-      font-weight: 700;
-    }
-
-    .risk-high { color: var(--red); border-color: rgba(255,123,114,.38); background: rgba(255,123,114,.10); }
-    .risk-medium { color: var(--yellow); border-color: rgba(210,153,34,.38); background: rgba(210,153,34,.10); }
-    .risk-low { color: var(--green); border-color: rgba(126,231,135,.32); background: rgba(126,231,135,.08); }
-
-    .source { display: inline-block; margin-top: 8px; font-size: .78rem; }
-
+    .card h3 { font-size: .98rem; line-height: 1.7; letter-spacing: -.01em; margin: 8px 0 6px; }
+    .card p { color: var(--muted); font-size: .88rem; }
     .display-title { display: block; }
-    .original-title { display: block; color: var(--muted-2); font-size: .76rem; font-weight: 600; margin-top: 2px; direction: ltr; text-align: right; }
-    .editorial-note { margin-top: 8px; border-top: 1px solid var(--border-soft); padding-top: 8px; display: grid; gap: 4px; }
-    .editorial-note div { color: var(--muted); font-size: .78rem; }
-    details.original { margin-top: 8px; color: var(--muted-2); font-size: .76rem; }
-    details.original summary { cursor: pointer; color: var(--blue); }
-    details.original p { margin-top: 5px; color: var(--muted-2); direction: ltr; text-align: left; font-size: .76rem; line-height: 1.65; }
+    .original-title { display: block; margin-top: 1px; color: var(--faint); font-size: .73rem; direction: ltr; text-align: right; font-weight: 650; }
+    .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .pill { border: 1px solid var(--line); background: rgba(2,6,23,.42); color: var(--muted); border-radius: 999px; padding: .12rem .5rem; font-size: .68rem; font-weight: 850; }
+    .pill.red { color: var(--red); border-color: rgba(251,113,133,.34); background: rgba(251,113,133,.08); }
+    .pill.amber { color: var(--amber); border-color: rgba(251,191,36,.30); background: rgba(251,191,36,.08); }
+    .pill.green { color: var(--green); border-color: rgba(52,211,153,.30); background: rgba(52,211,153,.08); }
+    .pill.cyan { color: var(--cyan); border-color: rgba(34,211,238,.30); background: rgba(34,211,238,.08); }
+    .editorial { display: grid; gap: 5px; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 9px; }
+    .editorial div { color: var(--muted); font-size: .77rem; }
+    details.original { margin-top: 9px; color: var(--faint); font-size: .74rem; }
+    details.original summary { cursor: pointer; color: var(--cyan); }
+    details.original p { margin-top: 5px; direction: ltr; text-align: left; color: var(--faint); font-size: .74rem; line-height: 1.6; }
+    .source { display: inline-block; color: var(--blue); font-size: .78rem; margin-top: 8px; }
+    .empty { color: var(--muted); border-style: dashed; }
 
+    .lanes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .lane { border-radius: 20px; padding: 14px; box-shadow: none; background: rgba(2,6,23,.36); }
+    .lane h3 { font-size: .92rem; margin-bottom: 10px; color: var(--text); }
+    .lane-item { display: grid; gap: 4px; border-top: 1px solid var(--line); padding: 10px 0; }
+    .lane-item:first-of-type { border-top: 0; padding-top: 0; }
+    .lane-item a { font-weight: 850; font-size: .86rem; line-height: 1.55; }
+    .lane-item span { color: var(--muted); font-size: .72rem; }
 
-    .cve-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .cve-id { direction: ltr; display: inline-block; color: var(--blue); font-weight: 900; }
-    .kv { color: var(--muted); font-size: .78rem; margin-top: 6px; }
+    .cve-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .cve-id { direction: ltr; display: inline-block; color: var(--cyan); font-weight: 950; }
+    .kv { color: var(--muted); font-size: .77rem; margin-top: 8px; }
     .kv b { color: var(--text); }
 
-    .code {
-      direction: ltr;
-      text-align: left;
-      background: #080c11;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: .8rem;
-      margin-top: 10px;
-      color: var(--green);
-      overflow-x: auto;
-      font-size: .85rem;
-      line-height: 1.7;
-    }
+    .source-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+    .source-cloud span { color: var(--muted); border: 1px solid var(--line); background: rgba(2,6,23,.36); border-radius: 999px; padding: .18rem .48rem; font-size: .68rem; }
 
-    .actions { list-style: none; display: grid; gap: 8px; }
-    .actions li {
-      background: rgba(13, 17, 23, .58);
-      border: 1px solid var(--border-soft);
-      border-radius: 14px;
-      padding: .75rem .9rem;
-      color: var(--text);
-      font-size: .9rem;
-    }
+    footer { margin-top: 22px; }
+    .footer-card { border-radius: 24px; padding: 18px; color: var(--muted); display: flex; justify-content: space-between; gap: 14px; align-items: center; }
+    .footer-card b { color: var(--text); }
+    .footer-card p { font-size: .82rem; }
 
-    footer {
-      color: var(--muted-2);
-      text-align: center;
-      padding: 26px 0 0;
-      font-size: .78rem;
+    @media (max-width: 980px) {
+      body { padding: 16px 12px 32px; }
+      .topbar { position: static; border-radius: 22px; align-items: flex-start; flex-direction: column; }
+      .hero, .grid { grid-template-columns: 1fr; }
+      .side-stack { position: static; }
+      .metrics { grid-template-columns: repeat(3, 1fr); }
+      .notes, .lanes, .cve-grid { grid-template-columns: 1fr; }
+      .hero-main { border-radius: 26px; padding: 22px; }
     }
-
-    @media (max-width: 760px) {
-      body { padding: 16px 12px 36px; }
-      .hero { padding: 20px; border-radius: 22px; }
-      .nav { flex-direction: column; align-items: flex-start; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .cve-grid { grid-template-columns: 1fr; }
-      .brand { font-size: 1.45rem; }
-    }
+    @media (max-width: 560px) { .metrics { grid-template-columns: repeat(2, 1fr); } .footer-card { flex-direction: column; align-items: flex-start; } }
   </style>
 </head>
 <body>
   <main class="shell">
+    <nav class="topbar" aria-label="ناوبری رادار">
+      <div class="brand"><span class="brand-mark">🛡️</span><span>SecPath Radar</span></div>
+      <div class="navlinks">
+        <a href="#priority">اولویت</a>
+        <a href="#iran">ایران</a>
+        <a href="#lanes">رادار جهانی</a>
+        <a href="#cves">CVE</a>
+        <a href="#sources">منابع</a>
+      </div>
+    </nav>
+
     <header class="hero">
-      <div class="nav">
-        <div>
-          <div class="brand">🛡️ SecPath<span>Radar</span></div>
-          <div class="sub">خلاصه روزانه خبرها، CVEها، هشدارها و نکته‌های امنیتی</div>
+      <section class="hero-main">
+        <div class="hero-content">
+          <div class="kicker">Cyber Intelligence Command View</div>
+          <h1>رادار عملیاتی امروز</h1>
+          <p class="lead">خلاصه‌ای اولویت‌بندی‌شده از خبرهای امنیتی، آسیب‌پذیری‌های مهم، بهره‌برداری فعال و سیگنال‌های مرتبط با ایران؛ با حفظ متن منبع و لایه نمایشی فارسی.</p>
+          <div class="hero-actions">
+            <span class="badge hot">وضعیت: {{ brief.risk_level }}</span>
+            <span class="badge info">{{ brief.date_fa }} · {{ brief.date_en }}</span>
+            <span class="badge ok">{{ brief.source_health.rss_sources }} منبع RSS</span>
+            {% if brief.ai_status.enabled and brief.ai_status.ok %}<span class="badge ok">AI {% if brief.ai_status.cache_hit %}cache{% else %}live{% endif %}</span>{% elif brief.ai_status.enabled %}<span class="badge warn">AI fallback</span>{% else %}<span class="badge warn">AI off</span>{% endif %}
+          </div>
         </div>
-        <div class="date-badge">📅 {{ brief.date_fa }} | {{ brief.date_en }}</div>
-      </div>
-      <div class="risk-line">
-        <span class="chip danger">وضعیت امروز: {{ brief.risk_level }}</span>
-        <span class="chip info">Iran Radar: {{ brief.stats.iran_items }} مورد</span>
-        <span class="chip ok">Generated: {{ brief.generated_at }}</span>
-        <span class="chip info">RSS sources: {{ brief.source_health.rss_sources }}</span>
-        {% if brief.source_health.http_cache %}<span class="chip ok">HTTP cache: on</span>{% endif %}
-        {% if brief.ai_status.enabled %}
-          {% if brief.ai_status.ok %}
-          <span class="chip ok">AI: {{ brief.ai_status.model }}{% if brief.ai_status.cache_hit %} · cache{% else %} · live{% endif %}</span>
-          {% else %}
-          <span class="chip danger">AI: failed</span>
-          {% endif %}
-        {% else %}
-        <span class="chip warn">AI: off</span>
-        {% endif %}
-      </div>
+      </section>
+      <aside class="hero-side" aria-label="وضعیت تولید">
+        <div class="status-row"><span>Generated</span><b>{{ brief.generated_at }}</b></div>
+        <div class="status-row"><span>HTTP cache</span><b>{% if brief.source_health.http_cache %}ON{% else %}OFF{% endif %}</b></div>
+        <div class="status-row"><span>AI model</span><b>{% if brief.ai_status.enabled %}{{ brief.ai_status.model }}{% else %}disabled{% endif %}</b></div>
+        <div class="status-row"><span>Coverage</span><b>RSS + NVD + KEV + EPSS</b></div>
+      </aside>
     </header>
 
+    <section class="metrics" aria-label="شاخص‌های اصلی">
+      <div class="metric"><span>همه آیتم‌ها</span><strong>{{ brief.stats.total_items }}</strong><small>پس از dedupe و ranking</small></div>
+      <div class="metric"><span>CVE Watch</span><strong>{{ brief.stats.cves }}</strong><small>{{ brief.stats.critical_cves }} critical</small></div>
+      <div class="metric"><span>KEV</span><strong>{{ brief.stats.kev }}</strong><small>بهره‌برداری شناخته‌شده</small></div>
+      <div class="metric"><span>Iran Radar</span><strong>{{ brief.stats.iran_items }}</strong><small>کلیدواژه/attribution</small></div>
+      <div class="metric"><span>Global News</span><strong>{{ brief.stats.global_news }}</strong><small>خبرهای rank شده</small></div>
+      <div class="metric"><span>Sources</span><strong>{{ brief.stats.rss_sources }}</strong><small>RSS فعال در config</small></div>
+    </section>
+
     {% if brief.brief_notes | length > 0 %}
-    <section class="brief-notes" aria-label="یادداشت وضعیت ساخت">
-      {% for note in brief.brief_notes %}<div>ℹ️ {{ note }}</div>{% endfor %}
+    <section class="notes" aria-label="یادداشت‌های رادار">
+      {% for note in brief.brief_notes %}<div class="note">{{ note }}</div>{% endfor %}
     </section>
     {% endif %}
 
-    <section class="stats" aria-label="آمار روز">
-      <div class="stat"><strong>{{ brief.stats.cves }}</strong><span>🧨 CVE</span></div>
-      <div class="stat"><strong>{{ brief.stats.critical_cves }}</strong><span>Critical</span></div>
-      <div class="stat"><strong>{{ brief.stats.kev }}</strong><span>🚨 KEV</span></div>
-      <div class="stat"><strong>{{ brief.stats.iran_items }}</strong><span>🇮🇷 ایران</span></div>
-      <div class="stat"><strong>{{ brief.stats.global_news }}</strong><span>🌍 خبر جهانی</span></div>
-      <div class="stat"><strong>{{ brief.stats.tools }}</strong><span>🛠️ ابزار</span></div>
-    </section>
-
-    <section class="section priority">
-      <div class="section-head">
-        <div><span class="eyebrow">🔥 PRIORITY ALERT</span><h2>مهم‌ترین هشدار امروز</h2></div>
-        <span class="count">Risk {{ brief.priority_alert.risk_score }}</span>
-      </div>
-      <article class="card">
-        <div class="meta">
-          {% for tag in brief.priority_alert.tags %}<span class="pill risk-high">{{ tag }}</span>{% endfor %}
-        </div>
-        <h3><span class="display-title">{% if brief.priority_alert.title_fa is defined and brief.priority_alert.title_fa %}{{ brief.priority_alert.title_fa }}{% else %}{{ brief.priority_alert.title }}{% endif %}</span><span class="original-title">{{ brief.priority_alert.title }}</span></h3>
-        <p>{% if brief.priority_alert.summary_fa is defined and brief.priority_alert.summary_fa %}{{ brief.priority_alert.summary_fa }}{% else %}{{ brief.priority_alert.summary }}{% endif %}</p>
-        <div class="editorial-note">
-          {% if brief.priority_alert.why_it_matters is defined and brief.priority_alert.why_it_matters %}<div>چرا مهم است: {{ brief.priority_alert.why_it_matters }}</div>{% endif %}
-          {% if brief.priority_alert.ops_note is defined and brief.priority_alert.ops_note %}<div>اقدام سریع: {{ brief.priority_alert.ops_note }}</div>{% endif %}
-        </div>
-        <details class="original"><summary>متن منبع</summary><p>{{ brief.priority_alert.summary }}</p></details>
-        <a class="source" href="{{ brief.priority_alert.url }}">{{ brief.priority_alert.source }} →</a>
-      </article>
-    </section>
-
-    <section class="section iran">
-      <div class="section-head">
-        <div><span class="eyebrow">🇮🇷 IRAN CYBER RADAR</span><h2>خبرها و هشدارهای مرتبط با ایران</h2></div>
-        <span class="count">{{ brief.iran_radar | length }} مورد</span>
-      </div>
-      {% if brief.iran_radar | length == 0 %}
-      <article class="card empty">فعلاً آیتم مستقیمی برای Iran Radar پیدا نشد. این به معنی نبود تهدید نیست؛ فقط در RSSهای امروز نشانه مشخصی از کلیدواژه‌های ایران دیده نشده است.</article>
-      {% endif %}
-      {% for item in brief.iran_radar %}
-      <article class="card">
-        <div class="meta">
-          <span class="pill risk-medium">{{ item.iran_context }}</span>
-          <span class="pill">Risk {{ item.risk_score }}</span>
-          {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
-        </div>
-        <h3><span class="display-title">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</span><span class="original-title">{{ item.title }}</span></h3>
-        <p>{% if item.summary_fa is defined and item.summary_fa %}{{ item.summary_fa }}{% else %}{{ item.summary }}{% endif %}</p>
-        <div class="editorial-note">
-          {% if item.why_it_matters is defined and item.why_it_matters %}<div>چرا مهم است: {{ item.why_it_matters }}</div>{% endif %}
-          {% if item.ops_note is defined and item.ops_note %}<div>اقدام پیشنهادی: {{ item.ops_note }}</div>{% endif %}
-        </div>
-        <details class="original"><summary>متن منبع</summary><p>{{ item.summary }}</p></details>
-        <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
-      </article>
-      {% endfor %}
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <div><span class="eyebrow">🌍 GLOBAL CYBER NEWS</span><h2>خبرهای مهم جهانی</h2></div>
-        <span class="count">{{ brief.global_news | length }} مورد</span>
-      </div>
-      {% if brief.global_news | length == 0 %}
-      <article class="card empty">خبر جهانی مهمی در این اجرا وارد خروجی نشد. برای داده تازه، یک بار با <code>cargo run -- --full --refresh-cache</code> اجرا کن.</article>
-      {% endif %}
-      {% for item in brief.global_news %}
-      <article class="card">
-        <div class="meta">
-          <span class="pill">Risk {{ item.risk_score }}</span>
-          {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
-        </div>
-        <h3><span class="display-title">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</span><span class="original-title">{{ item.title }}</span></h3>
-        <p>{% if item.summary_fa is defined and item.summary_fa %}{{ item.summary_fa }}{% else %}{{ item.summary }}{% endif %}</p>
-        <div class="editorial-note">
-          {% if item.why_it_matters is defined and item.why_it_matters %}<div>چرا مهم است: {{ item.why_it_matters }}</div>{% endif %}
-          {% if item.ops_note is defined and item.ops_note %}<div>اقدام پیشنهادی: {{ item.ops_note }}</div>{% endif %}
-        </div>
-        <details class="original"><summary>متن منبع</summary><p>{{ item.summary }}</p></details>
-        <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
-      </article>
-      {% endfor %}
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <div><span class="eyebrow">🧨 CVE WATCH</span><h2>CVEهای مهم امروز</h2></div>
-        <span class="count">{{ brief.cves | length }} مورد</span>
-      </div>
-      {% if brief.cves | length == 0 %}
-      <article class="card">
-        <h3>فعلاً CVE مهمی برای بازه امروز دریافت نشد</h3>
-        <p>اگر فقط <code>cargo run -- --fetch</code> اجرا کرده باشی، CVE engine فعال نشده. برای CVE واقعی از <code>cargo run -- --cves</code> یا <code>cargo run -- --full</code> استفاده کن.</p>
-      </article>
-      {% else %}
-      <div class="cve-grid">
-        {% for cve in brief.cves %}
-        <article class="card">
-          <div class="meta">
-            <span class="pill risk-high">{{ cve.severity }}</span>
-            {% if cve.kev %}<span class="pill risk-high">KEV</span>{% endif %}
-            {% if cve.cvss is defined and cve.cvss != none %}<span class="pill">CVSS {{ cve.cvss }}</span>{% else %}<span class="pill">CVSS n/a</span>{% endif %}
-            {% if cve.epss is defined and cve.epss != none %}<span class="pill">EPSS {{ (cve.epss * 100) | round }}%</span>{% else %}<span class="pill">EPSS n/a</span>{% endif %}
+    <div class="grid">
+      <div class="stack">
+        <section id="priority" class="panel priority">
+          <div class="panel-head">
+            <div><span class="eyebrow">Priority Alert</span><h2>مهم‌ترین سیگنال امروز</h2></div>
+            <span class="count">Risk {{ brief.priority_alert.risk_score }}</span>
           </div>
-          <h3><span class="cve-id">{{ cve.cve_id }}</span> — {% if cve.title_fa is defined and cve.title_fa %}{{ cve.title_fa }}{% else %}{{ cve.title }}{% endif %}</h3>
-          <p>{% if cve.summary_fa is defined and cve.summary_fa %}{{ cve.summary_fa }}{% else %}{{ cve.summary }}{% endif %}</p>
-          <div class="editorial-note">
-            {% if cve.why_it_matters is defined and cve.why_it_matters %}<div>چرا مهم است: {{ cve.why_it_matters }}</div>{% endif %}
-            {% if cve.ops_note is defined and cve.ops_note %}<div>اقدام سریع: {{ cve.ops_note }}</div>{% endif %}
+          <article class="card">
+            <div class="meta">{% for tag in brief.priority_alert.tags %}<span class="pill red">{{ tag }}</span>{% endfor %}</div>
+            <h3><span class="display-title">{% if brief.priority_alert.title_fa is defined and brief.priority_alert.title_fa %}{{ brief.priority_alert.title_fa }}{% else %}{{ brief.priority_alert.title }}{% endif %}</span><span class="original-title">{{ brief.priority_alert.title }}</span></h3>
+            <p>{% if brief.priority_alert.summary_fa is defined and brief.priority_alert.summary_fa %}{{ brief.priority_alert.summary_fa }}{% else %}{{ brief.priority_alert.summary }}{% endif %}</p>
+            <div class="editorial">
+              {% if brief.priority_alert.why_it_matters is defined and brief.priority_alert.why_it_matters %}<div>چرا مهم است: {{ brief.priority_alert.why_it_matters }}</div>{% endif %}
+              {% if brief.priority_alert.ops_note is defined and brief.priority_alert.ops_note %}<div>برداشت عملیاتی: {{ brief.priority_alert.ops_note }}</div>{% endif %}
+            </div>
+            <details class="original"><summary>متن منبع</summary><p>{{ brief.priority_alert.summary }}</p></details>
+            <a class="source" href="{{ brief.priority_alert.url }}">{{ brief.priority_alert.source }} →</a>
+          </article>
+        </section>
+
+        <section id="iran" class="panel iran">
+          <div class="panel-head">
+            <div><span class="eyebrow">Iran Cyber Radar</span><h2>سیگنال‌های مرتبط با ایران</h2></div>
+            <span class="count">{{ brief.iran_radar | length }} مورد</span>
           </div>
-          <div class="kv">اقدام پیشنهادی: <b>{{ cve.recommended_action }}</b></div>
-          <details class="original"><summary>متن NVD</summary><p>{{ cve.summary }}</p></details>
-          <a class="source" href="{{ cve.url }}">جزئیات →</a>
-        </article>
-        {% endfor %}
-      </div>
-      {% endif %}
-    </section>
+          {% if brief.iran_radar | length == 0 %}<article class="card empty">فعلاً در منابع امروز سیگنال مستقیم ایران دیده نشد. این بخش فقط بر اساس کلیدواژه و attribution ساخته می‌شود.</article>{% endif %}
+          {% for item in brief.iran_radar %}
+          <article class="card">
+            <div class="meta"><span class="pill cyan">{{ item.iran_context }}</span><span class="pill">Risk {{ item.risk_score }}</span>{% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}</div>
+            <h3><span class="display-title">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</span><span class="original-title">{{ item.title }}</span></h3>
+            <p>{% if item.summary_fa is defined and item.summary_fa %}{{ item.summary_fa }}{% else %}{{ item.summary }}{% endif %}</p>
+            <div class="editorial">{% if item.why_it_matters is defined and item.why_it_matters %}<div>چرا مهم است: {{ item.why_it_matters }}</div>{% endif %}{% if item.ops_note is defined and item.ops_note %}<div>برداشت عملیاتی: {{ item.ops_note }}</div>{% endif %}</div>
+            <details class="original"><summary>متن منبع</summary><p>{{ item.summary }}</p></details>
+            <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
+          </article>
+          {% endfor %}
+        </section>
 
-    <section class="section">
-      <div class="section-head">
-        <div><span class="eyebrow">🛠️ TOOLS & TECHNIQUES</span><h2>ابزار و تکنیک قابل توجه</h2></div>
-        <span class="count">{{ brief.tools | length }} مورد</span>
-      </div>
-      {% if brief.tools | length == 0 %}
-      <article class="card empty">در این نسخه هنوز feed جداگانه ابزارها فعال نیست؛ آیتم‌های ابزار/تکنیک فعلاً داخل خبرهای جهانی و CVE Watch دیده می‌شوند.</article>
-      {% endif %}
-      {% for tool in brief.tools %}
-      <article class="card">
-        <div class="meta">{% for tag in tool.tags %}<span class="pill">{{ tag }}</span>{% endfor %}</div>
-        <h3>{{ tool.name }}</h3>
-        <p>{{ tool.summary }}</p>
-        <a class="source" href="{{ tool.url }}">مشاهده →</a>
-      </article>
-      {% endfor %}
-    </section>
+        <section id="lanes" class="panel">
+          <div class="panel-head">
+            <div><span class="eyebrow">Global Threat Lanes</span><h2>خبرهای جهانی بر اساس نوع سیگنال</h2></div>
+            <span class="count">{{ brief.global_news | length }} خبر</span>
+          </div>
+          <div class="lanes">
+            <div class="lane"><h3>🔥 بهره‌برداری فعال / Zero-day</h3>{% for item in brief.news_lanes.active_exploitation %}<div class="lane-item"><a href="{{ item.url }}">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</a><span>{{ item.source }} · Risk {{ item.risk_score }}</span></div>{% endfor %}{% if brief.news_lanes.active_exploitation | length == 0 %}<div class="lane-item"><span>آیتمی در این lane نیست.</span></div>{% endif %}</div>
+            <div class="lane"><h3>🧩 آسیب‌پذیری و Patch</h3>{% for item in brief.news_lanes.vulnerabilities %}<div class="lane-item"><a href="{{ item.url }}">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</a><span>{{ item.source }} · Risk {{ item.risk_score }}</span></div>{% endfor %}{% if brief.news_lanes.vulnerabilities | length == 0 %}<div class="lane-item"><span>آیتمی در این lane نیست.</span></div>{% endif %}</div>
+            <div class="lane"><h3>🦠 Malware / Incident</h3>{% for item in brief.news_lanes.malware_incidents %}<div class="lane-item"><a href="{{ item.url }}">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</a><span>{{ item.source }} · Risk {{ item.risk_score }}</span></div>{% endfor %}{% if brief.news_lanes.malware_incidents | length == 0 %}<div class="lane-item"><span>آیتمی در این lane نیست.</span></div>{% endif %}</div>
+            <div class="lane"><h3>🤖 AI Security</h3>{% for item in brief.news_lanes.ai_security %}<div class="lane-item"><a href="{{ item.url }}">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</a><span>{{ item.source }} · Risk {{ item.risk_score }}</span></div>{% endfor %}{% if brief.news_lanes.ai_security | length == 0 %}<div class="lane-item"><span>آیتمی در این lane نیست.</span></div>{% endif %}</div>
+          </div>
+        </section>
 
-    <section class="section tip">
-      <div class="section-head">
-        <div><span class="eyebrow">🧠 TIP OF THE DAY</span><h2>{{ brief.tip_of_the_day.title }}</h2></div>
-        <span class="count">{{ brief.tip_of_the_day.type }}</span>
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">Global Cyber News</span><h2>خبرهای منتخب جهانی</h2></div><span class="count">{{ brief.global_news | length }} مورد</span></div>
+          {% if brief.global_news | length == 0 %}<article class="card empty">خبر جهانی مهمی وارد خروجی نشد. برای داده تازه، یک بار full اجرا کن.</article>{% endif %}
+          {% for item in brief.global_news %}
+          <article class="card">
+            <div class="meta"><span class="pill">Risk {{ item.risk_score }}</span><span class="pill cyan">{{ item.category }}</span>{% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}</div>
+            <h3><span class="display-title">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</span><span class="original-title">{{ item.title }}</span></h3>
+            <p>{% if item.summary_fa is defined and item.summary_fa %}{{ item.summary_fa }}{% else %}{{ item.summary }}{% endif %}</p>
+            <div class="editorial">{% if item.why_it_matters is defined and item.why_it_matters %}<div>چرا مهم است: {{ item.why_it_matters }}</div>{% endif %}{% if item.ops_note is defined and item.ops_note %}<div>برداشت عملیاتی: {{ item.ops_note }}</div>{% endif %}</div>
+            <details class="original"><summary>متن منبع</summary><p>{{ item.summary }}</p></details>
+            <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
+          </article>
+          {% endfor %}
+        </section>
       </div>
-      <p>{{ brief.tip_of_the_day.body }}</p>
-      <pre class="code"><code>{{ brief.tip_of_the_day.command }}</code></pre>
-      <p style="margin-top:10px;color:var(--muted);font-size:.88rem;">💡 {{ brief.tip_of_the_day.takeaway }}</p>
-    </section>
 
-    <section class="section">
-      <div class="section-head">
-        <div><span class="eyebrow">✅ TODAY'S ACTION ITEMS</span><h2>چک‌لیست امروز</h2></div>
-        <span class="count">{{ brief.action_items | length }} کار</span>
-      </div>
-      <ul class="actions">
-        {% for item in brief.action_items %}<li>✅ {{ item }}</li>{% endfor %}
-      </ul>
-    </section>
+      <aside class="side-stack">
+        <section id="cves" class="panel">
+          <div class="panel-head"><div><span class="eyebrow">CVE Watch</span><h2>آسیب‌پذیری‌های اولویت‌دار</h2></div><span class="count">{{ brief.cves | length }}</span></div>
+          {% if brief.cves | length == 0 %}<article class="card empty">CVE مهمی برای این بازه دریافت نشد.</article>{% endif %}
+          {% for cve in brief.cves %}
+          <article class="card">
+            <div class="meta"><span class="pill red">{{ cve.severity }}</span>{% if cve.kev %}<span class="pill red">KEV</span>{% endif %}{% if cve.cvss is defined and cve.cvss != none %}<span class="pill">CVSS {{ cve.cvss }}</span>{% else %}<span class="pill">CVSS n/a</span>{% endif %}{% if cve.epss is defined and cve.epss != none %}<span class="pill">EPSS {{ (cve.epss * 100) | round }}%</span>{% else %}<span class="pill">EPSS n/a</span>{% endif %}</div>
+            <h3><span class="cve-id">{{ cve.cve_id }}</span> — {% if cve.title_fa is defined and cve.title_fa %}{{ cve.title_fa }}{% else %}{{ cve.title }}{% endif %}</h3>
+            <p>{% if cve.summary_fa is defined and cve.summary_fa %}{{ cve.summary_fa }}{% else %}{{ cve.summary }}{% endif %}</p>
+            <div class="editorial">{% if cve.why_it_matters is defined and cve.why_it_matters %}<div>چرا مهم است: {{ cve.why_it_matters }}</div>{% endif %}{% if cve.ops_note is defined and cve.ops_note %}<div>برداشت عملیاتی: {{ cve.ops_note }}</div>{% endif %}</div>
+            <div class="kv">اقدام پیشنهادی: <b>{{ cve.recommended_action }}</b></div>
+            <details class="original"><summary>متن NVD</summary><p>{{ cve.summary }}</p></details>
+            <a class="source" href="{{ cve.url }}">جزئیات →</a>
+          </article>
+          {% endfor %}
+        </section>
+
+        <section id="sources" class="panel">
+          <div class="panel-head"><div><span class="eyebrow">Source Coverage</span><h2>منابع فعال</h2></div><span class="count">{{ brief.source_health.rss_sources }}</span></div>
+          <div class="source-cloud">{% for source in brief.source_health.source_names %}<span>{{ source }}</span>{% endfor %}</div>
+        </section>
+      </aside>
+    </div>
 
     <footer>
-      <p>🛡️ SecPath Radar — {{ brief.version }}</p>
-      <p>Gemini فقط با --ai فعال می‌شود، خروجی AI cache می‌شود، و بدون --ai هیچ call مصرف نمی‌شود.</p>
+      <div class="footer-card">
+        <p><b>SecPath Radar {{ brief.version }}</b> — رادار دفاعی برای مرور روزانه خبرهای امنیتی و CVEها. این خروجی جایگزین advisory اصلی، ارزیابی حقوقی یا تصمیم رسمی incident response نیست.</p>
+        <p>داده‌ها از RSS عمومی، NVD، CISA KEV و EPSS جمع‌آوری می‌شوند؛ لایه فارسی فقط برای خوانایی است و متن منبع در هر کارت حفظ شده است.</p>
+      </div>
     </footer>
   </main>
 </body>

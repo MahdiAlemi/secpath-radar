@@ -4,13 +4,13 @@ site:
   domain: "radar.secpath.space"
 
 fetch:
-  max_items_per_source: 12
-  max_total_items: 40
-  sleep_ms_between_sources: 900
-  user_agent: "SecPathRadar/0.4.7 (+https://radar.secpath.space)"
+  max_items_per_source: 8
+  max_total_items: 90
+  sleep_ms_between_sources: 450
+  user_agent: "SecPathRadar/0.4.8 (+https://radar.secpath.space)"
 
 cve:
-  max_cves: 12
+  max_cves: 14
   lookback_days: 2
   sleep_ms_between_sources: 1300
   nvd_url: "https://services.nvd.nist.gov/rest/json/cves/2.0"
@@ -27,10 +27,10 @@ gemini:
   model: "gemini-2.5-flash"
   api_url: "https://generativelanguage.googleapis.com/v1beta"
   cache_dir: "data/cache/ai"
-  temperature: 0.2
+  temperature: 0.15
   max_iran_items: 5
-  max_global_news: 7
-  max_cves: 6
+  max_global_news: 8
+  max_cves: 7
 
 filters:
   iran_keywords:
@@ -69,6 +69,9 @@ filters:
     - exploit
     - malware
     - apt
+    - botnet
+    - phishing
+    - stealer
     - fortinet
     - cisco
     - microsoft
@@ -80,16 +83,24 @@ filters:
     - wordpress
     - kubernetes
     - docker
+    - cloudflare
+    - ivanti
+    - palo alto
+    - citrix
+    - sonicwall
+    - vmware
   low_keywords:
     - sponsored
     - webinar
     - podcast
     - opinion
+    - job
+    - conference
 
 limits:
   iran_radar: 5
-  global_news: 7
-  cves: 8
+  global_news: 18
+  cves: 10
 
 sources:
   - name: "CISA Advisories"
@@ -100,3 +111,31 @@ sources:
     url: "https://www.securityweek.com/feed/"
   - name: "KrebsOnSecurity"
     url: "https://krebsonsecurity.com/feed/"
+  - name: "The Hacker News"
+    url: "https://feeds.feedburner.com/TheHackersNews"
+  - name: "Dark Reading"
+    url: "https://www.darkreading.com/rss/all.xml"
+  - name: "SANS ISC"
+    url: "https://isc.sans.edu/rssfeed_full.xml"
+  - name: "Cisco Security Advisories"
+    url: "https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml"
+  - name: "Cisco Talos"
+    url: "https://blog.talosintelligence.com/rss/"
+  - name: "Microsoft Security Blog"
+    url: "https://www.microsoft.com/en-us/security/blog/feed/"
+  - name: "Google Online Security Blog"
+    url: "https://security.googleblog.com/feeds/posts/default"
+  - name: "Google Project Zero"
+    url: "https://googleprojectzero.blogspot.com/feeds/posts/default"
+  - name: "Cloudflare Security"
+    url: "https://blog.cloudflare.com/tag/security/rss/"
+  - name: "Unit 42"
+    url: "https://unit42.paloaltonetworks.com/feed/"
+  - name: "Rapid7 Blog"
+    url: "https://www.rapid7.com/blog/rss/"
+  - name: "CERT/CC Vulnerability Notes"
+    url: "https://kb.cert.org/vuls/atomfeed"
+  - name: "Infosecurity Magazine"
+    url: "https://www.infosecurity-magazine.com/rss/news/"
+  - name: "PortSwigger Research"
+    url: "https://portswigger.net/research/rss"
