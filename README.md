@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.21-static-interactivity**
+Current phase: **v0.4.22-snapshot-history**
 
 ## What changed in v0.4.8
 
@@ -204,3 +204,9 @@ Adds local-only viewing interactions for the production dashboard:
 - Local section jump links and keyboard hints.
 - No forms, no scanners, no submissions, no backend workflow, and no operational security actions.
 
+
+## v0.4.22 — Snapshot History
+
+This phase adds a local, read-only snapshot history layer. Before writing `data/latest_brief.json`, the generator reads the previous brief if present, compares key operational counters, attaches `history_snapshot` to the current JSON, and writes compact runtime snapshots under `snapshots/history/`.
+
+The comparison is local only. It does not add network sources, forms, inputs, backend workflows, scanning, submission, or operational security actions.

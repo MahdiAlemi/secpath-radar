@@ -47,6 +47,7 @@
 
     <nav class="section-jump" aria-label="پرش محلی بین بخش‌ها">
       <a href="#executive-snapshot">مدیریتی</a>
+      <a href="#history-snapshot">تغییرات</a>
       <a href="#cves">CVE</a>
       <a href="#global-news">خبرها</a>
       <a href="#phishing-pulse">Phishing</a>
@@ -69,6 +70,7 @@
       <div><span>زنجیره تأمین</span><b>{{ brief.stats.supply_chain_advisories }}</b></div>
       <div><span>Ransomware</span><b>{{ brief.stats.ransomware_victims }}</b></div>
       <div><span>RSS خطادار</span><b>{{ brief.stats.failed_rss_sources }}</b></div>
+      <div><span>تغییرات</span><b>{{ brief.stats.history_changes }}</b><small>از اجرای قبل</small></div>
     </section>
 
     <section class="dashboard-grid" aria-label="چیدمان سه‌ستونه رادار">
@@ -88,6 +90,25 @@
             </article>
             {% endfor %}
           </div>
+        </section>
+
+        <section id="history-snapshot" class="panel history-panel" aria-label="تغییرات نسبت به اجرای قبل">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">Snapshot History</span><h2>تغییرات اجرای قبل</h2></div>
+            <span class="count">{{ brief.history_snapshot.totals.changed }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.history_snapshot.summary_fa }}</p>
+          <div class="health-grid compact-history-grid">
+            <div><span>ردیابی</span><b>{{ brief.history_snapshot.totals.tracked }}</b></div>
+            <div><span>افزایش</span><b>{{ brief.history_snapshot.totals.increased }}</b></div>
+            <div><span>کاهش</span><b>{{ brief.history_snapshot.totals.decreased }}</b></div>
+          </div>
+          <div class="tiny-bars history-bars">
+            {% for row in brief.history_snapshot.top_changes %}{% if loop.index <= 6 %}
+            <div class="risk-{{ row.level }}"><span>{{ row.label_fa }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</b></div>
+            {% endif %}{% endfor %}
+          </div>
+          <div class="meta-row production-note"><small>قبلی: {{ brief.history_snapshot.previous_version }}</small><small>{{ brief.history_snapshot.storage }}</small><small>local only</small></div>
         </section>
 
         <section id="priority" class="panel priority-panel" aria-label="مهم‌ترین سیگنال">

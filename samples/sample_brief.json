@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.21-static-interactivity",
+  "version": "v0.4.22-snapshot-history",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -32,7 +32,8 @@
     "greynoise_riot": 0,
     "phishing_urls": 0,
     "phishing_high": 0,
-    "phishing_tlds": 0
+    "phishing_tlds": 0,
+    "history_changes": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -428,5 +429,45 @@
     "tld_chart": [],
     "brand_chart": [],
     "risk_chart": []
+  },
+  "history_snapshot": {
+    "enabled": true,
+    "generated_at": "sample",
+    "previous_available": false,
+    "previous_version": "none",
+    "current_version": "v0.4.22-snapshot-history",
+    "summary_fa": "نمونه محلی برای نمایش تغییرات نسبت به اجرای قبل؛ در اجرای واقعی از data/latest_brief.json قبلی محاسبه می‌شود.",
+    "totals": {
+      "tracked": 13,
+      "changed": 0,
+      "increased": 0,
+      "decreased": 0,
+      "unchanged": 13
+    },
+    "top_changes": [
+      {
+        "key": "risk_score",
+        "label_fa": "امتیاز ریسک",
+        "before": 0,
+        "after": 0,
+        "delta": 0,
+        "direction": "flat",
+        "level": "watch",
+        "bar_width": 12,
+        "note_fa": "امتیاز ریسک نسبت به اجرای قبل ثابت مانده است."
+      },
+      {
+        "key": "phishing_urls",
+        "label_fa": "URL فیشینگ",
+        "before": 0,
+        "after": 0,
+        "delta": 0,
+        "direction": "flat",
+        "level": "watch",
+        "bar_width": 12,
+        "note_fa": "URL فیشینگ نسبت به اجرای قبل ثابت مانده است."
+      }
+    ],
+    "storage": "snapshots/history"
   }
 }

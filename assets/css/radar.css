@@ -446,3 +446,7 @@ html.radar-focus-mode .panel.is-focused {
   .dashboard-grid { grid-template-columns: 1fr; }
   .column-news { grid-column: auto; grid-row: auto; }
 }
+
+.history-panel .history-bars { margin-top: 8px; }
+.compact-history-grid { margin-bottom: 8px; }
+.history-panel .production-note { margin-top: 8px; }
