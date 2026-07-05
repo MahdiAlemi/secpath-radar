@@ -1227,18 +1227,51 @@ fn gemini_response_schema() -> Value {
     json!({
         "type": "OBJECT",
         "properties": {
-            "priority_alert": {"type": "OBJECT"},
+            "priority_alert": {
+                "type": "OBJECT",
+                "properties": {
+                    "title_fa": {"type": "STRING"},
+                    "summary_fa": {"type": "STRING"},
+                    "why_it_matters": {"type": "STRING"},
+                    "ops_note": {"type": "STRING"}
+                }
+            },
             "iran_radar": {
                 "type": "ARRAY",
-                "items": {"type": "OBJECT"}
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "title_fa": {"type": "STRING"},
+                        "summary_fa": {"type": "STRING"},
+                        "why_it_matters": {"type": "STRING"},
+                        "ops_note": {"type": "STRING"}
+                    }
+                }
             },
             "global_news": {
                 "type": "ARRAY",
-                "items": {"type": "OBJECT"}
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "title_fa": {"type": "STRING"},
+                        "summary_fa": {"type": "STRING"},
+                        "why_it_matters": {"type": "STRING"},
+                        "ops_note": {"type": "STRING"}
+                    }
+                }
             },
             "cves": {
                 "type": "ARRAY",
-                "items": {"type": "OBJECT"}
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "title_fa": {"type": "STRING"},
+                        "summary_fa": {"type": "STRING"},
+                        "why_it_matters": {"type": "STRING"},
+                        "recommended_action": {"type": "STRING"},
+                        "ops_note": {"type": "STRING"}
+                    }
+                }
             },
             "action_items": {
                 "type": "ARRAY",
@@ -1253,28 +1286,30 @@ fn build_gemini_prompt(compact: &Value) -> Result<String> {
     Ok(format!(
         r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
 
-Input is JSON generated from RSS, NVD, CISA KEV, and EPSS. Your job is to make the brief concise, clean, and useful in Persian.
+Input is JSON generated from RSS, NVD, CISA KEV, and EPSS. Your job is to add a Persian display layer while preserving the original machine-generated/source fields.
 
-Rules:
-- Do not invent facts, CVEs, sources, URLs, exploitation status, affected products, or attribution.
-- Preserve every source URL, source name, CVE ID, risk_score, cvss, epss, kev, severity, iran_context, and tags unless the input is clearly malformed.
-- Keep Iran-related items only in iran_radar. Do not move them into global_news.
-- If Iran is only mentioned as attribution or messaging, do not imply the target is inside Iran.
-- Prefer defensive recommendations and safe operational guidance.
-- Do not provide exploit chains, payloads, or instructions for unauthorized access.
-- Keep summaries short: 1-2 Persian sentences per item.
-- Keep titles concise: preferably under 12 Persian words or 85 characters.
-- For CVEs, keep the CVE ID untouched and make title product/impact oriented; avoid repeating the full NVD sentence.
-- Action items must be concrete, defensive, and suitable for a daily SOC/ops checklist.
+Hard rules:
+- Do not invent facts, CVEs, sources, URLs, exploitation status, affected products, victim geography, attribution, or exploit details.
+- Do not rewrite or return immutable fields such as url, source, cve_id, risk_score, cvss, epss, kev, severity, published, iran_context, tags, title, or summary.
+- Return editorial fields only: title_fa, summary_fa, why_it_matters, ops_note, recommended_action for CVEs, and action_items.
+- Keep the same item order and approximate same item count for iran_radar, global_news, and cves.
+- If an item is unclear, write a cautious Persian summary and say the original advisory should be checked.
+- Do not move Iran-related items between sections. If Iran appears only as attribution, do not imply the target is inside Iran.
+- Use defensive language only. No exploit chains, payloads, bypass steps, or unauthorized access guidance.
+- summary_fa: 1 short Persian sentence, max 170 characters.
+- why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
+- ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
+- title_fa: concise Persian headline, max 70 characters. For CVEs, include product/impact, not a full NVD sentence.
+- action_items: 5 to 7 concrete Persian checklist items for today's defensive work.
 - Return valid JSON only. No markdown fences, comments, trailing commas, or explanatory text.
-- If a field is uncertain, keep the original input value instead of inventing a replacement.
-- Return this exact top-level shape:
+
+Return this exact top-level shape:
 {{
-  "priority_alert": {{...}},
-  "iran_radar": [...],
-  "global_news": [...],
-  "cves": [...],
-  "action_items": [...]
+  "priority_alert": {{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}},
+  "iran_radar": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}}],
+  "global_news": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}}],
+  "cves": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "recommended_action":"...", "ops_note":"..."}}],
+  "action_items": ["..."]
 }}
 
 Input JSON:
@@ -1402,6 +1437,10 @@ fn merge_object_preserve_existing(base: &mut Value, edit: &Value) {
     };
 
     for (key, value) in edit_obj {
+        if protected_ai_field(key) && base_obj.contains_key(key) {
+            continue;
+        }
+
         let usable = match value {
             Value::Null => false,
             Value::String(s) => !s.trim().is_empty(),
@@ -1414,6 +1453,25 @@ fn merge_object_preserve_existing(base: &mut Value, edit: &Value) {
             base_obj.insert(key.clone(), value.clone());
         }
     }
+}
+
+fn protected_ai_field(key: &str) -> bool {
+    matches!(
+        key,
+        "url"
+            | "source"
+            | "cve_id"
+            | "cvss"
+            | "epss"
+            | "kev"
+            | "severity"
+            | "risk_score"
+            | "published"
+            | "iran_context"
+            | "summary"
+            | "title"
+            | "tags"
+    )
 }
 
 fn mark_ai_status(
@@ -1502,7 +1560,7 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.6-ai-json-guard");
+    brief["version"] = json!("v0.4.7-persian-quality");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -1517,6 +1575,7 @@ fn apply_local_polish(brief: &mut Value) {
     polish_array_items(brief, "iran_radar", 88, 240);
     polish_array_items(brief, "global_news", 88, 240);
     polish_cves(brief);
+    add_editorial_display_fields(brief);
     brief["brief_notes"] = json!(build_brief_notes(brief));
 }
 
@@ -1573,6 +1632,203 @@ fn polish_cves(brief: &mut Value) {
             *action = non_empty_summary(action, 170);
         }
     }
+}
+
+fn add_editorial_display_fields(brief: &mut Value) {
+    enrich_priority_fields(brief);
+    enrich_news_fields(brief, "iran_radar", true);
+    enrich_news_fields(brief, "global_news", false);
+    enrich_cve_fields(brief);
+}
+
+fn enrich_priority_fields(brief: &mut Value) {
+    let Some(obj) = brief
+        .get_mut("priority_alert")
+        .and_then(|value| value.as_object_mut())
+    else {
+        return;
+    };
+
+    let title = obj
+        .get("title")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .to_string();
+    let summary = obj
+        .get("summary")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .to_string();
+    let risk_score = obj
+        .get("risk_score")
+        .and_then(|value| value.as_i64())
+        .unwrap_or(1);
+
+    insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
+    insert_string_if_missing(
+        obj,
+        "summary_fa",
+        &fallback_persian_summary(&summary, "این هشدار مهم‌ترین آیتم امروز است"),
+    );
+    insert_string_if_missing(
+        obj,
+        "why_it_matters",
+        &fallback_why_it_matters(risk_score, &summary),
+    );
+    insert_string_if_missing(
+        obj,
+        "ops_note",
+        "اول exposure و دارایی‌های مرتبط را مشخص کن، سپس وضعیت patch یا mitigation را ثبت کن.",
+    );
+}
+
+fn enrich_news_fields(brief: &mut Value, key: &str, iran_section: bool) {
+    let Some(items) = brief.get_mut(key).and_then(|value| value.as_array_mut()) else {
+        return;
+    };
+
+    for item in items {
+        let Some(obj) = item.as_object_mut() else {
+            continue;
+        };
+        let title = obj
+            .get("title")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let summary = obj
+            .get("summary")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let risk_score = obj
+            .get("risk_score")
+            .and_then(|value| value.as_i64())
+            .unwrap_or(1);
+
+        insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
+        insert_string_if_missing(
+            obj,
+            "summary_fa",
+            &fallback_persian_summary(&summary, "این خبر برای پایش امروز قابل توجه است"),
+        );
+        insert_string_if_missing(
+            obj,
+            "why_it_matters",
+            &fallback_why_it_matters(risk_score, &summary),
+        );
+        let note = if iran_section {
+            "ارتباط این آیتم با ایران را با دامنه، برند، vendor و زیرساخت خودت جداگانه triage کن."
+        } else if risk_score >= 8 {
+            "برای دارایی‌های public-facing مرتبط، وضعیت exposure و لاگ‌های ۲۴ تا ۴۸ ساعت اخیر را بررسی کن."
+        } else {
+            "نام vendor یا محصول را با inventory و backlog patch مقایسه کن."
+        };
+        insert_string_if_missing(obj, "ops_note", note);
+    }
+}
+
+fn enrich_cve_fields(brief: &mut Value) {
+    let Some(items) = brief.get_mut("cves").and_then(|value| value.as_array_mut()) else {
+        return;
+    };
+
+    for item in items {
+        let Some(obj) = item.as_object_mut() else {
+            continue;
+        };
+        let title = obj
+            .get("title")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let summary = obj
+            .get("summary")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let risk_score = obj
+            .get("risk_score")
+            .and_then(|value| value.as_i64())
+            .unwrap_or(1);
+        let kev = obj
+            .get("kev")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false);
+        let severity = obj
+            .get("severity")
+            .and_then(|value| value.as_str())
+            .unwrap_or("UNKNOWN")
+            .to_string();
+
+        insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
+        insert_string_if_missing(
+            obj,
+            "summary_fa",
+            &fallback_persian_summary(&summary, "این CVE باید با موجودی دارایی‌ها تطبیق داده شود"),
+        );
+        insert_string_if_missing(
+            obj,
+            "why_it_matters",
+            &fallback_why_it_matters(risk_score, &summary),
+        );
+
+        let note = if kev {
+            "چون در KEV دیده شده، وضعیت affected/not affected را همان‌روز مشخص و mitigation را پیگیری کن."
+        } else if severity == "CRITICAL" || risk_score >= 8 {
+            "ابتدا assetهای اینترنتی و سرویس‌های حساس مرتبط را بررسی و برای patch اولویت بالا تعیین کن."
+        } else {
+            "با inventory تطبیق بده و در چرخه patch عادی یا accelerated پیگیری کن."
+        };
+        insert_string_if_missing(obj, "ops_note", note);
+    }
+}
+
+fn insert_string_if_missing(obj: &mut serde_json::Map<String, Value>, key: &str, value: &str) {
+    let has_good_value = obj
+        .get(key)
+        .and_then(|existing| existing.as_str())
+        .is_some_and(|existing| !existing.trim().is_empty());
+
+    if !has_good_value && !value.trim().is_empty() {
+        obj.insert(key.to_string(), Value::String(value.to_string()));
+    }
+}
+
+fn fallback_persian_title(title: &str) -> String {
+    let cleaned = concise_title(title, 70);
+    if cleaned.trim().is_empty() {
+        "آیتم امنیتی قابل بررسی".to_string()
+    } else {
+        cleaned
+    }
+}
+
+fn fallback_persian_summary(summary: &str, fallback_prefix: &str) -> String {
+    let cleaned = non_empty_summary(summary, 190);
+    if contains_persian(&cleaned) {
+        cleaned
+    } else {
+        format!("{fallback_prefix}: {}", truncate_chars(&cleaned, 150))
+    }
+}
+
+fn fallback_why_it_matters(risk_score: i64, text: &str) -> String {
+    let lower = text.to_lowercase();
+    if lower.contains("ransomware") {
+        "احتمال اثر مستقیم روی تداوم کسب‌وکار و بازیابی سرویس‌ها وجود دارد.".to_string()
+    } else if lower.contains("actively exploited") || lower.contains("exploited in the wild") {
+        "نشانه بهره‌برداری فعال دیده شده و باید از backlog عادی جدا شود.".to_string()
+    } else if lower.contains("cve-") || risk_score >= 8 {
+        "اگر محصول مرتبط در محیط وجود داشته باشد، اولویت patch و کنترل exposure بالاست.".to_string()
+    } else {
+        "برای تصمیم روزانه SOC و تیم زیرساخت، ارزش triage و ثبت وضعیت دارد.".to_string()
+    }
+}
+
+fn contains_persian(text: &str) -> bool {
+    text.chars()
+        .any(|ch| ('\u{0600}'..='\u{06FF}').contains(&ch))
 }
 
 fn build_brief_notes(brief: &Value) -> Vec<String> {

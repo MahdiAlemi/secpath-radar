@@ -235,6 +235,15 @@
 
     .source { display: inline-block; margin-top: 8px; font-size: .78rem; }
 
+    .display-title { display: block; }
+    .original-title { display: block; color: var(--muted-2); font-size: .76rem; font-weight: 600; margin-top: 2px; direction: ltr; text-align: right; }
+    .editorial-note { margin-top: 8px; border-top: 1px solid var(--border-soft); padding-top: 8px; display: grid; gap: 4px; }
+    .editorial-note div { color: var(--muted); font-size: .78rem; }
+    details.original { margin-top: 8px; color: var(--muted-2); font-size: .76rem; }
+    details.original summary { cursor: pointer; color: var(--blue); }
+    details.original p { margin-top: 5px; color: var(--muted-2); direction: ltr; text-align: left; font-size: .76rem; line-height: 1.65; }
+
+
     .cve-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -338,8 +347,13 @@
         <div class="meta">
           {% for tag in brief.priority_alert.tags %}<span class="pill risk-high">{{ tag }}</span>{% endfor %}
         </div>
-        <h3>{{ brief.priority_alert.title }}</h3>
-        <p>{{ brief.priority_alert.summary }}</p>
+        <h3><span class="display-title">{% if brief.priority_alert.title_fa is defined and brief.priority_alert.title_fa %}{{ brief.priority_alert.title_fa }}{% else %}{{ brief.priority_alert.title }}{% endif %}</span><span class="original-title">{{ brief.priority_alert.title }}</span></h3>
+        <p>{% if brief.priority_alert.summary_fa is defined and brief.priority_alert.summary_fa %}{{ brief.priority_alert.summary_fa }}{% else %}{{ brief.priority_alert.summary }}{% endif %}</p>
+        <div class="editorial-note">
+          {% if brief.priority_alert.why_it_matters is defined and brief.priority_alert.why_it_matters %}<div>چرا مهم است: {{ brief.priority_alert.why_it_matters }}</div>{% endif %}
+          {% if brief.priority_alert.ops_note is defined and brief.priority_alert.ops_note %}<div>اقدام سریع: {{ brief.priority_alert.ops_note }}</div>{% endif %}
+        </div>
+        <details class="original"><summary>متن منبع</summary><p>{{ brief.priority_alert.summary }}</p></details>
         <a class="source" href="{{ brief.priority_alert.url }}">{{ brief.priority_alert.source }} →</a>
       </article>
     </section>
@@ -359,8 +373,13 @@
           <span class="pill">Risk {{ item.risk_score }}</span>
           {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
         </div>
-        <h3>{{ item.title }}</h3>
-        <p>{{ item.summary }}</p>
+        <h3><span class="display-title">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</span><span class="original-title">{{ item.title }}</span></h3>
+        <p>{% if item.summary_fa is defined and item.summary_fa %}{{ item.summary_fa }}{% else %}{{ item.summary }}{% endif %}</p>
+        <div class="editorial-note">
+          {% if item.why_it_matters is defined and item.why_it_matters %}<div>چرا مهم است: {{ item.why_it_matters }}</div>{% endif %}
+          {% if item.ops_note is defined and item.ops_note %}<div>اقدام پیشنهادی: {{ item.ops_note }}</div>{% endif %}
+        </div>
+        <details class="original"><summary>متن منبع</summary><p>{{ item.summary }}</p></details>
         <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
       </article>
       {% endfor %}
@@ -380,8 +399,13 @@
           <span class="pill">Risk {{ item.risk_score }}</span>
           {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
         </div>
-        <h3>{{ item.title }}</h3>
-        <p>{{ item.summary }}</p>
+        <h3><span class="display-title">{% if item.title_fa is defined and item.title_fa %}{{ item.title_fa }}{% else %}{{ item.title }}{% endif %}</span><span class="original-title">{{ item.title }}</span></h3>
+        <p>{% if item.summary_fa is defined and item.summary_fa %}{{ item.summary_fa }}{% else %}{{ item.summary }}{% endif %}</p>
+        <div class="editorial-note">
+          {% if item.why_it_matters is defined and item.why_it_matters %}<div>چرا مهم است: {{ item.why_it_matters }}</div>{% endif %}
+          {% if item.ops_note is defined and item.ops_note %}<div>اقدام پیشنهادی: {{ item.ops_note }}</div>{% endif %}
+        </div>
+        <details class="original"><summary>متن منبع</summary><p>{{ item.summary }}</p></details>
         <a class="source" href="{{ item.url }}">{{ item.source }} →</a>
       </article>
       {% endfor %}
@@ -407,9 +431,14 @@
             {% if cve.cvss is defined and cve.cvss != none %}<span class="pill">CVSS {{ cve.cvss }}</span>{% else %}<span class="pill">CVSS n/a</span>{% endif %}
             {% if cve.epss is defined and cve.epss != none %}<span class="pill">EPSS {{ (cve.epss * 100) | round }}%</span>{% else %}<span class="pill">EPSS n/a</span>{% endif %}
           </div>
-          <h3><span class="cve-id">{{ cve.cve_id }}</span> — {{ cve.title }}</h3>
-          <p>{{ cve.summary }}</p>
+          <h3><span class="cve-id">{{ cve.cve_id }}</span> — {% if cve.title_fa is defined and cve.title_fa %}{{ cve.title_fa }}{% else %}{{ cve.title }}{% endif %}</h3>
+          <p>{% if cve.summary_fa is defined and cve.summary_fa %}{{ cve.summary_fa }}{% else %}{{ cve.summary }}{% endif %}</p>
+          <div class="editorial-note">
+            {% if cve.why_it_matters is defined and cve.why_it_matters %}<div>چرا مهم است: {{ cve.why_it_matters }}</div>{% endif %}
+            {% if cve.ops_note is defined and cve.ops_note %}<div>اقدام سریع: {{ cve.ops_note }}</div>{% endif %}
+          </div>
           <div class="kv">اقدام پیشنهادی: <b>{{ cve.recommended_action }}</b></div>
+          <details class="original"><summary>متن NVD</summary><p>{{ cve.summary }}</p></details>
           <a class="source" href="{{ cve.url }}">جزئیات →</a>
         </article>
         {% endfor %}

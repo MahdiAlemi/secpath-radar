@@ -2,7 +2,7 @@
 
 Local Rust generator for a Persian daily cybersecurity radar.
 
-### v0.4.6 AI JSON guard
+### v0.4.7 AI JSON guard
 
 This checkpoint hardens the Gemini editorial layer:
 
@@ -13,7 +13,7 @@ This checkpoint hardens the Gemini editorial layer:
 - Preserves the safe API-key header flow and SOCKS proxy support.
 
 
-Current checkpoint: `v0.4.6-ai-json-guard`
+Current checkpoint: `v0.4.7-ai-json-guard`
 
 Highlights:
 
@@ -57,3 +57,14 @@ The key is sent in the `x-goog-api-key` header and is never written to `site/` o
 - `site/index.html`
 - `data/latest_brief.json`
 - `site/CNAME` -> `radar.secpath.space`
+
+
+## v0.4.7 — Persian content quality layer
+
+This phase keeps deployment untouched and improves only local content quality:
+
+- Adds Persian display fields (`title_fa`, `summary_fa`, `why_it_matters`, `ops_note`) without replacing source fields.
+- Protects immutable fields during Gemini merge (`url`, `source`, `cve_id`, `cvss`, `epss`, `kev`, `severity`, `risk_score`, `published`, `summary`, `title`, `tags`).
+- Shows Persian editorial text in the UI while keeping the original source text in a collapsible block.
+- Adds template guards for missing CVSS/EPSS values.
+- Keeps the one-call AI policy and AI cache behavior unchanged.
