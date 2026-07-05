@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.14.4-sans-isc-title-feed**
+Current phase: **v0.4.15-executive-snapshot**
 
 ## What changed in v0.4.8
 
@@ -142,3 +142,8 @@ When `--offline --ai` is used and there is no matching Gemini cache for the curr
 - Keeps offline AI guard fully network-free.
 - Reports `ai_status.ok=false` when no matching Gemini cache exists in offline mode.
 - Keeps `calls_used=0` and renders with local fallback.
+
+
+## v0.4.15 — Static Executive Snapshot
+
+Adds a static, read-only executive snapshot near the top of the dashboard. It derives a 60-second management summary, three risk cards, rising signals, and impact-weighted source groups from the current radar data only. It adds no new external source, no user input, no deployment, and no interactive workflow.

@@ -774,6 +774,8 @@ fn main() -> Result<()> {
             .unwrap_or(0);
         brief["stats"]["ransomware_victims"] = json!(ransomware_total);
         brief["ransomware_pulse"] = ransomware_pulse;
+        let executive_snapshot = build_executive_snapshot(&brief);
+        brief["executive_snapshot"] = executive_snapshot;
         brief
     } else {
         let brief_raw = fs::read_to_string(&args.input)
@@ -4144,8 +4146,229 @@ fn get_env_or_dotenv(key: &str) -> Option<String> {
     None
 }
 
+fn build_executive_snapshot(brief: &Value) -> Value {
+    let total_items = stat_u64(brief, "total_items");
+    let cves = stat_u64(brief, "cves");
+    let critical_cves = stat_u64(brief, "critical_cves");
+    let kev = stat_u64(brief, "kev");
+    let iocs = stat_u64(brief, "iocs");
+    let infrastructure_hosts = stat_u64(brief, "infrastructure_hosts");
+    let supply_advisories = stat_u64(brief, "supply_chain_advisories");
+    let ransomware_victims = stat_u64(brief, "ransomware_victims");
+    let failed_rss = stat_u64(brief, "failed_rss_sources");
+
+    let infra_high = path_u64(brief, &["infrastructure_radar", "totals", "high"]);
+    let supply_critical = path_u64(brief, &["supply_chain_radar", "totals", "critical"]);
+    let supply_high = path_u64(brief, &["supply_chain_radar", "totals", "high"]);
+    let ransomware_24h = path_u64(brief, &["ransomware_pulse", "totals", "recent_24h"]);
+    let attack_level = path_string(brief, &["attack_pressure", "level"], "Unknown");
+
+    let score = (critical_cves * 18
+        + kev * 20
+        + iocs.min(60)
+        + infrastructure_hosts.min(25)
+        + infra_high * 10
+        + supply_critical * 12
+        + supply_high * 4
+        + ransomware_24h * 5
+        + failed_rss * 4)
+        .min(100);
+    let level = snapshot_level(score);
+
+    let cve_score = (critical_cves * 32 + kev * 28 + cves * 4).min(100).max(12);
+    let intel_score = (iocs.min(70) + infrastructure_hosts.min(25) + infra_high * 10)
+        .min(100)
+        .max(12);
+    let ecosystem_score =
+        (supply_critical * 18 + supply_high * 8 + ransomware_24h * 7 + ransomware_victims.min(25))
+            .min(100)
+            .max(12);
+
+    let top_port = top_attack_port(brief);
+    let top_ioc = first_chart_entry(brief, &["ioc_radar", "malware_chart"])
+        .or_else(|| first_chart_entry(brief, &["ioc_radar", "source_chart"]))
+        .unwrap_or_else(|| ("بدون IOC برجسته".to_string(), 0));
+    let top_ransomware = first_chart_entry(brief, &["ransomware_pulse", "group_chart"])
+        .unwrap_or_else(|| ("بدون گروه برجسته".to_string(), 0));
+    let top_supply = first_chart_entry(brief, &["supply_chain_radar", "severity_chart"])
+        .unwrap_or_else(|| ("بدون severity برجسته".to_string(), 0));
+
+    let impact_a = cves + critical_cves + kev;
+    let impact_b = iocs + infrastructure_hosts;
+    let impact_c = supply_advisories + ransomware_victims;
+    let impact_max = impact_a.max(impact_b).max(impact_c).max(1);
+
+    json!({
+        "title": "Static Executive Snapshot",
+        "level": level,
+        "score": score,
+        "bar_width": score.max(12),
+        "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
+        "summary_fa": format!(
+            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} host مشکوک، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
+            total_items, cves, iocs, infrastructure_hosts, supply_advisories, ransomware_victims
+        ),
+        "risk_cards": [
+            {
+                "title": "ریسک آسیب‌پذیری‌ها",
+                "metric": format!("{} critical / {} CVE", critical_cves, cves),
+                "level": snapshot_level(cve_score),
+                "bar_width": cve_score,
+                "note_fa": if critical_cves > 0 { "CVEهای critical باید در اولویت patch و exposure review دیده شوند." } else { "در این اجرا CVE critical برجسته‌ای دیده نشده است." }
+            },
+            {
+                "title": "IOC و زیرساخت مشکوک",
+                "metric": format!("{} IOC / {} host", iocs, infrastructure_hosts),
+                "level": snapshot_level(intel_score),
+                "bar_width": intel_score,
+                "note_fa": if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
+            },
+            {
+                "title": "Supply Chain و Ransomware",
+                "metric": format!("{} advisory / {} claims", supply_advisories, ransomware_victims),
+                "level": snapshot_level(ecosystem_score),
+                "bar_width": ecosystem_score,
+                "note_fa": "این بخش فشار اکوسیستم نرم‌افزار و claimهای عمومی ransomware را در یک نگاه ترکیب می‌کند."
+            }
+        ],
+        "rising_signals": [
+            {
+                "title": "Attack Pressure",
+                "metric": top_port.0,
+                "level": top_port.2,
+                "bar_width": top_port.1.max(12),
+                "note_fa": format!("سطح کلی DShield در این اجرا {} گزارش شده است.", attack_level)
+            },
+            {
+                "title": "IOC Pattern",
+                "metric": format!("{} · {}", top_ioc.0, top_ioc.1),
+                "level": if top_ioc.1 >= 5 { "high" } else if top_ioc.1 >= 2 { "medium" } else { "watch" },
+                "bar_width": ((top_ioc.1 * 20).min(100)).max(12),
+                "note_fa": "بیشترین الگوی IOC برای triage و correlation دفاعی نمایش داده شده است."
+            },
+            {
+                "title": "Ransomware / Ecosystem",
+                "metric": format!("{} · {} | {} · {}", top_ransomware.0, top_ransomware.1, top_supply.0, top_supply.1),
+                "level": if ransomware_24h >= 8 || supply_critical >= 3 { "high" } else if ransomware_24h >= 3 || supply_high >= 5 { "medium" } else { "watch" },
+                "bar_width": ((ransomware_24h * 10 + supply_critical * 15 + supply_high * 4).min(100)).max(12),
+                "note_fa": "Claimهای عمومی ransomware و advisoryهای package در یک سیگنال فشرده آمده‌اند."
+            }
+        ],
+        "impact_sources": [
+            {
+                "name": "NVD + CISA KEV + EPSS",
+                "count": impact_a,
+                "bar_width": relative_width(impact_a, impact_max),
+                "note_fa": "هسته اولویت‌بندی CVE و exploitability."
+            },
+            {
+                "name": "DShield + abuse.ch + InternetDB",
+                "count": impact_b,
+                "bar_width": relative_width(impact_b, impact_max),
+                "note_fa": "فشار حمله، IOC و زیرساخت قابل مشاهده."
+            },
+            {
+                "name": "GitHub Advisories + OSV + Ransomware.live",
+                "count": impact_c,
+                "bar_width": relative_width(impact_c, impact_max),
+                "note_fa": "ریسک اکوسیستم نرم‌افزار و claimهای عمومی."
+            }
+        ]
+    })
+}
+
+fn stat_u64(brief: &Value, key: &str) -> u64 {
+    path_u64(brief, &["stats", key])
+}
+
+fn path_value<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
+    let mut current = value;
+    for part in path {
+        current = current.get(*part)?;
+    }
+    Some(current)
+}
+
+fn path_u64(value: &Value, path: &[&str]) -> u64 {
+    path_value(value, path)
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0)
+}
+
+fn path_string(value: &Value, path: &[&str], fallback: &str) -> String {
+    path_value(value, path)
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| fallback.to_string())
+}
+
+fn first_chart_entry(brief: &Value, path: &[&str]) -> Option<(String, u64)> {
+    let row = path_value(brief, path)?.as_array()?.first()?;
+    let name = row.get("name")?.as_str()?.trim();
+    if name.is_empty() {
+        return None;
+    }
+    Some((
+        truncate_chars(name, 36),
+        row.get("count").and_then(|v| v.as_u64()).unwrap_or(0),
+    ))
+}
+
+fn top_attack_port(brief: &Value) -> (String, u64, &'static str) {
+    let Some(row) = path_value(brief, &["attack_pressure", "top_ports"])
+        .and_then(|v| v.as_array())
+        .and_then(|items| items.first())
+    else {
+        return ("بدون پورت برجسته".to_string(), 12, "watch");
+    };
+    let port = row
+        .get("port")
+        .and_then(|v| v.as_u64())
+        .map(|p| p.to_string())
+        .unwrap_or_else(|| "n/a".to_string());
+    let service = row
+        .get("service")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let pressure = row
+        .get("pressure_score")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(12)
+        .max(12)
+        .min(100);
+    let risk = row.get("risk").and_then(|v| v.as_str()).unwrap_or("watch");
+    let level = match risk {
+        "high" => "high",
+        "medium" => "medium",
+        _ => "watch",
+    };
+    (
+        format!("port {} · {}", port, truncate_chars(service, 20)),
+        pressure,
+        level,
+    )
+}
+
+fn relative_width(value: u64, max: u64) -> u64 {
+    if max == 0 {
+        return 12;
+    }
+    (((value as f64 / max as f64) * 100.0).round() as u64).clamp(12, 100)
+}
+
+fn snapshot_level(score: u64) -> &'static str {
+    if score >= 70 {
+        "high"
+    } else if score >= 40 {
+        "medium"
+    } else {
+        "watch"
+    }
+}
+
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.14.4-sans-isc-title-feed");
+    brief["version"] = json!("v0.4.15-executive-snapshot");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -4184,6 +4407,9 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief.get("ransomware_pulse").is_none() {
         brief["ransomware_pulse"] = empty_ransomware_pulse("missing");
+    }
+    if brief.get("executive_snapshot").is_none() {
+        brief["executive_snapshot"] = json!({});
     }
     if brief.get("stats").and_then(|v| v.get("iocs")).is_none() {
         let ioc_total = brief
@@ -4240,6 +4466,8 @@ fn apply_local_polish(brief: &mut Value) {
     polish_cves(brief);
     add_editorial_display_fields(brief);
     brief["brief_notes"] = json!(build_brief_notes(brief));
+    let executive_snapshot = build_executive_snapshot(brief);
+    brief["executive_snapshot"] = executive_snapshot;
 }
 
 fn polish_priority(brief: &mut Value) {

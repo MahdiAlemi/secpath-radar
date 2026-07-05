@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.14.4-sans-isc-title-feed",
+  "version": "v0.4.15-executive-snapshot",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -13,10 +13,11 @@
     "critical_cves": 1,
     "kev": 0,
     "rss_sources": 18,
-    "intel_sources": 1,
+    "intel_sources": 7,
     "infrastructure_hosts": 0,
     "supply_chain_advisories": 0,
-    "ransomware_victims": 0
+    "ransomware_victims": 0,
+    "failed_rss_sources": 0
   },
   "source_health": {
     "rss_sources": 18,
@@ -29,8 +30,10 @@
     "http_cache": true,
     "cache_ttl_minutes": 720,
     "ai_cache_dir": "data/cache/ai",
-    "intel_sources": 6,
-    "intel_cache_dir": "data/cache/intel"
+    "intel_sources": 7,
+    "intel_cache_dir": "data/cache/intel",
+    "failed_rss_sources": 0,
+    "rss_failures": []
   },
   "ai_status": {
     "enabled": false,
@@ -235,5 +238,79 @@
     "country_chart": [],
     "sector_chart": [],
     "activity_chart": []
+  },
+  "executive_snapshot": {
+    "title": "Static Executive Snapshot",
+    "level": "medium",
+    "score": 52,
+    "bar_width": 52,
+    "generated_at": "2026-07-05 19:30",
+    "summary_fa": "خلاصه ۶۰ ثانیه‌ای نمونه: یک CVE critical، چند خبر امنیتی و یک هشدار اولویت‌دار برای نمایش template.",
+    "risk_cards": [
+      {
+        "title": "ریسک آسیب‌پذیری‌ها",
+        "metric": "1 critical / 1 CVE",
+        "level": "high",
+        "bar_width": 72,
+        "note_fa": "نمونه محلی برای کارت CVE."
+      },
+      {
+        "title": "IOC و زیرساخت مشکوک",
+        "metric": "0 IOC / 0 host",
+        "level": "watch",
+        "bar_width": 12,
+        "note_fa": "در نمونه محلی IOC واقعی وجود ندارد."
+      },
+      {
+        "title": "Supply Chain و Ransomware",
+        "metric": "0 advisory / 0 claims",
+        "level": "watch",
+        "bar_width": 12,
+        "note_fa": "در نمونه محلی داده supply/ransomware وجود ندارد."
+      }
+    ],
+    "rising_signals": [
+      {
+        "title": "Attack Pressure",
+        "metric": "sample",
+        "level": "watch",
+        "bar_width": 12,
+        "note_fa": "در اجرای واقعی از DShield ساخته می‌شود."
+      },
+      {
+        "title": "IOC Pattern",
+        "metric": "sample · 0",
+        "level": "watch",
+        "bar_width": 12,
+        "note_fa": "در اجرای واقعی از URLhaus/ThreatFox ساخته می‌شود."
+      },
+      {
+        "title": "Ransomware / Ecosystem",
+        "metric": "sample · 0",
+        "level": "watch",
+        "bar_width": 12,
+        "note_fa": "در اجرای واقعی از داده‌های موجود ساخته می‌شود."
+      }
+    ],
+    "impact_sources": [
+      {
+        "name": "NVD + CISA KEV + EPSS",
+        "count": 2,
+        "bar_width": 100,
+        "note_fa": "نمونه CVE."
+      },
+      {
+        "name": "DShield + abuse.ch + InternetDB",
+        "count": 0,
+        "bar_width": 12,
+        "note_fa": "نمونه telemetry."
+      },
+      {
+        "name": "GitHub Advisories + OSV + Ransomware.live",
+        "count": 0,
+        "bar_width": 12,
+        "note_fa": "نمونه ecosystem."
+      }
+    ]
   }
 }

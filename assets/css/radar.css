@@ -421,3 +421,96 @@ footer { margin-top: 22px; }
 .failure-item b { color: var(--orange); font-weight: 800; }
 .failure-item span { color: var(--muted); font-size: 0.88rem; direction: ltr; text-align: left; }
 .favicon-note { color: var(--muted); }
+
+
+/* Executive Snapshot: static read-only management summary from existing radar data. */
+.executive-panel {
+  margin-bottom: 18px;
+  background:
+    linear-gradient(135deg, rgba(255,122,24,.18), rgba(0,0,0,.94)),
+    repeating-linear-gradient(90deg, rgba(255,122,24,.04) 0 1px, transparent 1px 48px);
+  border-color: rgba(255,122,24,.42);
+}
+.executive-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 300px);
+  gap: 12px;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.38);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.executive-summary p { color: var(--muted); font-size: .9rem; }
+.snapshot-meter {
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.45);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 48px;
+  gap: 10px;
+  align-items: center;
+}
+.snapshot-meter span, .mini-meter span, .signal-row i, .impact-row i {
+  display: block;
+  width: var(--bar);
+  min-width: 12%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,122,24,.44), rgba(255,122,24,.95));
+  box-shadow: 0 0 22px rgba(255,122,24,.25);
+}
+.snapshot-meter span { height: 26px; }
+.snapshot-meter b { direction: ltr; color: var(--text); font-size: 1.15rem; }
+.snapshot-meter.risk-high span, .executive-card.risk-high .mini-meter span, .signal-row.risk-high i { background: linear-gradient(90deg, rgba(255,61,0,.48), rgba(255,61,0,1)); }
+.snapshot-meter.risk-medium span, .executive-card.risk-medium .mini-meter span, .signal-row.risk-medium i { background: linear-gradient(90deg, rgba(255,122,24,.42), rgba(255,159,28,.95)); }
+.executive-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.executive-card {
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.44);
+  padding: 13px;
+  display: grid;
+  gap: 10px;
+}
+.executive-card.risk-high { border-color: rgba(255,61,0,.58); background: rgba(255,61,0,.08); }
+.executive-card.risk-medium { border-color: rgba(255,122,24,.48); background: rgba(255,122,24,.07); }
+.executive-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.executive-card-head span { color: var(--muted); font-size: .75rem; font-weight: 900; }
+.executive-card-head b { color: var(--text); direction: ltr; text-align: left; font-size: .82rem; }
+.mini-meter { height: 16px; border: 1px solid rgba(255,122,24,.26); background: rgba(0,0,0,.4); overflow: hidden; }
+.executive-card p { color: var(--muted); font-size: .78rem; line-height: 1.7; }
+.executive-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.executive-column {
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.38);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+.signal-row, .impact-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(120px, .7fr) 46px;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.signal-row:first-of-type, .impact-row:first-of-type { border-top: 0; padding-top: 0; }
+.signal-row div, .impact-row div { display: grid; gap: 2px; min-width: 0; }
+.signal-row b, .impact-row b { color: var(--text); font-size: .82rem; }
+.signal-row span, .impact-row span { color: var(--muted); font-size: .72rem; direction: ltr; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.signal-row i, .impact-row i { height: 16px; border: 1px solid rgba(255,122,24,.26); }
+.signal-row small { color: var(--faint); font-size: .68rem; line-height: 1.55; }
+.impact-row code { color: var(--amber); font-weight: 950; text-align: left; }
+@media (max-width: 980px) {
+  .executive-summary, .executive-grid, .executive-columns { grid-template-columns: 1fr; }
+  .signal-row, .impact-row { grid-template-columns: 1fr; }
+}

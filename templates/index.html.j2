@@ -57,6 +57,52 @@
       <div class="metric"><span>Ransomware</span><strong>{{ brief.stats.ransomware_victims }}</strong><small>Ransomware.live</small></div>
     </section>
 
+    <section id="executive-snapshot" class="panel executive-panel" aria-label="Static Executive Snapshot">
+      <div class="panel-head">
+        <div><span class="eyebrow">Static Executive Snapshot</span><h2>خلاصه مدیریتی ۶۰ ثانیه‌ای</h2></div>
+        <span class="count">{{ brief.executive_snapshot.level }} · score {{ brief.executive_snapshot.score }}</span>
+      </div>
+      <div class="executive-summary">
+        <p>{{ brief.executive_snapshot.summary_fa }}</p>
+        <div class="snapshot-meter risk-{{ brief.executive_snapshot.level }}" aria-label="امتیاز خلاصه مدیریتی">
+          <span style="--bar: {{ brief.executive_snapshot.bar_width }}%"></span>
+          <b>{{ brief.executive_snapshot.score }}</b>
+        </div>
+      </div>
+      <div class="executive-grid" aria-label="کارت‌های ریسک مدیریتی">
+        {% for card in brief.executive_snapshot.risk_cards %}
+        <article class="executive-card risk-{{ card.level }}">
+          <div class="executive-card-head"><span>{{ card.title }}</span><b>{{ card.metric }}</b></div>
+          <div class="mini-meter"><span style="--bar: {{ card.bar_width }}%"></span></div>
+          <p>{{ card.note_fa }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="executive-columns">
+        <div class="executive-column">
+          <div class="chart-title"><span>سیگنال‌های رو به رشد</span><small>derived from current radar layers</small></div>
+          {% for signal in brief.executive_snapshot.rising_signals %}
+          <div class="signal-row risk-{{ signal.level }}">
+            <div><b>{{ signal.title }}</b><span>{{ signal.metric }}</span></div>
+            <i style="--bar: {{ signal.bar_width }}%"></i>
+            <small>{{ signal.note_fa }}</small>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="executive-column">
+          <div class="chart-title"><span>منابع با بیشترین اثر</span><small>impact-weighted source groups</small></div>
+          {% for source in brief.executive_snapshot.impact_sources %}
+          <div class="impact-row">
+            <div><b>{{ source.name }}</b><span>{{ source.note_fa }}</span></div>
+            <i style="--bar: {{ source.bar_width }}%"></i>
+            <code>{{ source.count }}</code>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <p class="source-note">این snapshot از داده‌های همین اجرا ساخته شده و هیچ گردش‌کار، فرم یا کنترل تعاملی اضافه نمی‌کند.</p>
+    </section>
+
     {% if brief.brief_notes | length > 0 %}
     <section class="notes" aria-label="یادداشت‌های رادار">
       {% for note in brief.brief_notes %}<div class="note">{{ note }}</div>{% endfor %}
