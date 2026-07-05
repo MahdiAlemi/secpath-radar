@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.15-executive-snapshot**
+Current phase: **v0.4.16-production-glass-ui**
 
 ## What changed in v0.4.8
 
@@ -147,3 +147,15 @@ When `--offline --ai` is used and there is no matching Gemini cache for the curr
 ## v0.4.15 — Static Executive Snapshot
 
 Adds a static, read-only executive snapshot near the top of the dashboard. It derives a 60-second management summary, three risk cards, rising signals, and impact-weighted source groups from the current radar data only. It adds no new external source, no user input, no deployment, and no interactive workflow.
+
+## v0.4.16 — Production Glass UI
+
+This phase is a production UI redesign, not a data-source expansion.
+
+- Three-column desktop layout for one-glance scanning.
+- Compact cards and charts with reduced debug/metadata noise.
+- Dark glass/acrylic visual language with square Windows-style surfaces and no rounded corners.
+- News presentation uses local Persian display fields and does not depend on AI being available.
+- AI status is no longer a prominent production UI element.
+- Source health is reduced to compact operational counts.
+- The dashboard remains static/read-only: no forms, no user inputs, and no workflow controls.

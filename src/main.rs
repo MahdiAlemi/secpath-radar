@@ -4368,7 +4368,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.15-executive-snapshot");
+    brief["version"] = json!("v0.4.16-production-glass-ui");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -4687,21 +4687,251 @@ fn insert_string_if_missing(obj: &mut serde_json::Map<String, Value>, key: &str,
 }
 
 fn fallback_persian_title(title: &str) -> String {
-    let cleaned = concise_title(title, 70);
+    let cleaned = concise_title(title, 90);
     if cleaned.trim().is_empty() {
-        "آیتم امنیتی قابل بررسی".to_string()
-    } else {
-        cleaned
+        return "سیگنال امنیتی قابل بررسی".to_string();
     }
+    if contains_persian(&cleaned) {
+        return truncate_chars(&cleaned, 72);
+    }
+
+    let lower = cleaned.to_lowercase();
+    let focus = persian_focus_label(&cleaned);
+    let headline = if lower.contains("actively exploited")
+        || lower.contains("exploited in the wild")
+        || lower.contains("mass exploitation")
+    {
+        format!("هشدار بهره‌برداری فعال درباره {focus}")
+    } else if lower.contains("zero-day") || lower.contains("0-day") {
+        format!("هشدار آسیب‌پذیری روز-صفر در {focus}")
+    } else if lower.contains("cve-")
+        || lower.contains("vulnerability")
+        || lower.contains("vulnerabilities")
+        || lower.contains("flaw")
+        || lower.contains("bug")
+    {
+        format!("آسیب‌پذیری مهم در {focus}")
+    } else if lower.contains("patch")
+        || lower.contains("security update")
+        || lower.contains("fixed")
+        || lower.contains("fixes")
+    {
+        format!("به‌روزرسانی امنیتی برای {focus}")
+    } else if lower.contains("ransomware") {
+        format!("گزارش فعالیت باج‌افزاری مرتبط با {focus}")
+    } else if lower.contains("malware")
+        || lower.contains("trojan")
+        || lower.contains("botnet")
+        || lower.contains("backdoor")
+    {
+        format!("ردیابی بدافزار مرتبط با {focus}")
+    } else if lower.contains("phishing") || lower.contains("credential") {
+        format!("هشدار فیشینگ و سرقت اعتبار درباره {focus}")
+    } else if lower.contains("breach")
+        || lower.contains("data leak")
+        || lower.contains("stolen")
+        || lower.contains("incident")
+    {
+        format!("گزارش رخداد امنیتی درباره {focus}")
+    } else if lower.contains("ai")
+        || lower.contains("llm")
+        || lower.contains("artificial intelligence")
+    {
+        format!("ریسک امنیتی هوش مصنوعی در {focus}")
+    } else {
+        format!("خبر امنیتی تازه درباره {focus}")
+    };
+
+    truncate_chars(&headline, 72)
 }
 
 fn fallback_persian_summary(summary: &str, fallback_prefix: &str) -> String {
-    let cleaned = non_empty_summary(summary, 190);
+    let cleaned = non_empty_summary(summary, 220);
     if contains_persian(&cleaned) {
-        cleaned
-    } else {
-        format!("{fallback_prefix}: {}", truncate_chars(&cleaned, 150))
+        return truncate_chars(&cleaned, 190);
     }
+
+    let lower = cleaned.to_lowercase();
+    let focus = persian_focus_label(&cleaned);
+    let text = if lower.contains("actively exploited")
+        || lower.contains("exploited in the wild")
+        || lower.contains("mass exploitation")
+    {
+        format!("این سیگنال نشانه بهره‌برداری فعال پیرامون {focus} دارد؛ exposure دارایی‌های مرتبط باید سریع بررسی شود.")
+    } else if lower.contains("cve-")
+        || lower.contains("vulnerability")
+        || lower.contains("vulnerabilities")
+        || lower.contains("flaw")
+        || lower.contains("bug")
+    {
+        format!("این آیتم به آسیب‌پذیری در {focus} اشاره دارد و باید با موجودی دارایی‌ها و برنامه وصله تطبیق داده شود.")
+    } else if lower.contains("ransomware") {
+        format!("این گزارش به فعالیت باج‌افزاری مرتبط با {focus} اشاره دارد و برای پایش ریسک تداوم سرویس مهم است.")
+    } else if lower.contains("malware")
+        || lower.contains("trojan")
+        || lower.contains("botnet")
+        || lower.contains("backdoor")
+    {
+        format!("این سیگنال به بدافزار یا زیرساخت مخرب مرتبط با {focus} اشاره دارد و برای correlation دفاعی قابل استفاده است.")
+    } else if lower.contains("supply chain")
+        || lower.contains("package")
+        || lower.contains("dependency")
+    {
+        format!("این آیتم به ریسک زنجیره تأمین نرم‌افزار پیرامون {focus} اشاره دارد و باید با وابستگی‌های واقعی مقایسه شود.")
+    } else if lower.contains("phishing") || lower.contains("credential") {
+        format!("این سیگنال به فیشینگ یا سرقت اعتبار مرتبط با {focus} اشاره دارد و برای پایش هویت و ایمیل مهم است.")
+    } else if !fallback_prefix.trim().is_empty() {
+        format!("{fallback_prefix}؛ موضوع اصلی برای پایش امروز {focus} است.")
+    } else {
+        format!(
+            "این خبر امنیتی درباره {focus} برای آگاهی موقعیتی و اولویت‌بندی روزانه قابل بررسی است."
+        )
+    };
+
+    truncate_chars(&text, 190)
+}
+
+fn persian_focus_label(text: &str) -> String {
+    if let Some(cve) = first_cve_id(text) {
+        return cve;
+    }
+
+    let lower = text.to_lowercase();
+    let known = [
+        ("microsoft", "Microsoft"),
+        ("windows", "Windows"),
+        ("exchange", "Exchange"),
+        ("office", "Office"),
+        ("azure", "Azure"),
+        ("github", "GitHub"),
+        ("gitlab", "GitLab"),
+        ("gitea", "Gitea"),
+        ("google chrome", "Chrome"),
+        ("chrome", "Chrome"),
+        ("android", "Android"),
+        ("apple", "Apple"),
+        ("ios", "iOS"),
+        ("macos", "macOS"),
+        ("linux", "Linux"),
+        ("kernel", "Linux Kernel"),
+        ("cisco", "Cisco"),
+        ("fortinet", "Fortinet"),
+        ("fortigate", "FortiGate"),
+        ("palo alto", "Palo Alto"),
+        ("ivanti", "Ivanti"),
+        ("vmware", "VMware"),
+        ("citrix", "Citrix"),
+        ("apache", "Apache"),
+        ("nginx", "Nginx"),
+        ("wordpress", "WordPress"),
+        ("drupal", "Drupal"),
+        ("kubernetes", "Kubernetes"),
+        ("docker", "Docker"),
+        ("jenkins", "Jenkins"),
+        ("npm", "npm"),
+        ("pypi", "PyPI"),
+        ("maven", "Maven"),
+        ("rust", "Rust"),
+        ("golang", "Go"),
+        ("go ", "Go"),
+        ("ransomware", "باج‌افزار"),
+        ("malware", "بدافزار"),
+        ("phishing", "فیشینگ"),
+        ("botnet", "بات‌نت"),
+        ("zero-day", "روز-صفر"),
+    ];
+
+    let mut hits: Vec<&str> = Vec::new();
+    for (needle, label) in known {
+        if lower.contains(needle) && !hits.contains(&label) {
+            hits.push(label);
+        }
+        if hits.len() >= 2 {
+            break;
+        }
+    }
+    if !hits.is_empty() {
+        return hits.join(" / ");
+    }
+
+    let mut tokens: Vec<String> = Vec::new();
+    for raw in text.split_whitespace() {
+        let token = raw.trim_matches(|ch: char| {
+            !(ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == '.' || ch == '/')
+        });
+        if token.len() < 3 || token.len() > 32 || is_noise_token(token) {
+            continue;
+        }
+        let has_signal_case = token.chars().any(|ch| ch.is_ascii_uppercase())
+            || token.contains('-')
+            || token.contains('.')
+            || token.contains('/');
+        if has_signal_case && !tokens.iter().any(|existing| existing == token) {
+            tokens.push(token.to_string());
+        }
+        if tokens.len() >= 2 {
+            break;
+        }
+    }
+
+    if tokens.is_empty() {
+        "دارایی یا سرویس مهم".to_string()
+    } else {
+        tokens.join(" / ")
+    }
+}
+
+fn first_cve_id(text: &str) -> Option<String> {
+    for raw in text.split_whitespace() {
+        let token = raw
+            .trim_matches(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '-'))
+            .to_ascii_uppercase();
+        if token.starts_with("CVE-") && token.len() >= 13 {
+            return Some(token);
+        }
+    }
+    None
+}
+
+fn is_noise_token(token: &str) -> bool {
+    let lower = token.to_lowercase();
+    matches!(
+        lower.as_str(),
+        "the"
+            | "and"
+            | "for"
+            | "from"
+            | "with"
+            | "that"
+            | "this"
+            | "into"
+            | "after"
+            | "before"
+            | "over"
+            | "under"
+            | "new"
+            | "old"
+            | "security"
+            | "cyber"
+            | "hackers"
+            | "attacks"
+            | "attack"
+            | "vulnerability"
+            | "vulnerabilities"
+            | "critical"
+            | "high"
+            | "medium"
+            | "low"
+            | "warning"
+            | "alert"
+            | "update"
+            | "updates"
+            | "patch"
+            | "patches"
+            | "users"
+            | "companies"
+            | "researchers"
+    )
 }
 
 fn fallback_why_it_matters(risk_score: i64, text: &str) -> String {
