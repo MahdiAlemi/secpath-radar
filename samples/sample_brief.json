@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.16-production-glass-ui",
+  "version": "v0.4.17-epss-vulnrichment",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -17,7 +17,9 @@
     "infrastructure_hosts": 0,
     "supply_chain_advisories": 0,
     "ransomware_victims": 0,
-    "failed_rss_sources": 0
+    "failed_rss_sources": 0,
+    "epss_rising": 1,
+    "vulnrichment_hits": 1
   },
   "source_health": {
     "rss_sources": 18,
@@ -146,7 +148,18 @@
       "risk_score": 9,
       "tags": [
         "CVE"
-      ]
+      ],
+      "epss_percentile": 0.0,
+      "epss_7d": 0.0,
+      "epss_30d": 0.0,
+      "epss_delta_7d": 0.0,
+      "epss_delta_30d": 0.0,
+      "epss_momentum": "rising",
+      "cisa_vulnrichment": true,
+      "ssvc_exploitation": "",
+      "ssvc_automatable": "yes",
+      "ssvc_technical_impact": "",
+      "cisa_priority": "elevated"
     }
   ],
   "attack_pressure": {

@@ -37,6 +37,8 @@
       <div><span>خبرها</span><b>{{ brief.stats.global_news }}</b></div>
       <div><span>ایران</span><b>{{ brief.stats.iran_items }}</b></div>
       <div><span>CVE</span><b>{{ brief.stats.cves }}</b><small>{{ brief.stats.critical_cves }} critical</small></div>
+      <div><span>EPSS ↑</span><b>{{ brief.stats.epss_rising }}</b><small>momentum</small></div>
+      <div><span>CISA</span><b>{{ brief.stats.vulnrichment_hits }}</b><small>SSVC</small></div>
       <div><span>IOC</span><b>{{ brief.stats.iocs }}</b></div>
       <div><span>زیرساخت</span><b>{{ brief.stats.infrastructure_hosts }}</b></div>
       <div><span>زنجیره تأمین</span><b>{{ brief.stats.supply_chain_advisories }}</b></div>
@@ -85,7 +87,7 @@
             <article class="row-card risk-{% if cve.severity == 'CRITICAL' %}high{% elif cve.severity == 'HIGH' %}medium{% else %}watch{% endif %}">
               <div class="row-main"><b>{{ cve.cve_id }}</b><span>{{ cve.title_fa }}</span></div>
               <p>{{ cve.summary_fa }}</p>
-              <div class="meta-row"><small>{{ cve.severity }}</small>{% if cve.cvss is defined and cve.cvss != none %}<small>CVSS {{ cve.cvss }}</small>{% endif %}{% if cve.epss is defined and cve.epss != none %}<small>EPSS {{ (cve.epss * 100) | round }}%</small>{% endif %}{% if cve.kev %}<small>KEV</small>{% endif %}</div>
+              <div class="meta-row"><small>{{ cve.severity }}</small>{% if cve.cvss is defined and cve.cvss != none %}<small>CVSS {{ cve.cvss }}</small>{% endif %}{% if cve.epss is defined and cve.epss != none %}<small>EPSS {{ (cve.epss * 100) | round }}%</small>{% endif %}{% if cve.epss_momentum == "rising" %}<small>EPSS رو به رشد</small>{% endif %}{% if cve.cisa_vulnrichment %}<small>CISA {{ cve.cisa_priority }}</small>{% endif %}{% if cve.kev %}<small>KEV</small>{% endif %}</div>
             </article>
             {% endif %}{% endfor %}
             {% if brief.cves | length == 0 %}<article class="empty-row">CVE مهمی برای این بازه دریافت نشد.</article>{% endif %}

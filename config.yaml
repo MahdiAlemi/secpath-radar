@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.14 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.17 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -17,6 +17,13 @@ cve:
   kev_url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
   epss_url: "https://api.first.org/data/v1/epss"
   include_epss: true
+  include_epss_momentum: true
+  epss_momentum_days:
+    - 7
+    - 30
+  include_vulnrichment: true
+  vulnrichment_base_url: "https://raw.githubusercontent.com/cisagov/vulnrichment/develop"
+  max_vulnrichment: 10
 
 intel:
   enabled: true

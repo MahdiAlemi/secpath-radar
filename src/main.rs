@@ -435,6 +435,16 @@ struct CveConfig {
     epss_url: String,
     #[serde(default)]
     include_epss: bool,
+    #[serde(default)]
+    include_epss_momentum: bool,
+    #[serde(default = "default_epss_momentum_days")]
+    epss_momentum_days: Vec<i64>,
+    #[serde(default)]
+    include_vulnrichment: bool,
+    #[serde(default = "default_vulnrichment_base_url")]
+    vulnrichment_base_url: String,
+    #[serde(default = "default_max_vulnrichment")]
+    max_vulnrichment: usize,
 }
 
 impl Default for CveConfig {
@@ -447,6 +457,11 @@ impl Default for CveConfig {
             kev_url: default_kev_url(),
             epss_url: default_epss_url(),
             include_epss: true,
+            include_epss_momentum: true,
+            epss_momentum_days: default_epss_momentum_days(),
+            include_vulnrichment: true,
+            vulnrichment_base_url: default_vulnrichment_base_url(),
+            max_vulnrichment: default_max_vulnrichment(),
         }
     }
 }
@@ -474,6 +489,18 @@ fn default_kev_url() -> String {
 
 fn default_epss_url() -> String {
     "https://api.first.org/data/v1/epss".to_string()
+}
+
+fn default_epss_momentum_days() -> Vec<i64> {
+    vec![7, 30]
+}
+
+fn default_vulnrichment_base_url() -> String {
+    "https://raw.githubusercontent.com/cisagov/vulnrichment/develop".to_string()
+}
+
+fn default_max_vulnrichment() -> usize {
+    10
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -558,12 +585,38 @@ struct CveItem {
     severity: String,
     cvss: f64,
     epss: f64,
+    epss_percentile: f64,
+    epss_7d: f64,
+    epss_30d: f64,
+    epss_delta_7d: f64,
+    epss_delta_30d: f64,
+    epss_momentum: String,
     kev: bool,
+    cisa_vulnrichment: bool,
+    ssvc_exploitation: String,
+    ssvc_automatable: String,
+    ssvc_technical_impact: String,
+    cisa_priority: String,
     published: String,
     url: String,
     recommended_action: String,
     risk_score: i64,
     tags: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+struct EpssSnapshot {
+    epss: f64,
+    percentile: f64,
+}
+
+#[derive(Debug, Clone, Default)]
+struct CisaVulnrichment {
+    found: bool,
+    exploitation: String,
+    automatable: String,
+    technical_impact: String,
+    priority: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1015,17 +1068,50 @@ fn fetch_cves(config: &Config, offline: bool, refresh_cache: bool) -> Result<Vec
     if cve_config.include_epss && !cves.is_empty() {
         thread::sleep(Duration::from_millis(cve_config.sleep_ms_between_sources));
         let ids: Vec<String> = cves.iter().map(|c| c.cve_id.clone()).collect();
-        match fetch_epss_map(&client, config, cve_config, &ids, offline, refresh_cache) {
+        match fetch_epss_map(
+            &client,
+            config,
+            cve_config,
+            &ids,
+            None,
+            offline,
+            refresh_cache,
+        ) {
             Ok(epss_map) => {
                 for cve in &mut cves {
-                    if let Some(epss) = epss_map.get(&cve.cve_id) {
-                        cve.epss = *epss;
+                    if let Some(snapshot) = epss_map.get(&cve.cve_id) {
+                        cve.epss = snapshot.epss;
+                        cve.epss_percentile = snapshot.percentile;
                     }
                     finalize_cve_score(cve);
+                }
+
+                if cve_config.include_epss_momentum {
+                    enrich_epss_momentum(
+                        &client,
+                        config,
+                        cve_config,
+                        &mut cves,
+                        &ids,
+                        rounded_end.date_naive(),
+                        offline,
+                        refresh_cache,
+                    );
                 }
             }
             Err(err) => eprintln!("⚠️  skipped EPSS enrichment: {err:#}"),
         }
+    }
+
+    if cve_config.include_vulnrichment && !cves.is_empty() {
+        enrich_vulnrichment(
+            &client,
+            config,
+            cve_config,
+            &mut cves,
+            offline,
+            refresh_cache,
+        );
     }
 
     for cve in &mut cves {
@@ -1082,17 +1168,28 @@ fn fetch_epss_map(
     config: &Config,
     cve_config: &CveConfig,
     cve_ids: &[String],
+    date: Option<NaiveDate>,
     offline: bool,
     refresh_cache: bool,
-) -> Result<HashMap<String, f64>> {
-    eprintln!("→ fetching EPSS for {} CVEs", cve_ids.len());
+) -> Result<HashMap<String, EpssSnapshot>> {
+    let label = match date {
+        Some(day) => format!("EPSS API {day}"),
+        None => "EPSS API".to_string(),
+    };
+    eprintln!("→ fetching {label} for {} CVEs", cve_ids.len());
     let joined = cve_ids.join(",");
+    let mut query = vec![("cve", joined.as_str())];
+    let date_s;
+    if let Some(day) = date {
+        date_s = day.format("%Y-%m-%d").to_string();
+        query.push(("date", date_s.as_str()));
+    }
     let bytes = get_bytes_cached(
         client,
         config,
         &cve_config.epss_url,
-        &[("cve", joined.as_str())],
-        "EPSS API",
+        &query,
+        &label,
         offline,
         refresh_cache,
     )?;
@@ -1110,11 +1207,240 @@ fn fetch_epss_map(
                 .and_then(|v| v.as_str())
                 .and_then(|s| s.parse::<f64>().ok())
                 .unwrap_or(0.0);
-            map.insert(cve.to_string(), epss);
+            let percentile = row
+                .get("percentile")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0);
+            map.insert(cve.to_string(), EpssSnapshot { epss, percentile });
         }
     }
 
     Ok(map)
+}
+
+fn enrich_epss_momentum(
+    client: &Client,
+    config: &Config,
+    cve_config: &CveConfig,
+    cves: &mut [CveItem],
+    ids: &[String],
+    current_day: NaiveDate,
+    offline: bool,
+    refresh_cache: bool,
+) {
+    for days in &cve_config.epss_momentum_days {
+        let day = current_day - ChronoDuration::days((*days).max(1));
+        thread::sleep(Duration::from_millis(
+            cve_config.sleep_ms_between_sources / 2,
+        ));
+        match fetch_epss_map(
+            client,
+            config,
+            cve_config,
+            ids,
+            Some(day),
+            offline,
+            refresh_cache,
+        ) {
+            Ok(snapshot_map) => {
+                for cve in cves.iter_mut() {
+                    if let Some(snapshot) = snapshot_map.get(&cve.cve_id) {
+                        match *days {
+                            7 => {
+                                cve.epss_7d = snapshot.epss;
+                                cve.epss_delta_7d = cve.epss - snapshot.epss;
+                            }
+                            30 => {
+                                cve.epss_30d = snapshot.epss;
+                                cve.epss_delta_30d = cve.epss - snapshot.epss;
+                            }
+                            _ => {}
+                        }
+                    }
+                    cve.epss_momentum = epss_momentum_label(cve.epss_delta_7d, cve.epss_delta_30d);
+                }
+            }
+            Err(err) => eprintln!("⚠️  skipped EPSS momentum {days}d: {err:#}"),
+        }
+    }
+}
+
+fn epss_momentum_label(delta_7d: f64, delta_30d: f64) -> String {
+    if delta_7d >= 0.10 || delta_30d >= 0.20 {
+        "rising".to_string()
+    } else if delta_7d <= -0.10 || delta_30d <= -0.20 {
+        "falling".to_string()
+    } else {
+        "stable".to_string()
+    }
+}
+
+fn enrich_vulnrichment(
+    client: &Client,
+    config: &Config,
+    cve_config: &CveConfig,
+    cves: &mut [CveItem],
+    offline: bool,
+    refresh_cache: bool,
+) {
+    eprintln!("→ fetching CISA Vulnrichment for selected CVEs");
+    let mut checked = 0_usize;
+    for cve in cves.iter_mut() {
+        if checked >= cve_config.max_vulnrichment {
+            break;
+        }
+        checked += 1;
+        thread::sleep(Duration::from_millis(
+            (cve_config.sleep_ms_between_sources / 3).max(150),
+        ));
+        match fetch_cisa_vulnrichment(
+            client,
+            config,
+            cve_config,
+            &cve.cve_id,
+            offline,
+            refresh_cache,
+        ) {
+            Ok(Some(enrichment)) => apply_cisa_vulnrichment(cve, enrichment),
+            Ok(None) => {}
+            Err(err) => eprintln!("⚠️  skipped CISA Vulnrichment {}: {err:#}", cve.cve_id),
+        }
+    }
+}
+
+fn fetch_cisa_vulnrichment(
+    client: &Client,
+    config: &Config,
+    cve_config: &CveConfig,
+    cve_id: &str,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Option<CisaVulnrichment>> {
+    let Some(url) = vulnrichment_url(&cve_config.vulnrichment_base_url, cve_id) else {
+        return Ok(None);
+    };
+
+    let bytes = match get_bytes_cached(
+        client,
+        config,
+        &url,
+        &[],
+        &format!("CISA Vulnrichment {cve_id}"),
+        offline,
+        refresh_cache,
+    ) {
+        Ok(bytes) => bytes,
+        Err(err) => {
+            let err_s = err.to_string();
+            if err_s.contains("404")
+                || err_s.contains("Not Found")
+                || err_s.contains("no cached response")
+            {
+                return Ok(None);
+            }
+            return Err(err);
+        }
+    };
+    let json: Value =
+        serde_json::from_slice(&bytes).context("invalid JSON from CISA Vulnrichment")?;
+    Ok(extract_cisa_vulnrichment(&json))
+}
+
+fn vulnrichment_url(base_url: &str, cve_id: &str) -> Option<String> {
+    let mut parts = cve_id.split('-');
+    let _prefix = parts.next()?;
+    let year = parts.next()?;
+    let number_s = parts.next()?;
+    let number = number_s.parse::<u64>().ok()?;
+    let bucket = format!("{}xxx", number / 1000);
+    Some(format!(
+        "{}/{}/{}/{}.json",
+        base_url.trim_end_matches('/'),
+        year,
+        bucket,
+        cve_id
+    ))
+}
+
+fn extract_cisa_vulnrichment(json: &Value) -> Option<CisaVulnrichment> {
+    let mut out = CisaVulnrichment::default();
+    let Some(adps) = json.pointer("/containers/adp").and_then(|v| v.as_array()) else {
+        return None;
+    };
+
+    for adp in adps {
+        let short_name = adp
+            .pointer("/providerMetadata/shortName")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_lowercase();
+        if !short_name.contains("cisa") {
+            continue;
+        }
+        out.found = true;
+        find_ssvc_options(adp, &mut out);
+    }
+
+    if out.found {
+        out.priority = cisa_priority_from_ssvc(&out);
+        Some(out)
+    } else {
+        None
+    }
+}
+
+fn find_ssvc_options(value: &Value, out: &mut CisaVulnrichment) {
+    match value {
+        Value::Object(map) => {
+            for (key, child) in map {
+                if key == "Exploitation" {
+                    if let Some(s) = child.as_str() {
+                        out.exploitation = s.to_string();
+                    }
+                } else if key == "Automatable" {
+                    if let Some(s) = child.as_str() {
+                        out.automatable = s.to_string();
+                    }
+                } else if key == "Technical Impact" {
+                    if let Some(s) = child.as_str() {
+                        out.technical_impact = s.to_string();
+                    }
+                }
+                find_ssvc_options(child, out);
+            }
+        }
+        Value::Array(items) => {
+            for child in items {
+                find_ssvc_options(child, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn cisa_priority_from_ssvc(enrichment: &CisaVulnrichment) -> String {
+    let exploitation = enrichment.exploitation.to_lowercase();
+    let automatable = enrichment.automatable.to_lowercase();
+    let impact = enrichment.technical_impact.to_lowercase();
+    if exploitation.contains("active")
+        || exploitation == "poc"
+        || (automatable == "yes" && impact == "total")
+    {
+        "immediate-watch".to_string()
+    } else if automatable == "yes" || impact == "total" {
+        "elevated".to_string()
+    } else {
+        "tracked".to_string()
+    }
+}
+
+fn apply_cisa_vulnrichment(cve: &mut CveItem, enrichment: CisaVulnrichment) {
+    cve.cisa_vulnrichment = enrichment.found;
+    cve.ssvc_exploitation = enrichment.exploitation;
+    cve.ssvc_automatable = enrichment.automatable;
+    cve.ssvc_technical_impact = enrichment.technical_impact;
+    cve.cisa_priority = enrichment.priority;
 }
 
 fn parse_nvd_cves(nvd_json: &Value, kev_set: &HashSet<String>) -> Vec<CveItem> {
@@ -1147,7 +1473,18 @@ fn parse_nvd_cves(nvd_json: &Value, kev_set: &HashSet<String>) -> Vec<CveItem> {
             severity,
             cvss,
             epss: 0.0,
+            epss_percentile: 0.0,
+            epss_7d: 0.0,
+            epss_30d: 0.0,
+            epss_delta_7d: 0.0,
+            epss_delta_30d: 0.0,
+            epss_momentum: "stable".to_string(),
             kev,
+            cisa_vulnrichment: false,
+            ssvc_exploitation: String::new(),
+            ssvc_automatable: String::new(),
+            ssvc_technical_impact: String::new(),
+            cisa_priority: "unscored".to_string(),
             published,
             url,
             recommended_action: String::new(),
@@ -1268,6 +1605,19 @@ fn finalize_cve_score(cve: &mut CveItem) {
         push_tag(&mut tags, "Medium EPSS".to_string());
     }
 
+    if cve.epss_momentum == "rising" {
+        score += 1;
+        push_tag(&mut tags, "EPSS rising".to_string());
+    }
+
+    if cve.cisa_priority == "immediate-watch" {
+        score += 2;
+        push_tag(&mut tags, "CISA priority".to_string());
+    } else if cve.cisa_priority == "elevated" {
+        score += 1;
+        push_tag(&mut tags, "CISA elevated".to_string());
+    }
+
     let text = format!("{} {}", cve.title, cve.summary).to_lowercase();
     for kw in [
         "vpn",
@@ -1292,6 +1642,10 @@ fn finalize_cve_score(cve: &mut CveItem) {
 fn recommended_action_for_cve(cve: &CveItem) -> String {
     if cve.kev {
         "به‌دلیل حضور در KEV، فوراً exposure و patch/mitigation را بررسی کن.".to_string()
+    } else if cve.cisa_priority == "immediate-watch" {
+        "با توجه به SSVC/Vulnrichment، این CVE باید در watch فوری تیم دفاعی باشد.".to_string()
+    } else if cve.epss_momentum == "rising" {
+        "EPSS این CVE رو به رشد است؛ اولویت پایش و تطبیق با assetها را بالاتر ببر.".to_string()
     } else if cve.severity == "CRITICAL" || cve.cvss >= 9.0 {
         "با asset inventory تطبیق بده و برای patch یا mitigation اولویت بالا بده.".to_string()
     } else if cve.epss >= 0.70 {
@@ -3551,6 +3905,8 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
         .filter(|c| c.severity == "CRITICAL" || c.cvss >= 9.0)
         .count();
     let kev_count = cves.iter().filter(|c| c.kev).count();
+    let epss_rising_count = cves.iter().filter(|c| c.epss_momentum == "rising").count();
+    let vulnrichment_hits = cves.iter().filter(|c| c.cisa_vulnrichment).count();
 
     Ok(json!({
         "site_title": config.site.title,
@@ -3565,6 +3921,8 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "cves": cve_count,
             "critical_cves": critical_count,
             "kev": kev_count,
+            "epss_rising": epss_rising_count,
+            "vulnrichment_hits": vulnrichment_hits,
             "rss_sources": config.sources.len(),
             "intel_sources": intel_source_count(config)
         },
@@ -4368,7 +4726,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.16-production-glass-ui");
+    brief["version"] = json!("v0.4.17-epss-vulnrichment");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -4445,6 +4803,46 @@ fn apply_local_polish(brief: &mut Value) {
             .and_then(|value| value.as_u64())
             .unwrap_or(0);
         brief["stats"]["supply_chain_advisories"] = json!(supply_total);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("epss_rising"))
+        .is_none()
+    {
+        let rising = brief
+            .get("cves")
+            .and_then(|items| items.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter(|cve| {
+                        cve.get("epss_momentum").and_then(|v| v.as_str()) == Some("rising")
+                    })
+                    .count()
+            })
+            .unwrap_or(0);
+        brief["stats"]["epss_rising"] = json!(rising);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("vulnrichment_hits"))
+        .is_none()
+    {
+        let hits = brief
+            .get("cves")
+            .and_then(|items| items.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter(|cve| {
+                        cve.get("cisa_vulnrichment")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false)
+                    })
+                    .count()
+            })
+            .unwrap_or(0);
+        brief["stats"]["vulnrichment_hits"] = json!(hits);
     }
     if brief
         .get("stats")
