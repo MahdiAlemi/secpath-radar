@@ -1361,18 +1361,59 @@ fn validate_ai_result_shape(ai_json: &Value) -> Result<Value> {
 }
 
 fn merge_ai_result(mut brief: Value, ai_json: &Value) -> Value {
-    for key in [
-        "priority_alert",
-        "iran_radar",
-        "global_news",
-        "cves",
-        "action_items",
-    ] {
+    if let Some(value) = ai_json.get("priority_alert") {
+        merge_object_preserve_existing(&mut brief["priority_alert"], value);
+    }
+
+    for key in ["iran_radar", "global_news", "cves"] {
         if let Some(value) = ai_json.get(key) {
-            brief[key] = value.clone();
+            merge_array_items_by_index(&mut brief[key], value);
         }
     }
+
+    if let Some(value) = ai_json.get("action_items") {
+        if value.as_array().is_some_and(|items| !items.is_empty()) {
+            brief["action_items"] = value.clone();
+        }
+    }
+
     brief
+}
+
+fn merge_array_items_by_index(base: &mut Value, edits: &Value) {
+    let Some(base_items) = base.as_array_mut() else {
+        return;
+    };
+    let Some(edit_items) = edits.as_array() else {
+        return;
+    };
+
+    for (base_item, edit_item) in base_items.iter_mut().zip(edit_items.iter()) {
+        merge_object_preserve_existing(base_item, edit_item);
+    }
+}
+
+fn merge_object_preserve_existing(base: &mut Value, edit: &Value) {
+    let Some(base_obj) = base.as_object_mut() else {
+        return;
+    };
+    let Some(edit_obj) = edit.as_object() else {
+        return;
+    };
+
+    for (key, value) in edit_obj {
+        let usable = match value {
+            Value::Null => false,
+            Value::String(s) => !s.trim().is_empty(),
+            Value::Array(items) => !items.is_empty(),
+            Value::Object(obj) => !obj.is_empty(),
+            _ => true,
+        };
+
+        if usable {
+            base_obj.insert(key.clone(), value.clone());
+        }
+    }
 }
 
 fn mark_ai_status(

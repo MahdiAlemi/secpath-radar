@@ -404,8 +404,8 @@
           <div class="meta">
             <span class="pill risk-high">{{ cve.severity }}</span>
             {% if cve.kev %}<span class="pill risk-high">KEV</span>{% endif %}
-            <span class="pill">CVSS {{ cve.cvss }}</span>
-            <span class="pill">EPSS {{ (cve.epss * 100) | round }}%</span>
+            {% if cve.cvss is defined and cve.cvss != none %}<span class="pill">CVSS {{ cve.cvss }}</span>{% else %}<span class="pill">CVSS n/a</span>{% endif %}
+            {% if cve.epss is defined and cve.epss != none %}<span class="pill">EPSS {{ (cve.epss * 100) | round }}%</span>{% else %}<span class="pill">EPSS n/a</span>{% endif %}
           </div>
           <h3><span class="cve-id">{{ cve.cve_id }}</span> — {{ cve.title }}</h3>
           <p>{{ cve.summary }}</p>
