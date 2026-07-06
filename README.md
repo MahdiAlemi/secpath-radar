@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.25.2-news-backfill**
+Current phase: **v0.4.26.2-independent-writeup-feeds**
 
 ## What changed in v0.4.8
 
@@ -63,6 +63,25 @@ http://localhost:8000
 Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecurity, The Hacker News, Zero Day Initiative, SANS ISC, Cisco advisories, Cisco Talos, Microsoft Security Blog, Google Online Security Blog, ProjectDiscovery Blog, Cloudflare Security, Unit 42, Rapid7, CERT/CC, Infosecurity Magazine, and PortSwigger Research.
 
 NVD, CISA KEV, EPSS, CISA Vulnrichment, Feodo Tracker, and SSLBL are used by the intelligence engine. Botnet C2 and TLS indicators are metadata-only; no malware samples or dangerous links are downloaded or rendered.
+
+
+## v0.4.26.2 — Independent Writeup Feeds
+
+Adds a dedicated writeup/research feed layer beside Daily News. Writeups are no longer inferred from the regular news panel; they are fetched from `writeup_sources` such as The DFIR Report, PortSwigger Research, Unit 42, Cisco Talos, ProjectDiscovery, ZDI, Securelist, Google Cloud Threat Intelligence, Microsoft Security Blog, and Cloudflare Security Research.
+
+- Uses independent RSS/Atom sources configured under `writeup_sources`.
+- Keeps raw English title/summary while adding Persian display fields.
+- Filters out news-like posts, weekly roundups, patch summaries, webinars, and product updates.
+- Shows compact source/type charts and up to 12 writeup cards in the UI.
+- Writes `writeups_pulse`, `stats.writeups`, `stats.writeup_sources`, `stats.writeup_feed_sources`, and `stats.failed_writeup_sources` to `data/latest_brief.json`.
+- Metadata-only: no exploit steps, no code snippets, no clone/download, no scan, and no operational workflow.
+
+Quick checks:
+
+```bash
+cargo run -- --offline
+jq '.version, .stats.writeups, .stats.writeup_sources, .stats.writeup_feed_sources, .stats.failed_writeup_sources, .writeups_pulse.totals, .writeups_pulse.writeups[:5]' data/latest_brief.json
+```
 
 
 ## v0.4.8.1 Frontend split

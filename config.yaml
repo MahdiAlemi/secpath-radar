@@ -7,7 +7,7 @@ fetch:
   max_items_per_source: 8
   max_total_items: 90
   sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.23 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/0.4.26 (+https://radar.secpath.space)"
 
 cve:
   max_cves: 14
@@ -169,6 +169,29 @@ limits:
   iran_radar: 5
   global_news: 18
   cves: 10
+
+
+writeup_sources:
+  - name: "The DFIR Report"
+    url: "https://thedfirreport.com/feed/"
+  - name: "PortSwigger Research"
+    url: "https://portswigger.net/research/rss"
+  - name: "Unit 42"
+    url: "https://unit42.paloaltonetworks.com/feed/"
+  - name: "Cisco Talos"
+    url: "https://blog.talosintelligence.com/rss/"
+  - name: "ProjectDiscovery Research"
+    url: "https://projectdiscovery.io/rss.xml"
+  - name: "Zero Day Initiative Research"
+    url: "https://www.thezdi.com/blog?format=rss"
+  - name: "Securelist"
+    url: "https://securelist.com/feed/"
+  - name: "Google Cloud Threat Intelligence"
+    url: "https://feeds.feedburner.com/threatintelligence/pvexyqv7v0v"
+  - name: "Microsoft Security Blog"
+    url: "https://www.microsoft.com/en-us/security/blog/feed/"
+  - name: "Cloudflare Security Research"
+    url: "https://blog.cloudflare.com/tag/security/rss/"
 
 sources:
   - name: "CISA Advisories"

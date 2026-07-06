@@ -57,6 +57,8 @@ struct Config {
     limits: LimitsConfig,
     sources: Vec<SourceConfig>,
     #[serde(default)]
+    writeup_sources: Vec<SourceConfig>,
+    #[serde(default)]
     cve: CveConfig,
     #[serde(default)]
     gemini: GeminiConfig,
@@ -1027,6 +1029,12 @@ fn main() -> Result<()> {
             (Vec::new(), Vec::new())
         };
 
+        let (writeup_items, writeup_failures) = if args.fetch {
+            fetch_writeup_feeds(&config, args.offline, args.refresh_cache)?
+        } else {
+            (Vec::new(), Vec::new())
+        };
+
         let cves = if args.cves {
             match fetch_cves(&config, args.offline, args.refresh_cache) {
                 Ok(cves) => cves,
@@ -1039,10 +1047,16 @@ fn main() -> Result<()> {
             Vec::new()
         };
 
-        let mut brief = build_brief(&config, items, cves)?;
+        let mut brief = build_brief(&config, items, writeup_items, cves)?;
         brief["source_health"]["failed_rss_sources"] = json!(rss_failures.len());
         brief["source_health"]["rss_failures"] = json!(rss_failures);
+        brief["source_health"]["writeup_sources"] = json!(config.writeup_sources.len());
+        brief["source_health"]["failed_writeup_sources"] = json!(writeup_failures.len());
+        brief["source_health"]["writeup_failures"] = json!(writeup_failures);
         brief["stats"]["failed_rss_sources"] = brief["source_health"]["failed_rss_sources"].clone();
+        brief["stats"]["writeup_feed_sources"] = brief["source_health"]["writeup_sources"].clone();
+        brief["stats"]["failed_writeup_sources"] =
+            brief["source_health"]["failed_writeup_sources"].clone();
         let attack_pressure =
             fetch_attack_pressure_or_fallback(&config, args.offline, args.refresh_cache);
         brief["attack_pressure"] = attack_pressure;
@@ -1265,6 +1279,68 @@ fn fetch_and_score(
     deduped.truncate(config.fetch.max_total_items);
 
     eprintln!("✅ fetched+deduped RSS: {} items", deduped.len());
+    Ok((deduped, failures))
+}
+
+fn fetch_writeup_feeds(
+    config: &Config,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<(Vec<FeedItem>, Vec<SourceFailure>)> {
+    if config.writeup_sources.is_empty() {
+        return Ok((Vec::new(), Vec::new()));
+    }
+
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(18))
+        .build()
+        .context("failed to build HTTP client for writeup feeds")?;
+
+    let mut seen = HashSet::new();
+    let mut all = Vec::new();
+    let mut failures = Vec::new();
+
+    for source in &config.writeup_sources {
+        eprintln!("→ fetching writeups {}", source.name);
+
+        match fetch_source(&client, source, config, offline, refresh_cache) {
+            Ok(mut items) => {
+                for item in &mut items {
+                    item.tags.push("Writeup Source".to_string());
+                }
+                all.append(&mut items)
+            }
+            Err(err) => {
+                eprintln!("⚠️  skipped writeup source {}: {err:#}", source.name);
+                failures.push(SourceFailure {
+                    name: source.name.clone(),
+                    url: source.url.clone(),
+                    error: source_error_summary(&err.to_string()),
+                });
+            }
+        }
+
+        thread::sleep(Duration::from_millis(config.fetch.sleep_ms_between_sources));
+    }
+
+    let mut deduped = Vec::new();
+    for item in all {
+        let key = normalize_key(&item.title, &item.url);
+        if seen.insert(key) {
+            deduped.push(item);
+        }
+    }
+
+    sort_news_latest_first(&mut deduped);
+    let max_writeups = (config.fetch.max_total_items / 2).max(24).min(60);
+    deduped.truncate(max_writeups);
+
+    eprintln!(
+        "✅ fetched+deduped writeup feeds: {} items from {} sources",
+        deduped.len(),
+        config.writeup_sources.len().saturating_sub(failures.len())
+    );
     Ok((deduped, failures))
 }
 
@@ -5812,7 +5888,12 @@ fn intel_source_count(config: &Config) -> usize {
     count
 }
 
-fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) -> Result<Value> {
+fn build_brief(
+    config: &Config,
+    items: Vec<FeedItem>,
+    writeup_items: Vec<FeedItem>,
+    mut cves: Vec<CveItem>,
+) -> Result<Value> {
     let now = Local::now();
     let date_en = format!("{}-{:02}-{:02}", now.year(), now.month(), now.day());
     let generated_at = now.format("%Y-%m-%d %H:%M").to_string();
@@ -5902,6 +5983,17 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
     iran.truncate(config.limits.iran_radar);
     global.truncate(config.limits.global_news);
     let news_lanes = build_news_lanes(&global);
+    let writeups_pulse = build_writeups_pulse(&writeup_items);
+    let writeups_total = writeups_pulse
+        .get("totals")
+        .and_then(|value| value.get("writeups"))
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0);
+    let writeup_sources = writeups_pulse
+        .get("totals")
+        .and_then(|value| value.get("sources"))
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0);
 
     cves.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
     cves.truncate(config.limits.cves);
@@ -5959,6 +6051,8 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "news_backfill": backfill_news_total,
             "daily_news_hidden": daily_news_hidden,
             "rss_items_fetched": items.len(),
+            "writeups": writeups_total,
+            "writeup_sources": writeup_sources,
             "cves": cve_count,
             "critical_cves": critical_count,
             "kev": kev_count,
@@ -6013,6 +6107,7 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
         "iran_radar": iran,
         "global_news": global,
         "news_lanes": news_lanes,
+        "writeups_pulse": writeups_pulse,
         "cves": cves
     }))
 }
@@ -6153,12 +6248,397 @@ fn build_news_lanes(global: &[FeedItem]) -> Value {
     })
 }
 
+fn build_writeups_pulse(items: &[FeedItem]) -> Value {
+    let mut candidates: Vec<FeedItem> = items
+        .iter()
+        .filter(|item| is_writeup_item(item))
+        .cloned()
+        .collect();
+    sort_news_latest_first(&mut candidates);
+
+    let total_candidates = candidates.len();
+    let mut source_counts: HashMap<String, usize> = HashMap::new();
+    let mut kind_counts: HashMap<String, usize> = HashMap::new();
+    for item in &candidates {
+        *source_counts.entry(item.source.clone()).or_insert(0) += 1;
+        *kind_counts
+            .entry(writeup_kind(item).to_string())
+            .or_insert(0) += 1;
+    }
+
+    let writeups: Vec<Value> = candidates
+        .iter()
+        .take(12)
+        .enumerate()
+        .map(|(idx, item)| writeup_item_value(idx + 1, item))
+        .collect();
+    let visible = writeups.len();
+    let hidden = total_candidates.saturating_sub(visible);
+    let sources = source_counts.len();
+    let kinds = kind_counts.len();
+    let source_chart = count_chart(source_counts, 6);
+    let kind_chart = count_chart(kind_counts, 6);
+
+    let summary_fa = if visible == 0 {
+        "در پنجره خبری فعلی writeup تحلیلی تازه‌ای از منابع موجود دیده نشد.".to_string()
+    } else if hidden > 0 {
+        format!("{visible} writeup تحلیلی تازه نمایش داده شد و {hidden} مورد کم‌اولویت‌تر برای فشردگی پنهان شد؛ جدیدترین تحلیل‌ها بالاتر هستند.")
+    } else {
+        format!("{visible} writeup تحلیلی تازه از {sources} منبع جدا شد؛ این بخش خبر خام را از تحلیل فنی جدا می‌کند.")
+    };
+
+    json!({
+        "enabled": true,
+        "source": "Dedicated research/writeup RSS feeds",
+        "safe_mode": "summary and metadata only; no exploit steps; no code execution",
+        "summary_fa": summary_fa,
+        "totals": {
+            "writeups": visible,
+            "candidates": total_candidates,
+            "hidden": hidden,
+            "sources": sources,
+            "kinds": kinds
+        },
+        "writeups": writeups,
+        "source_chart": source_chart,
+        "kind_chart": kind_chart
+    })
+}
+
+fn empty_writeups_pulse(reason: &str) -> Value {
+    json!({
+        "enabled": false,
+        "source": reason,
+        "safe_mode": "summary and metadata only; no exploit steps; no code execution",
+        "summary_fa": "Writeups Pulse در این اجرا داده‌ای ندارد.",
+        "totals": {
+            "writeups": 0,
+            "candidates": 0,
+            "hidden": 0,
+            "sources": 0,
+            "kinds": 0
+        },
+        "writeups": [],
+        "source_chart": [],
+        "kind_chart": []
+    })
+}
+
+fn writeup_item_value(rank: usize, item: &FeedItem) -> Value {
+    let (published_date_local, published_time_local, freshness_label) =
+        news_time_display_fields(&item.published);
+    let kind = writeup_kind(item);
+    let score = writeup_score(item).clamp(12, 100);
+    let risk = if score >= 78 {
+        "high"
+    } else if score >= 52 {
+        "medium"
+    } else {
+        "watch"
+    };
+
+    json!({
+        "rank": rank,
+        "title": item.title.clone(),
+        "title_fa": writeup_title_fa(kind, &item.title),
+        "summary": item.summary.clone(),
+        "summary_fa": fallback_persian_summary(&item.summary, "این writeup برای تحلیل فنی روز قابل توجه است"),
+        "source": item.source.clone(),
+        "url": item.url.clone(),
+        "published": item.published.clone(),
+        "published_date_local": published_date_local,
+        "published_time_local": published_time_local,
+        "freshness_label": freshness_label,
+        "kind": kind,
+        "kind_fa": writeup_kind_fa(kind),
+        "risk": risk,
+        "risk_score": score,
+        "bar_width": score,
+        "tags": writeup_tags(item),
+        "note_fa": writeup_note_fa(kind),
+        "safe_mode": "metadata only"
+    })
+}
+
+fn is_writeup_item(item: &FeedItem) -> bool {
+    let source = item.source.to_ascii_lowercase();
+    let title = item.title.to_ascii_lowercase();
+    let summary = item.summary.to_ascii_lowercase();
+    let text = format!(
+        "{title} {summary} {}",
+        item.tags.join(" ").to_ascii_lowercase()
+    );
+
+    // Writeups now come from a dedicated source list, not from the Daily News feed.
+    // This guard keeps the panel focused on analysis/research and prevents normal
+    // news, newsletters, patch roundups, and product updates from leaking in.
+    let dedicated_writeup_source = [
+        "the dfir report",
+        "portswigger research",
+        "unit 42",
+        "cisco talos",
+        "projectdiscovery research",
+        "projectdiscovery blog",
+        "zero day initiative research",
+        "securelist",
+        "google cloud threat intelligence",
+        "microsoft security blog",
+        "cloudflare security research",
+        "rapid7 research",
+    ];
+    let dedicated_writeup_source = dedicated_writeup_source
+        .iter()
+        .any(|needle| source.contains(needle));
+
+    if !dedicated_writeup_source {
+        return false;
+    }
+
+    let hard_negative = [
+        "weekly metasploit update",
+        "metasploit update",
+        "weekly wrap",
+        "wrap-up",
+        "roundup",
+        "in other news",
+        "noteworthy stories",
+        "podcast",
+        "webinar",
+        "newsletter",
+        "patch tuesday",
+        "security update review",
+        "release notes",
+        "product update",
+        "advisory released",
+        "continues with community help",
+        "conference",
+        "event recap",
+        "hiring",
+        "job",
+    ]
+    .iter()
+    .any(|needle| text.contains(needle));
+
+    if hard_negative {
+        return false;
+    }
+
+    let explicit_analysis_marker = [
+        "writeup",
+        "write-up",
+        "technical analysis",
+        "deep dive",
+        "root cause analysis",
+        "postmortem",
+        "case study",
+        "research report",
+        "threat report",
+        "threat research",
+        "malware analysis",
+        "reverse engineering",
+        "incident analysis",
+        "intrusion analysis",
+        "campaign analysis",
+        "detection engineering",
+        "hunting guide",
+        "forensic analysis",
+        "tradecraft",
+        "ttps",
+        "attack chain",
+        "exploit chain",
+        "patch diff",
+        "vulnerability analysis",
+        "we analyzed",
+        "we found",
+        "our research",
+        "tracking ",
+        "unpacking",
+        "inside ",
+    ]
+    .iter()
+    .any(|needle| text.contains(needle));
+
+    let research_source_allows_depth = [
+        "the dfir report",
+        "portswigger research",
+        "unit 42",
+        "cisco talos",
+        "securelist",
+        "google cloud threat intelligence",
+    ]
+    .iter()
+    .any(|needle| source.contains(needle));
+
+    let technical_depth_signal = [
+        "ioc",
+        "yara",
+        "sigma",
+        "rule",
+        "reverse engineer",
+        "loader",
+        "payload",
+        "c2",
+        "command and control",
+        "ttp",
+        "mitre",
+        "kill chain",
+        "attack chain",
+        "exploit chain",
+        "root cause",
+        "patch diff",
+        "code path",
+        "proof-of-concept",
+        "vulnerability analysis",
+        "cve-",
+        "apt",
+        "threat actor",
+        "malware",
+        "ransomware",
+        "phishing kit",
+        "detection",
+    ]
+    .iter()
+    .any(|needle| text.contains(needle));
+
+    explicit_analysis_marker || (research_source_allows_depth && technical_depth_signal)
+}
+
+fn writeup_title_fa(kind: &str, title: &str) -> String {
+    let focus = persian_focus_label(title);
+    let text = match kind {
+        "CVE Analysis" => format!("تحلیل فنی CVE درباره {focus}"),
+        "Malware Writeup" => format!("تحلیل فنی بدافزار درباره {focus}"),
+        "Phishing Analysis" => format!("تحلیل فنی فیشینگ درباره {focus}"),
+        "Incident Analysis" => format!("تحلیل فنی رخداد درباره {focus}"),
+        "Detection Engineering" => format!("یادداشت مهندسی تشخیص درباره {focus}"),
+        "Cloud/SaaS Research" => format!("تحلیل فنی Cloud/SaaS درباره {focus}"),
+        _ => format!("یادداشت پژوهشی درباره {focus}"),
+    };
+    truncate_chars(&text, 72)
+}
+
+fn writeup_kind(item: &FeedItem) -> &'static str {
+    let text =
+        format!("{} {} {}", item.title, item.summary, item.tags.join(" ")).to_ascii_lowercase();
+    if text.contains("cve-")
+        || text.contains("vulnerability")
+        || text.contains("zero-day")
+        || text.contains("exploit")
+    {
+        "CVE Analysis"
+    } else if text.contains("malware")
+        || text.contains("ransomware")
+        || text.contains("trojan")
+        || text.contains("stealer")
+        || text.contains("backdoor")
+    {
+        "Malware Writeup"
+    } else if text.contains("phishing")
+        || text.contains("credential")
+        || text.contains("microsoft 365")
+    {
+        "Phishing Analysis"
+    } else if text.contains("incident")
+        || text.contains("breach")
+        || text.contains("campaign")
+        || text.contains("threat actor")
+        || text.contains("apt")
+    {
+        "Incident Analysis"
+    } else if text.contains("detection")
+        || text.contains("yara")
+        || text.contains("sigma")
+        || text.contains("rule")
+    {
+        "Detection Engineering"
+    } else if text.contains("cloud")
+        || text.contains("aws")
+        || text.contains("azure")
+        || text.contains("kubernetes")
+        || text.contains("container")
+    {
+        "Cloud/SaaS Research"
+    } else {
+        "Research Note"
+    }
+}
+
+fn writeup_kind_fa(kind: &str) -> &'static str {
+    match kind {
+        "CVE Analysis" => "تحلیل CVE",
+        "Malware Writeup" => "تحلیل بدافزار",
+        "Phishing Analysis" => "تحلیل فیشینگ",
+        "Incident Analysis" => "تحلیل رخداد",
+        "Detection Engineering" => "مهندسی تشخیص",
+        "Cloud/SaaS Research" => "تحلیل Cloud/SaaS",
+        _ => "یادداشت پژوهشی",
+    }
+}
+
+fn writeup_note_fa(kind: &str) -> &'static str {
+    match kind {
+        "CVE Analysis" => "برای تطبیق با CVEها، EPSS/KEV و backlog وصله نگه داشته شود؛ این بخش exploit اجرا نمی‌کند.",
+        "Malware Writeup" => "برای correlation با IOC، C2 و خانواده‌های بدافزار استفاده شود؛ نمونه یا payload نمایش داده نمی‌شود.",
+        "Phishing Analysis" => "برای آگاهی ایمیل/هویت و تطبیق با Phishing Pulse استفاده شود؛ URLها عملیاتی نمی‌شوند.",
+        "Incident Analysis" => "برای فهم روند حمله و اثر احتمالی روی کنترل‌های دفاعی مرور شود.",
+        "Detection Engineering" => "برای ایده rule/detection قابل بررسی است، اما هیچ rule یا scan خودکار اجرا نمی‌شود.",
+        "Cloud/SaaS Research" => "برای تطبیق با دارایی‌های Cloud/SaaS و کنترل exposure مرور شود.",
+        _ => "برای زمینه‌سازی triage روزانه و خواندن تحلیل فنی نگه داشته شود.",
+    }
+}
+
+fn writeup_tags(item: &FeedItem) -> Vec<String> {
+    let mut tags = item.tags.iter().take(4).cloned().collect::<Vec<_>>();
+    let kind = writeup_kind(item).to_string();
+    if !tags.iter().any(|tag| tag == &kind) {
+        tags.insert(0, kind);
+    }
+    tags.into_iter()
+        .filter(|tag| !tag.trim().is_empty())
+        .take(5)
+        .collect()
+}
+
+fn writeup_score(item: &FeedItem) -> usize {
+    let mut score = (item.risk_score.max(1) as usize * 9).clamp(12, 90);
+    let text = format!("{} {}", item.title, item.summary).to_ascii_lowercase();
+    if text.contains("cve-") || text.contains("zero-day") || text.contains("actively exploited") {
+        score += 10;
+    }
+    if text.contains("ransomware") || text.contains("malware") || text.contains("phishing") {
+        score += 7;
+    }
+    score.clamp(12, 100)
+}
+
+fn count_chart(mut counts: HashMap<String, usize>, limit: usize) -> Vec<Value> {
+    let mut rows = counts.drain().collect::<Vec<_>>();
+    rows.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let max = rows
+        .iter()
+        .map(|(_, count)| *count)
+        .max()
+        .unwrap_or(1)
+        .max(1);
+    rows.into_iter()
+        .take(limit)
+        .map(|(name, count)| {
+            let width = ((count as f64 / max as f64) * 100.0).round() as usize;
+            json!({
+                "name": truncate_chars(&name, 42),
+                "count": count,
+                "bar_width": width.clamp(12, 100)
+            })
+        })
+        .collect()
+}
+
 fn priority_from_item(item: &FeedItem) -> Value {
     json!({
-        "title": item.title,
-        "summary": item.summary,
-        "source": item.source,
-        "url": item.url,
+        "title": item.title.clone(),
+        "summary": item.summary.clone(),
+        "source": item.source.clone(),
+        "url": item.url.clone(),
         "risk_score": item.risk_score,
         "tags": item.tags
     })
@@ -6936,7 +7416,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.25.2-news-backfill");
+    brief["version"] = json!("v0.4.26.2-independent-writeup-feeds");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -7089,6 +7569,21 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief.get("ics_ot_pulse").is_none() {
         brief["ics_ot_pulse"] = empty_ics_ot_pulse("missing");
+    }
+    if brief.get("writeups_pulse").is_none() {
+        brief["writeups_pulse"] = empty_writeups_pulse("missing");
+    }
+    if brief.get("stats").and_then(|v| v.get("writeups")).is_none() {
+        brief["stats"]["writeups"] =
+            json!(path_u64(brief, &["writeups_pulse", "totals", "writeups"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("writeup_sources"))
+        .is_none()
+    {
+        brief["stats"]["writeup_sources"] =
+            json!(path_u64(brief, &["writeups_pulse", "totals", "sources"]));
     }
     if brief.get("executive_snapshot").is_none() {
         brief["executive_snapshot"] = json!({});
@@ -7319,6 +7814,7 @@ fn apply_local_polish(brief: &mut Value) {
     polish_array_items(brief, "breaking_news", 88, 240);
     polish_array_items(brief, "iran_radar", 88, 240);
     polish_array_items(brief, "global_news", 88, 240);
+    polish_writeups_pulse(brief);
     polish_cves(brief);
     add_editorial_display_fields(brief);
     brief["brief_notes"] = json!(build_brief_notes(brief));
@@ -7343,6 +7839,8 @@ fn build_triage_signals(brief: &Value) -> Value {
     let phishing_high = stat_u64(brief, "phishing_high");
     let ics_advisories = stat_u64(brief, "ics_advisories");
     let ics_high = stat_u64(brief, "ics_high");
+    let writeups = stat_u64(brief, "writeups");
+    let writeup_sources = stat_u64(brief, "writeup_sources");
     let history_changes = stat_u64(brief, "history_changes");
     let failed_rss = stat_u64(brief, "failed_rss_sources");
     let risk_score = path_u64(brief, &["executive_snapshot", "score"]);
@@ -7372,6 +7870,21 @@ fn build_triage_signals(brief: &Value) -> Value {
                 "anchor": "#breaking-news",
                 "bar_width": score,
                 "note_fa": "خبرهای امروز با ترتیب زمان انتشار نمایش داده می‌شوند؛ خبرهای مهم جدا شده‌اند."
+            }),
+        ));
+    }
+
+    if writeups > 0 {
+        let score = (writeups * 8 + writeup_sources * 12).min(100).max(12);
+        signals.push((
+            88 + score,
+            json!({
+                "title": "Writeup / تحلیل تازه",
+                "metric": format!("{writeups} writeup · {writeup_sources} منبع"),
+                "level": if score >= 70 { "medium" } else { "watch" },
+                "anchor": "#writeups-pulse",
+                "bar_width": score,
+                "note_fa": "تحلیل‌های تازه را جدا از خبر خام ببین؛ خروجی فقط خلاصه و metadata است."
             }),
         ));
     }
@@ -7658,6 +8171,12 @@ fn history_metrics() -> Vec<HistoryMetric> {
             baseline: 30,
         },
         HistoryMetric {
+            key: "writeups",
+            label_fa: "Writeup امنیتی",
+            path: &["stats", "writeups"],
+            baseline: 20,
+        },
+        HistoryMetric {
             key: "cves",
             label_fa: "CVE",
             path: &["stats", "cves"],
@@ -7812,6 +8331,34 @@ fn polish_array_items(brief: &mut Value, key: &str, title_max: usize, summary_ma
         }
         if let Some(Value::String(summary)) = obj.get_mut("summary") {
             *summary = non_empty_summary(summary, summary_max);
+        }
+    }
+}
+
+fn polish_writeups_pulse(brief: &mut Value) {
+    let Some(items) = brief
+        .get_mut("writeups_pulse")
+        .and_then(|value| value.get_mut("writeups"))
+        .and_then(|value| value.as_array_mut())
+    else {
+        return;
+    };
+
+    for item in items {
+        let Some(obj) = item.as_object_mut() else {
+            continue;
+        };
+        if let Some(Value::String(title)) = obj.get_mut("title") {
+            *title = concise_title(title, 92);
+        }
+        if let Some(Value::String(summary)) = obj.get_mut("summary") {
+            *summary = non_empty_summary(summary, 260);
+        }
+        if let Some(Value::String(title_fa)) = obj.get_mut("title_fa") {
+            *title_fa = truncate_chars(title_fa, 76);
+        }
+        if let Some(Value::String(summary_fa)) = obj.get_mut("summary_fa") {
+            *summary_fa = truncate_chars(summary_fa, 210);
         }
     }
 }

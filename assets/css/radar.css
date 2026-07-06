@@ -549,3 +549,14 @@ html.radar-focus-mode .panel.is-focused {
 .news-card.risk-news-general {
   border-inline-start: 3px solid var(--watch);
 }
+
+.writeups-panel {
+  border-color: rgba(125, 211, 252, 0.24);
+  background: linear-gradient(145deg, rgba(125, 211, 252, 0.055), rgba(13, 18, 28, 0.48));
+}
+.writeup-card {
+  border-inline-start: 3px solid var(--accent);
+}
+.writeup-card.risk-high { border-inline-start-color: var(--high); }
+.writeup-card.risk-medium { border-inline-start-color: var(--medium); }
+.writeup-card.risk-watch { border-inline-start-color: var(--watch); }

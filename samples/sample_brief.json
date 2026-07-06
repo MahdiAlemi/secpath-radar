@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.25.2-news-backfill",
+  "version": "v0.4.26.2-independent-writeup-feeds",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -36,7 +36,9 @@
     "history_changes": 0,
     "ics_advisories": 0,
     "ics_high": 0,
-    "ics_vendors": 0
+    "ics_vendors": 0,
+    "writeups": 2,
+    "writeup_sources": 2
   },
   "source_health": {
     "rss_sources": 18,
@@ -438,7 +440,7 @@
     "generated_at": "sample",
     "previous_available": false,
     "previous_version": "none",
-    "current_version": "v0.4.25.2-news-backfill",
+    "current_version": "v0.4.26.2-independent-writeup-feeds",
     "summary_fa": "نمونه محلی برای نمایش تغییرات نسبت به اجرای قبل؛ در اجرای واقعی از data/latest_brief.json قبلی محاسبه می‌شود.",
     "totals": {
       "tracked": 13,
@@ -516,5 +518,90 @@
       "bar_width": 96,
       "note_fa": "IOC، C2 و TLS بدخواه را فقط برای correlation دفاعی ببین."
     }
-  ]
+  ],
+  "writeups_pulse": {
+    "enabled": true,
+    "source": "Dedicated research/writeup RSS feeds",
+    "safe_mode": "summary and metadata only; no exploit steps; no code execution",
+    "summary_fa": "2 writeup تحلیلی تازه از 1 منبع جدا شد؛ این بخش خبر خام را از تحلیل فنی جدا می‌کند.",
+    "totals": {
+      "writeups": 2,
+      "candidates": 2,
+      "hidden": 0,
+      "sources": 1,
+      "kinds": 2
+    },
+    "writeups": [
+      {
+        "rank": 1,
+        "title": "Ransomware group abuses exposed edge devices",
+        "title_fa": "سوءاستفاده باج‌افزار از تجهیزات edge exposed",
+        "summary": "Researchers observed ransomware activity involving exposed edge devices.",
+        "summary_fa": "پژوهشگران فعالیت باج‌افزاری مرتبط با تجهیزات edge در معرض اینترنت را گزارش کرده‌اند.",
+        "source": "Sample",
+        "url": "#",
+        "published": "",
+        "published_date_local": "",
+        "published_time_local": "",
+        "freshness_label": "زمان نمونه",
+        "kind": "CVE Analysis",
+        "kind_fa": "تحلیل CVE",
+        "risk": "medium",
+        "risk_score": 8,
+        "bar_width": 12,
+        "tags": [
+          "Ransomware"
+        ],
+        "note_fa": "برای triage دفاعی و تطبیق با سایر سیگنال‌ها نگه داشته شود.",
+        "safe_mode": "metadata only"
+      },
+      {
+        "rank": 2,
+        "title": "New AI security guidance released",
+        "title_fa": "راهنمای تازه برای امنیت هوش مصنوعی منتشر شد",
+        "summary": "A new AI security guidance document was released for defenders.",
+        "summary_fa": "راهنمایی تازه برای مدیریت ریسک‌های امنیتی هوش مصنوعی منتشر شده است.",
+        "source": "Sample",
+        "url": "#",
+        "published": "",
+        "published_date_local": "",
+        "published_time_local": "",
+        "freshness_label": "زمان نمونه",
+        "kind": "Malware Writeup",
+        "kind_fa": "تحلیل بدافزار",
+        "risk": "medium",
+        "risk_score": 4,
+        "bar_width": 12,
+        "tags": [
+          "AI Security"
+        ],
+        "note_fa": "برای triage دفاعی و تطبیق با سایر سیگنال‌ها نگه داشته شود.",
+        "safe_mode": "metadata only"
+      }
+    ],
+    "source_chart": [
+      {
+        "name": "Sample",
+        "count": 1,
+        "bar_width": 100
+      },
+      {
+        "name": "Sample",
+        "count": 1,
+        "bar_width": 100
+      }
+    ],
+    "kind_chart": [
+      {
+        "name": "CVE Analysis",
+        "count": 1,
+        "bar_width": 100
+      },
+      {
+        "name": "Malware Writeup",
+        "count": 1,
+        "bar_width": 100
+      }
+    ]
+  }
 }

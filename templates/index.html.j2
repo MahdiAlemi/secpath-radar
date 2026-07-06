@@ -49,6 +49,7 @@
       <a href="#top-signals">اولویت‌ها</a>
       <a href="#breaking-news">Breaking</a>
       <a href="#global-news">خبر امروز</a>
+      <a href="#writeups-pulse">Writeups</a>
       <a href="#executive-snapshot">مدیریتی</a>
       <a href="#history-snapshot">تغییرات</a>
       <a href="#cves">CVE</a>
@@ -63,7 +64,7 @@
       <div class="metric-primary"><span>Risk Score</span><b>{{ brief.executive_snapshot.score }}</b><small>{{ brief.executive_snapshot.level }}</small></div>
       <div><span>CVE بحرانی</span><b>{{ brief.stats.critical_cves }}</b><small>{{ brief.stats.cves }} CVE</small></div>
       <div><span>Exploitability</span><b>{{ brief.stats.kev }}</b><small>{{ brief.stats.epss_rising }} EPSS↑ · {{ brief.stats.vulnrichment_hits }} CISA</small></div>
-      <div><span>خبر امروز</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} breaking · {{ brief.source_health.rss_sources }} RSS</small></div>
+      <div><span>خبر امروز</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} breaking · {{ brief.stats.writeups }} writeup</small></div>
       <div><span>تهدید فعال</span><b>{{ brief.stats.iocs }}</b><small>{{ brief.stats.botnet_c2 }} C2 · {{ brief.stats.phishing_urls }} phish</small></div>
     </section>
 
@@ -216,6 +217,28 @@
               <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title_fa }}</a></h3>
               <p>{{ item.summary_fa }}</p>
               <div class="meta-row"><span>{{ item.source }}</span><small>{{ item.freshness_label }}</small><small>Risk {{ item.risk_score }}</small><small>{{ item.category }}</small></div>
+            </article>
+            {% endif %}{% endfor %}
+          </div>
+        </section>
+
+
+        <section id="writeups-pulse" class="panel news-panel writeups-panel dominant-panel" aria-label="Daily Writeups Pulse">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">Daily Writeups</span><h2>تحلیل‌های تازه، جدیدتر اول</h2></div>
+            <span class="count">{{ brief.writeups_pulse.totals.writeups }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.writeups_pulse.summary_fa }} خروجی فقط خلاصه و metadata است؛ هیچ exploit step، کد یا اجرای عملیاتی نمایش داده نمی‌شود.</p>
+          <div class="tiny-bars split-two">
+            {% for row in brief.writeups_pulse.kind_chart %}{% if loop.index <= 5 %}<div class="risk-watch"><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endif %}{% endfor %}
+          </div>
+          <div class="news-list dense-news">
+            {% if brief.writeups_pulse.writeups | length == 0 %}<article class="empty-row">Writeup تازه‌ای در پنجره خبری فعلی دیده نشد.</article>{% endif %}
+            {% for item in brief.writeups_pulse.writeups %}{% if loop.index <= 8 %}
+            <article class="news-card writeup-card risk-{{ item.risk }}">
+              <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title_fa }}</a></h3>
+              <p>{{ item.summary_fa }}</p>
+              <div class="meta-row"><span>{{ item.source }}</span><small>{{ item.freshness_label }}</small><small>{{ item.kind_fa }}</small><small>Risk {{ item.risk_score }}</small></div>
             </article>
             {% endif %}{% endfor %}
           </div>
@@ -391,7 +414,7 @@
     </section>
 
     <footer>
-      <p><b>SecPath Radar {{ brief.version }}</b> — خبرهای روزانه با ترتیب جدیدتر-اول، Breaking جدا و backfill امن برای cache ناقص/قدیمی؛ فقط خواندنی و با تعامل محلی.</p>
+      <p><b>SecPath Radar {{ brief.version }}</b> — خبرهای روزانه و writeupهای تازه با ترتیب جدیدتر-اول، Breaking جدا و backfill امن برای cache ناقص/قدیمی؛ فقط خواندنی و با تعامل محلی.</p>
     </footer>
   </main>
 </body>
