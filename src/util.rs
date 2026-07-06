@@ -76,7 +76,6 @@ pub(crate) fn push_tag(tags: &mut Vec<String>, tag: String) {
 
 /// Human-readable phase suffix appended to the crate version in the brief.
 /// Update this once per phase; the numeric version comes from Cargo.toml.
-pub(crate) const PHASE_NAME: &str = "nuclei-template-coverage";
 
 #[cfg(test)]
 mod tests {

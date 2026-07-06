@@ -317,6 +317,39 @@
       {{ empty_pulse("phishing-pulse", "فیشینگ", "Phishing", brief.phishing_pulse.provider, brief.phishing_pulse.summary_fa) }}
       {% endif %}
 
+      {% if brief.malware_pulse.ok %}
+      <section id="malware-pulse" class="panel">
+        <div class="panel-head"><div><span class="eyebrow">Malware</span><h2>نمونه‌های بدافزار</h2></div><span class="chip">{{ brief.malware_pulse.totals.samples }} نمونه</span></div>
+        <p class="lede">{{ brief.malware_pulse.summary_fa }}</p>
+        {{ bars(brief.malware_pulse.family_chart, 5) }}
+        <div class="meta"><span>{{ brief.malware_pulse.provider }}</span><span>hash-only</span></div>
+      </section>
+      {% else %}
+      {{ empty_pulse("malware-pulse", "نمونه‌های بدافزار", "Malware", brief.malware_pulse.provider, brief.malware_pulse.summary_fa) }}
+      {% endif %}
+
+      {% if brief.drop_pulse.ok %}
+      <section id="drop-pulse" class="panel">
+        <div class="panel-head"><div><span class="eyebrow">DROP</span><h2>رنج‌های IP خصمانه</h2></div><span class="chip">{{ brief.drop_pulse.totals.ranges }} رنج</span></div>
+        <p class="lede">{{ brief.drop_pulse.summary_fa }}</p>
+        {{ bars(brief.drop_pulse.rir_chart, 5) }}
+        <div class="meta"><span>{{ brief.drop_pulse.provider }}</span><span>defanged</span></div>
+      </section>
+      {% else %}
+      {{ empty_pulse("drop-pulse", "رنج‌های IP خصمانه", "DROP", brief.drop_pulse.provider, brief.drop_pulse.summary_fa) }}
+      {% endif %}
+
+      {% if brief.csaf_pulse.ok %}
+      <section id="csaf-pulse" class="panel">
+        <div class="panel-head"><div><span class="eyebrow">CSAF</span><h2>اطلاعیه‌های وندور</h2></div><span class="chip">{{ brief.csaf_pulse.totals.advisories }} advisory</span></div>
+        <p class="lede">{{ brief.csaf_pulse.summary_fa }}</p>
+        {{ bars(brief.csaf_pulse.severity_chart, 5) }}
+        <div class="meta"><span>{{ brief.csaf_pulse.provider }}</span></div>
+      </section>
+      {% else %}
+      {{ empty_pulse("csaf-pulse", "اطلاعیه‌های وندور", "CSAF", brief.csaf_pulse.provider, brief.csaf_pulse.summary_fa) }}
+      {% endif %}
+
       {% if brief.ics_ot_pulse.ok %}
       <section id="ics-ot-pulse" class="panel">
         <div class="panel-head"><div><span class="eyebrow">ICS / OT</span><h2>صنعتی و OT</h2></div><span class="chip">{{ brief.ics_ot_pulse.totals.advisories }} advisory</span></div>

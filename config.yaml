@@ -88,6 +88,19 @@ intel:
     enabled: true
     max_advisories: 12
     ics_advisories_feed_url: "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml"
+  malware_bazaar:
+    enabled: true
+    max_samples: 14
+    recent_csv_url: "https://bazaar.abuse.ch/export/csv/recent/"
+  spamhaus_drop:
+    enabled: true
+    max_ranges: 14
+    drop_v4_url: "https://www.spamhaus.org/drop/drop_v4.json"
+  csaf:
+    enabled: true
+    max_advisories: 6
+    changes_csv_url: "https://security.access.redhat.com/data/csaf/v2/advisories/changes.csv"
+    base_url: "https://security.access.redhat.com/data/csaf/v2/advisories"
   nuclei_coverage:
     enabled: true
     max_templates: 12

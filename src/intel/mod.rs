@@ -4,14 +4,17 @@ use crate::prelude::*;
 
 pub(crate) mod attack_pressure;
 pub(crate) mod botnet_c2;
+pub(crate) mod csaf;
 pub(crate) mod greynoise;
 pub(crate) mod ics_ot;
 pub(crate) mod infrastructure;
 pub(crate) mod ioc_radar;
+pub(crate) mod malware_bazaar;
 pub(crate) mod nuclei_coverage;
 pub(crate) mod phishing;
 pub(crate) mod poc_watch;
 pub(crate) mod ransomware;
+pub(crate) mod spamhaus_drop;
 pub(crate) mod supply_chain;
 
 pub(crate) fn intel_source_count(config: &Config) -> usize {
@@ -51,6 +54,15 @@ pub(crate) fn intel_source_count(config: &Config) -> usize {
         count += 1;
     }
     if config.intel.poc_watch.enabled {
+        count += 1;
+    }
+    if config.intel.malware_bazaar.enabled {
+        count += 1;
+    }
+    if config.intel.spamhaus_drop.enabled {
+        count += 1;
+    }
+    if config.intel.csaf.enabled {
         count += 1;
     }
     count

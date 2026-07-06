@@ -165,6 +165,23 @@ fn main() -> Result<()> {
         brief["stats"]["ics_vendors"] = json!(path_u64(&ics_ot_pulse, &["totals", "vendors"]));
         brief["ics_ot_pulse"] = ics_ot_pulse;
 
+        let malware_pulse =
+            fetch_malware_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        brief["stats"]["malware_samples"] = json!(path_u64(&malware_pulse, &["totals", "samples"]));
+        brief["stats"]["malware_families"] =
+            json!(path_u64(&malware_pulse, &["totals", "families"]));
+        brief["malware_pulse"] = malware_pulse;
+
+        let drop_pulse = fetch_drop_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        brief["stats"]["drop_ranges"] = json!(path_u64(&drop_pulse, &["totals", "ranges"]));
+        brief["stats"]["drop_big_ranges"] = json!(path_u64(&drop_pulse, &["totals", "big_ranges"]));
+        brief["drop_pulse"] = drop_pulse;
+
+        let csaf_pulse = fetch_csaf_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        brief["stats"]["csaf_advisories"] = json!(path_u64(&csaf_pulse, &["totals", "advisories"]));
+        brief["stats"]["csaf_critical"] = json!(path_u64(&csaf_pulse, &["totals", "critical"]));
+        brief["csaf_pulse"] = csaf_pulse;
+
         let nuclei_coverage = fetch_nuclei_coverage_or_fallback(
             &config,
             &brief["cves"],

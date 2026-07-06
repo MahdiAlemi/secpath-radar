@@ -100,6 +100,12 @@ pub(crate) struct IntelConfig {
     pub(crate) nuclei_coverage: NucleiCoverageConfig,
     #[serde(default)]
     pub(crate) poc_watch: PocWatchConfig,
+    #[serde(default)]
+    pub(crate) malware_bazaar: MalwareBazaarConfig,
+    #[serde(default)]
+    pub(crate) spamhaus_drop: SpamhausDropConfig,
+    #[serde(default)]
+    pub(crate) csaf: CsafConfig,
 }
 
 impl Default for IntelConfig {
@@ -120,6 +126,9 @@ impl Default for IntelConfig {
             ics_ot: IcsOtConfig::default(),
             nuclei_coverage: NucleiCoverageConfig::default(),
             poc_watch: PocWatchConfig::default(),
+            malware_bazaar: MalwareBazaarConfig::default(),
+            spamhaus_drop: SpamhausDropConfig::default(),
+            csaf: CsafConfig::default(),
         }
     }
 }
@@ -821,4 +830,107 @@ pub(crate) fn load_config(path: &PathBuf) -> Result<Config> {
     let raw = fs::read_to_string(path)
         .with_context(|| format!("failed to read config: {}", path.display()))?;
     serde_yaml::from_str(&raw).with_context(|| format!("invalid YAML in {}", path.display()))
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct MalwareBazaarConfig {
+    #[serde(default = "default_malware_bazaar_enabled")]
+    pub(crate) enabled: bool,
+    #[serde(default = "default_malware_bazaar_max_samples")]
+    pub(crate) max_samples: usize,
+    #[serde(default = "default_malware_bazaar_recent_csv_url")]
+    pub(crate) recent_csv_url: String,
+}
+
+impl Default for MalwareBazaarConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_malware_bazaar_enabled(),
+            max_samples: default_malware_bazaar_max_samples(),
+            recent_csv_url: default_malware_bazaar_recent_csv_url(),
+        }
+    }
+}
+
+pub(crate) fn default_malware_bazaar_enabled() -> bool {
+    true
+}
+
+pub(crate) fn default_malware_bazaar_max_samples() -> usize {
+    14
+}
+
+pub(crate) fn default_malware_bazaar_recent_csv_url() -> String {
+    "https://bazaar.abuse.ch/export/csv/recent/".to_string()
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct SpamhausDropConfig {
+    #[serde(default = "default_spamhaus_drop_enabled")]
+    pub(crate) enabled: bool,
+    #[serde(default = "default_spamhaus_drop_max_ranges")]
+    pub(crate) max_ranges: usize,
+    #[serde(default = "default_spamhaus_drop_v4_url")]
+    pub(crate) drop_v4_url: String,
+}
+
+impl Default for SpamhausDropConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_spamhaus_drop_enabled(),
+            max_ranges: default_spamhaus_drop_max_ranges(),
+            drop_v4_url: default_spamhaus_drop_v4_url(),
+        }
+    }
+}
+
+pub(crate) fn default_spamhaus_drop_enabled() -> bool {
+    true
+}
+
+pub(crate) fn default_spamhaus_drop_max_ranges() -> usize {
+    14
+}
+
+pub(crate) fn default_spamhaus_drop_v4_url() -> String {
+    "https://www.spamhaus.org/drop/drop_v4.json".to_string()
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct CsafConfig {
+    #[serde(default = "default_csaf_enabled")]
+    pub(crate) enabled: bool,
+    #[serde(default = "default_csaf_max_advisories")]
+    pub(crate) max_advisories: usize,
+    #[serde(default = "default_csaf_changes_csv_url")]
+    pub(crate) changes_csv_url: String,
+    #[serde(default = "default_csaf_base_url")]
+    pub(crate) base_url: String,
+}
+
+impl Default for CsafConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_csaf_enabled(),
+            max_advisories: default_csaf_max_advisories(),
+            changes_csv_url: default_csaf_changes_csv_url(),
+            base_url: default_csaf_base_url(),
+        }
+    }
+}
+
+pub(crate) fn default_csaf_enabled() -> bool {
+    true
+}
+
+pub(crate) fn default_csaf_max_advisories() -> usize {
+    6
+}
+
+pub(crate) fn default_csaf_changes_csv_url() -> String {
+    "https://security.access.redhat.com/data/csaf/v2/advisories/changes.csv".to_string()
+}
+
+pub(crate) fn default_csaf_base_url() -> String {
+    "https://security.access.redhat.com/data/csaf/v2/advisories".to_string()
 }
