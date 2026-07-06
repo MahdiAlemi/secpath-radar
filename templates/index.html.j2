@@ -133,6 +133,18 @@
         {% endif %}
         <div class="meta"><span>قبلی: {{ brief.history_snapshot.previous_version }}</span><span>local only</span></div>
       </section>
+      <section id="trend-pulse" class="panel">
+        <div class="panel-head"><div><span class="eyebrow">Trend</span><h2>روند چند اجرای اخیر</h2></div><span class="chip">{{ brief.trend_pulse.totals.runs }} اجرا</span></div>
+        {% if brief.trend_pulse.ok %}
+        <p class="lede">{{ brief.trend_pulse.summary_fa }}</p>
+        {% for row in brief.trend_pulse.rows %}{% if loop.index <= 6 %}
+        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label_fa }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
+        {% endif %}{% endfor %}
+        <div class="meta"><span>{{ brief.trend_pulse.span_fa }}</span><span>local snapshots</span></div>
+        {% else %}
+        <p class="empty-note">{{ brief.trend_pulse.summary_fa }}</p>
+        {% endif %}
+      </section>
     </div>
   </section>
 

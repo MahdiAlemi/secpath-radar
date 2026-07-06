@@ -10,10 +10,12 @@ mod history;
 mod intel;
 mod model;
 mod news;
+mod output;
 mod polish;
 mod prelude;
 mod render;
 mod snapshot;
+mod trend;
 mod util;
 mod writeups;
 
@@ -251,6 +253,8 @@ fn main() -> Result<()> {
         eprintln!("⚠️  history snapshot skipped: {err:#}");
     }
 
+    build_trend_pulse(&mut brief);
+
     fs::create_dir_all("data").context("failed to create data directory")?;
     fs::write(
         "data/latest_brief.json",
@@ -260,6 +264,12 @@ fn main() -> Result<()> {
 
     render_html(&brief, &args.template, &args.out)?;
     copy_static_assets(&args.out)?;
+
+    match write_feed_xml(&brief, &config, &args.out).and_then(|_| write_json_api(&brief, &args.out))
+    {
+        Ok(()) => println!("✅ wrote site/feed.xml + site/api"),
+        Err(err) => eprintln!("⚠️  static outputs skipped: {err:#}"),
+    }
     println!("✅ rendered {}", args.out.display());
     println!("✅ wrote data/latest_brief.json");
     println!("ℹ️ Gemini calls used: {gemini_calls_used}");

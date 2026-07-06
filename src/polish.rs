@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 pub(crate) fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.30-ai-editorial-v2");
+    brief["version"] = json!("v0.4.31-trend-and-static-api");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({

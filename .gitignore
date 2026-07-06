@@ -17,3 +17,5 @@ secpath-radar.tar
 secpath-radar.tar.gz
 *.tar
 *.tar.gz
+site/feed.xml
+site/api/
