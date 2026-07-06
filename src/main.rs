@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 
 mod ai;
+mod archive;
 mod brief;
 mod cache;
 mod cli;
@@ -17,6 +18,7 @@ mod render;
 mod snapshot;
 mod trend;
 mod util;
+mod weekly;
 mod writeups;
 
 use crate::prelude::*;
@@ -269,6 +271,14 @@ fn main() -> Result<()> {
     {
         Ok(()) => println!("✅ wrote site/feed.xml + site/api"),
         Err(err) => eprintln!("⚠️  static outputs skipped: {err:#}"),
+    }
+
+    if let Err(err) = write_daily_archive(&brief) {
+        eprintln!("⚠️  daily archive skipped: {err:#}");
+    }
+    match render_weekly_page(&args.template, &args.out) {
+        Ok(()) => println!("✅ rendered site/weekly.html"),
+        Err(err) => eprintln!("⚠️  weekly page skipped: {err:#}"),
     }
     println!("✅ rendered {}", args.out.display());
     println!("✅ wrote data/latest_brief.json");

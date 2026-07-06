@@ -19,3 +19,4 @@ secpath-radar.tar.gz
 *.tar.gz
 site/feed.xml
 site/api/
+site/weekly.html
