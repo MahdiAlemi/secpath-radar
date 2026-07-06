@@ -125,9 +125,9 @@ gemini:
   api_url: "https://generativelanguage.googleapis.com/v1beta"
   cache_dir: "data/cache/ai"
   temperature: 0.15
-  max_iran_items: 5
-  max_global_news: 6
-  max_cves: 5
+  max_iran_items: 6
+  max_global_news: 10
+  max_cves: 10
 
 filters:
   iran_keywords:

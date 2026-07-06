@@ -1,6 +1,9 @@
-//! Gemini editorial layer: prompts, schema, cache, and merge.
+//! Gemini editorial layer: batched calls, per-item content cache, schema-locked output.
 
 use crate::prelude::*;
+use std::collections::HashMap;
+
+pub(crate) const AI_PROMPT_VERSION: &str = "d1";
 
 pub(crate) struct GeminiEditResult {
     pub(crate) brief: Value,
@@ -8,46 +11,98 @@ pub(crate) struct GeminiEditResult {
     pub(crate) cache_hit: bool,
 }
 
+const NEWS_SECTIONS: [&str; 2] = ["iran_radar", "global_news"];
+
 pub(crate) fn enhance_brief_with_gemini(
     config: &Config,
     brief: &Value,
     refresh_ai: bool,
     offline: bool,
 ) -> Result<GeminiEditResult> {
-    let compact = compact_brief_for_ai(config, brief);
-    let cache_key = ai_cache_key(&config.gemini.model, &compact);
+    let mut edited = brief.clone();
+    let mut cache_hits: u64 = 0;
+    let mut pending_news: Vec<(String, String, usize)> = Vec::new();
+    let mut pending_cves: Vec<(String, String, usize)> = Vec::new();
 
-    if !refresh_ai {
-        if let Some(cached) = read_ai_cache(config, &cache_key)? {
-            let edited = merge_ai_result(brief.clone(), &cached);
-            return Ok(GeminiEditResult {
-                brief: mark_ai_status(edited, true, true, &config.gemini.model, 0, None),
-                calls_used: 0,
-                cache_hit: true,
-            });
+    let alert_key = item_cache_key(&config.gemini.model, "alert", &edited["priority_alert"]);
+    let mut alert_needed = edited
+        .get("priority_alert")
+        .and_then(|v| v.as_object())
+        .map(|obj| !obj.is_empty())
+        .unwrap_or(false);
+    if alert_needed && !refresh_ai {
+        if let Some(cached) = read_item_cache(config, &alert_key) {
+            if merge_batch_alert(&mut edited, &cached) {
+                cache_hits += 1;
+                alert_needed = false;
+            }
         }
     }
 
-    if offline {
+    for section in NEWS_SECTIONS {
+        let limit = editorial_limit(config, section);
+        collect_pending_items(
+            config,
+            &mut edited,
+            section,
+            limit,
+            refresh_ai,
+            "n",
+            &mut cache_hits,
+            &mut pending_news,
+        );
+    }
+    collect_pending_items(
+        config,
+        &mut edited,
+        "cves",
+        config.gemini.max_cves,
+        refresh_ai,
+        "c",
+        &mut cache_hits,
+        &mut pending_cves,
+    );
+
+    if pending_news.is_empty() && pending_cves.is_empty() && !alert_needed {
+        let cache_hit = cache_hits > 0;
         let edited = mark_ai_status(
-            brief.clone(),
-            false,
-            false,
+            edited,
+            true,
+            cache_hit,
             &config.gemini.model,
             0,
-            Some("offline mode has no matching Gemini cache".to_string()),
+            cache_hits,
+            0,
+            None,
         );
         return Ok(GeminiEditResult {
             brief: edited,
             calls_used: 0,
-            cache_hit: false,
+            cache_hit,
+        });
+    }
+
+    if offline {
+        let cache_hit = cache_hits > 0;
+        let edited = mark_ai_status(
+            edited,
+            cache_hit,
+            cache_hit,
+            &config.gemini.model,
+            0,
+            cache_hits,
+            0,
+            Some("offline mode: applied cached AI items only".to_string()),
+        );
+        return Ok(GeminiEditResult {
+            brief: edited,
+            calls_used: 0,
+            cache_hit,
         });
     }
 
     let api_key = get_env_or_dotenv("GEMINI_API_KEY")
         .context("GEMINI_API_KEY is not set. Put it in .env or export it before using --ai")?;
-
-    let prompt = build_gemini_prompt(&compact)?;
 
     let url = format!(
         "{}/models/{}:generateContent",
@@ -61,23 +116,536 @@ pub(crate) fn enhance_brief_with_gemini(
         .build()
         .context("failed to build HTTP client for Gemini")?;
 
-    let text = send_gemini_prompt(
-        &client,
-        &url,
-        &api_key,
-        &prompt,
-        config.gemini.temperature,
-        8192,
-    )
-    .context("Gemini request failed")?;
+    let mut calls_used: u8 = 0;
+    let mut items_generated: u64 = 0;
+    let mut errors: Vec<String> = Vec::new();
+
+    if alert_needed || !pending_news.is_empty() {
+        let prompt = build_news_batch_prompt(&edited, alert_needed, &pending_news)?;
+        match run_gemini_batch(
+            &client,
+            &url,
+            &api_key,
+            &prompt,
+            config.gemini.temperature,
+            &gemini_news_schema(),
+        ) {
+            Ok((value, calls)) => {
+                calls_used = calls_used.saturating_add(calls);
+                if alert_needed {
+                    if let Some(alert) = value.get("priority_alert") {
+                        let editorial = sanitize_editorial("news", alert);
+                        if merge_batch_alert(&mut edited, &editorial) {
+                            let _ = write_item_cache(config, &alert_key, &editorial);
+                            items_generated += 1;
+                        }
+                    }
+                }
+                items_generated += apply_batch_items(
+                    config,
+                    &mut edited,
+                    &pending_refs(&pending_news),
+                    value.get("items"),
+                    "news",
+                );
+            }
+            Err(err) => {
+                eprintln!("⚠️  Gemini news batch failed: {err:#}");
+                errors.push(format!("news batch: {err:#}"));
+            }
+        }
+    }
+
+    if !pending_cves.is_empty() {
+        let prompt = build_cve_batch_prompt(&edited, &pending_cves)?;
+        match run_gemini_batch(
+            &client,
+            &url,
+            &api_key,
+            &prompt,
+            config.gemini.temperature,
+            &gemini_cve_schema(),
+        ) {
+            Ok((value, calls)) => {
+                calls_used = calls_used.saturating_add(calls);
+                items_generated += apply_batch_items(
+                    config,
+                    &mut edited,
+                    &pending_refs(&pending_cves),
+                    value.get("items"),
+                    "cve",
+                );
+            }
+            Err(err) => {
+                eprintln!("⚠️  Gemini CVE batch failed: {err:#}");
+                errors.push(format!("cve batch: {err:#}"));
+            }
+        }
+    }
+
+    let ok = errors.is_empty();
+    let error = if ok { None } else { Some(errors.join(" | ")) };
+    let cache_hit = calls_used == 0 && cache_hits > 0;
+    let edited = mark_ai_status(
+        edited,
+        ok,
+        cache_hit,
+        &config.gemini.model,
+        calls_used,
+        cache_hits,
+        items_generated,
+        error,
+    );
+    Ok(GeminiEditResult {
+        brief: edited,
+        calls_used,
+        cache_hit,
+    })
+}
+
+pub(crate) fn editorial_limit(config: &Config, section: &str) -> usize {
+    match section {
+        "iran_radar" => config.gemini.max_iran_items,
+        "global_news" => config.gemini.max_global_news,
+        "cves" => config.gemini.max_cves,
+        _ => 0,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_pending_items(
+    config: &Config,
+    brief: &mut Value,
+    section: &str,
+    limit: usize,
+    refresh_ai: bool,
+    ref_prefix: &str,
+    cache_hits: &mut u64,
+    pending: &mut Vec<(String, String, usize)>,
+) {
+    let count = brief
+        .get(section)
+        .and_then(|v| v.as_array())
+        .map(|items| items.len())
+        .unwrap_or(0)
+        .min(limit);
+    for index in 0..count {
+        let key = {
+            let Some(item) = brief
+                .get(section)
+                .and_then(|v| v.as_array())
+                .and_then(|items| items.get(index))
+            else {
+                continue;
+            };
+            item_cache_key(&config.gemini.model, section, item)
+        };
+        let mut cached_applied = false;
+        if !refresh_ai {
+            if let Some(cached) = read_item_cache(config, &key) {
+                if merge_batch_item(brief, section, index, &cached) {
+                    *cache_hits += 1;
+                    cached_applied = true;
+                }
+            }
+        }
+        if !cached_applied {
+            let reference = format!("{}{}", ref_prefix, pending.len());
+            pending.push((reference, section.to_string(), index));
+        }
+    }
+}
+
+pub(crate) fn pending_refs(
+    pending: &[(String, String, usize)],
+) -> HashMap<String, (String, usize)> {
+    pending
+        .iter()
+        .map(|(reference, section, index)| (reference.clone(), (section.clone(), *index)))
+        .collect()
+}
+
+pub(crate) fn apply_batch_items(
+    config: &Config,
+    brief: &mut Value,
+    refs: &HashMap<String, (String, usize)>,
+    items: Option<&Value>,
+    kind: &str,
+) -> u64 {
+    let Some(items) = items.and_then(|v| v.as_array()) else {
+        return 0;
+    };
+    let mut applied = 0u64;
+    for raw in items {
+        let Some(reference) = raw.get("ref").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        let Some((section, index)) = refs.get(reference) else {
+            continue;
+        };
+        let editorial = sanitize_editorial(kind, raw);
+        let key = brief
+            .get(section.as_str())
+            .and_then(|v| v.as_array())
+            .and_then(|list| list.get(*index))
+            .map(|item| item_cache_key(&config.gemini.model, section, item));
+        if merge_batch_item(brief, section, *index, &editorial) {
+            if let Some(key) = key {
+                let _ = write_item_cache(config, &key, &editorial);
+            }
+            applied += 1;
+        }
+    }
+    applied
+}
+
+pub(crate) fn merge_batch_item(
+    brief: &mut Value,
+    section: &str,
+    index: usize,
+    editorial: &Value,
+) -> bool {
+    if !editorial_is_usable(editorial) {
+        return false;
+    }
+    let Some(items) = brief.get_mut(section).and_then(|v| v.as_array_mut()) else {
+        return false;
+    };
+    let Some(target) = items.get_mut(index) else {
+        return false;
+    };
+    if !target.is_object() {
+        return false;
+    }
+    merge_object_preserve_existing(target, editorial);
+    true
+}
+
+pub(crate) fn merge_batch_alert(brief: &mut Value, editorial: &Value) -> bool {
+    if !editorial_is_usable(editorial) {
+        return false;
+    }
+    let Some(alert) = brief.get_mut("priority_alert") else {
+        return false;
+    };
+    if !alert.is_object() {
+        return false;
+    }
+    merge_object_preserve_existing(alert, editorial);
+    true
+}
+
+pub(crate) fn sanitize_editorial(kind: &str, value: &Value) -> Value {
+    let mut clean = serde_json::Map::new();
+    let Some(obj) = value.as_object() else {
+        return Value::Object(clean);
+    };
+    let keys: &[&str] = if kind == "cve" {
+        &[
+            "title_fa",
+            "summary_fa",
+            "why_it_matters",
+            "recommended_action",
+            "ops_note",
+        ]
+    } else {
+        &["title_fa", "summary_fa", "why_it_matters", "ops_note"]
+    };
+    for key in keys {
+        if let Some(Value::String(text)) = obj.get(*key) {
+            let trimmed = text.trim();
+            if !trimmed.is_empty() {
+                clean.insert((*key).to_string(), json!(trimmed));
+            }
+        }
+    }
+    if kind == "news" {
+        if let Some(score) = obj.get("iran_relevance").and_then(|v| v.as_i64()) {
+            if (0..=100).contains(&score) {
+                clean.insert("iran_relevance".to_string(), json!(score));
+            }
+        }
+    }
+    Value::Object(clean)
+}
+
+pub(crate) fn editorial_is_usable(editorial: &Value) -> bool {
+    editorial
+        .as_object()
+        .map(|obj| obj.keys().any(|key| key != "iran_relevance"))
+        .unwrap_or(false)
+}
+
+pub(crate) fn item_identity(section: &str, item: &Value) -> String {
+    let mut parts: Vec<String> = vec![section.to_string()];
+    for key in ["cve_id", "url", "title", "summary", "severity", "source"] {
+        let text = item
+            .get(key)
+            .map(|v| match v {
+                Value::String(s) => s.clone(),
+                other => other.to_string(),
+            })
+            .unwrap_or_default();
+        parts.push(format!("{key}={text}"));
+    }
+    parts.join("\n")
+}
+
+pub(crate) fn item_cache_key(model: &str, section: &str, item: &Value) -> String {
+    let raw = format!(
+        "{}\n{}\n{}",
+        AI_PROMPT_VERSION,
+        model,
+        item_identity(section, item)
+    );
+    let mut hasher = DefaultHasher::new();
+    raw.hash(&mut hasher);
+    format!("{}-{:016x}.json", section_slug(section), hasher.finish())
+}
+
+pub(crate) fn section_slug(section: &str) -> &'static str {
+    match section {
+        "iran_radar" => "iran",
+        "global_news" => "news",
+        "cves" => "cve",
+        "alert" => "alert",
+        _ => "item",
+    }
+}
+
+pub(crate) fn item_cache_path(config: &Config, key: &str) -> PathBuf {
+    PathBuf::from(&config.gemini.cache_dir)
+        .join("items")
+        .join(key)
+}
+
+pub(crate) fn read_item_cache(config: &Config, key: &str) -> Option<Value> {
+    let path = item_cache_path(config, key);
+    let raw = fs::read_to_string(path).ok()?;
+    serde_json::from_str(&raw).ok()
+}
+
+pub(crate) fn write_item_cache(config: &Config, key: &str, value: &Value) -> Result<()> {
+    let path = item_cache_path(config, key);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).with_context(|| {
+            format!(
+                "failed to create AI item cache directory: {}",
+                parent.display()
+            )
+        })?;
+    }
+    fs::write(&path, serde_json::to_string_pretty(value)?)
+        .with_context(|| format!("failed to write AI item cache: {}", path.display()))?;
+    Ok(())
+}
+
+const NEWS_PROMPT_RULES: &str = r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
+
+Input JSON contains news items in "items" and may contain a "priority_alert" object. Every item has a "ref" identifier.
+
+Hard rules:
+- Do not invent facts, sources, URLs, exploitation status, affected products, victim geography, attribution, or exploit details.
+- Return editorial fields only: title_fa, summary_fa, why_it_matters, ops_note, iran_relevance.
+- Return exactly one output entry per input item and copy its "ref" value unchanged.
+- iran_relevance: integer 0-100 estimating operational relevance for defenders in Iran (sector exposure, products widely used in Iran, regional targeting). Judge only from the given text; use 0-20 when there is no clear link.
+- If an item is unclear, write a cautious Persian summary and say the original advisory should be checked.
+- Do not imply a target is inside Iran when Iran appears only as attribution.
+- Use defensive language only. No exploit chains, payloads, bypass steps, or unauthorized access guidance.
+- summary_fa: 1 short Persian sentence, max 170 characters.
+- why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
+- ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
+- title_fa: concise Persian headline, max 70 characters.
+- If "priority_alert" exists in the input, also return "priority_alert" with title_fa, summary_fa, why_it_matters, ops_note.
+- Return valid JSON only, matching the response schema. Never stop mid-string."#;
+
+const CVE_PROMPT_RULES: &str = r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
+
+Input JSON contains CVE items in "items". Every item has a "ref" identifier.
+
+Hard rules:
+- Do not invent facts, CVEs, sources, URLs, exploitation status, affected products, or exploit details.
+- Never change or restate cve_id, cvss, epss, kev, severity, or url values; they stay as-is in the site.
+- Return editorial fields only: title_fa, summary_fa, why_it_matters, recommended_action, ops_note.
+- Return exactly one output entry per input item and copy its "ref" value unchanged.
+- If an item is unclear, write a cautious Persian summary and say the original advisory should be checked.
+- Use defensive language only. No exploit chains, payloads, bypass steps, or unauthorized access guidance.
+- title_fa: concise Persian headline with product and impact, max 70 characters; not a full NVD sentence.
+- summary_fa: 1 short Persian sentence, max 170 characters.
+- why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
+- recommended_action: 1 short Persian sentence with the safest next step (patching, mitigation, monitoring), max 160 characters.
+- ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
+- Return valid JSON only, matching the response schema. Never stop mid-string."#;
+
+pub(crate) fn build_news_batch_prompt(
+    brief: &Value,
+    alert_needed: bool,
+    pending: &[(String, String, usize)],
+) -> Result<String> {
+    let mut input = serde_json::Map::new();
+    if alert_needed {
+        input.insert(
+            "priority_alert".to_string(),
+            compact_alert(&brief["priority_alert"]),
+        );
+    }
+    let items: Vec<Value> = pending
+        .iter()
+        .filter_map(|(reference, section, index)| {
+            brief
+                .get(section.as_str())
+                .and_then(|v| v.as_array())
+                .and_then(|list| list.get(*index))
+                .map(|item| compact_news_item(reference, section, item))
+        })
+        .collect();
+    input.insert("items".to_string(), json!(items));
+    Ok(format!(
+        "{}\n\nInput JSON:\n{}",
+        NEWS_PROMPT_RULES,
+        serde_json::to_string_pretty(&Value::Object(input))?
+    ))
+}
+
+pub(crate) fn build_cve_batch_prompt(
+    brief: &Value,
+    pending: &[(String, String, usize)],
+) -> Result<String> {
+    let items: Vec<Value> = pending
+        .iter()
+        .filter_map(|(reference, section, index)| {
+            brief
+                .get(section.as_str())
+                .and_then(|v| v.as_array())
+                .and_then(|list| list.get(*index))
+                .map(|item| compact_cve_item(reference, item))
+        })
+        .collect();
+    let input = json!({ "items": items });
+    Ok(format!(
+        "{}\n\nInput JSON:\n{}",
+        CVE_PROMPT_RULES,
+        serde_json::to_string_pretty(&input)?
+    ))
+}
+
+pub(crate) fn compact_news_item(reference: &str, section: &str, item: &Value) -> Value {
+    json!({
+        "ref": reference,
+        "section": section,
+        "title": clip_field(item, "title", 300),
+        "summary": clip_field(item, "summary", 700),
+        "source": clip_field(item, "source", 80),
+        "iran_context": item.get("iran_context").cloned().unwrap_or(Value::Null),
+        "tags": item.get("tags").cloned().unwrap_or(Value::Null)
+    })
+}
+
+pub(crate) fn compact_cve_item(reference: &str, item: &Value) -> Value {
+    json!({
+        "ref": reference,
+        "cve_id": item.get("cve_id").cloned().unwrap_or(Value::Null),
+        "title": clip_field(item, "title", 300),
+        "summary": clip_field(item, "summary", 700),
+        "cvss": item.get("cvss").cloned().unwrap_or(Value::Null),
+        "epss": item.get("epss").cloned().unwrap_or(Value::Null),
+        "kev": item.get("kev").cloned().unwrap_or(Value::Null),
+        "severity": item.get("severity").cloned().unwrap_or(Value::Null),
+        "tags": item.get("tags").cloned().unwrap_or(Value::Null)
+    })
+}
+
+pub(crate) fn compact_alert(alert: &Value) -> Value {
+    json!({
+        "title": clip_field(alert, "title", 300),
+        "summary": clip_field(alert, "summary", 700),
+        "source": clip_field(alert, "source", 80),
+        "cve_id": alert.get("cve_id").cloned().unwrap_or(Value::Null)
+    })
+}
+
+pub(crate) fn clip_field(item: &Value, key: &str, max_chars: usize) -> Value {
+    item.get(key)
+        .and_then(|v| v.as_str())
+        .map(|s| json!(truncate_chars(s, max_chars)))
+        .unwrap_or(Value::Null)
+}
+
+pub(crate) fn gemini_news_schema() -> Value {
+    json!({
+        "type": "OBJECT",
+        "properties": {
+            "priority_alert": {
+                "type": "OBJECT",
+                "properties": {
+                    "title_fa": {"type": "STRING"},
+                    "summary_fa": {"type": "STRING"},
+                    "why_it_matters": {"type": "STRING"},
+                    "ops_note": {"type": "STRING"}
+                }
+            },
+            "items": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "ref": {"type": "STRING"},
+                        "title_fa": {"type": "STRING"},
+                        "summary_fa": {"type": "STRING"},
+                        "why_it_matters": {"type": "STRING"},
+                        "ops_note": {"type": "STRING"},
+                        "iran_relevance": {"type": "INTEGER"}
+                    },
+                    "required": ["ref", "title_fa", "summary_fa"]
+                }
+            }
+        },
+        "required": ["items"]
+    })
+}
+
+pub(crate) fn gemini_cve_schema() -> Value {
+    json!({
+        "type": "OBJECT",
+        "properties": {
+            "items": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "ref": {"type": "STRING"},
+                        "title_fa": {"type": "STRING"},
+                        "summary_fa": {"type": "STRING"},
+                        "why_it_matters": {"type": "STRING"},
+                        "recommended_action": {"type": "STRING"},
+                        "ops_note": {"type": "STRING"}
+                    },
+                    "required": ["ref", "title_fa", "summary_fa"]
+                }
+            }
+        },
+        "required": ["items"]
+    })
+}
+
+pub(crate) fn run_gemini_batch(
+    client: &Client,
+    url: &str,
+    api_key: &str,
+    prompt: &str,
+    temperature: f64,
+    schema: &Value,
+) -> Result<(Value, u8)> {
+    let text = send_gemini_prompt(client, url, api_key, prompt, temperature, 8192, schema)
+        .context("Gemini request failed")?;
     let cleaned = clean_json_block(&text);
-    let (ai_json, calls_used) = match serde_json::from_str::<Value>(&cleaned) {
-        Ok(value) => (value, 1),
+    match serde_json::from_str::<Value>(&cleaned) {
+        Ok(value) => Ok((value, 1)),
         Err(parse_error) => {
             eprintln!("↳ Gemini JSON parse failed; attempting one repair pass");
             let repair_prompt = build_gemini_repair_prompt(&cleaned, &parse_error.to_string());
             let repaired_text =
-                send_gemini_prompt(&client, &url, &api_key, &repair_prompt, 0.0, 8192)
+                send_gemini_prompt(client, url, api_key, &repair_prompt, 0.0, 8192, schema)
                     .context("Gemini repair request failed")?;
             let repaired = clean_json_block(&repaired_text);
             let value: Value = serde_json::from_str(&repaired).with_context(|| {
@@ -86,19 +654,9 @@ pub(crate) fn enhance_brief_with_gemini(
                     json_parse_hint(&repaired)
                 )
             })?;
-            (value, 2)
+            Ok((value, 2))
         }
-    };
-    let ai_json = validate_ai_result_shape(&ai_json)?;
-
-    write_ai_cache(config, &cache_key, &ai_json)?;
-
-    let edited = merge_ai_result(brief.clone(), &ai_json);
-    Ok(GeminiEditResult {
-        brief: mark_ai_status(edited, true, false, &config.gemini.model, calls_used, None),
-        calls_used,
-        cache_hit: false,
-    })
+    }
 }
 
 pub(crate) fn send_gemini_prompt(
@@ -108,6 +666,7 @@ pub(crate) fn send_gemini_prompt(
     prompt: &str,
     temperature: f64,
     max_output_tokens: u32,
+    schema: &Value,
 ) -> Result<String> {
     let request_body = json!({
         "contents": [{
@@ -119,7 +678,7 @@ pub(crate) fn send_gemini_prompt(
             "candidateCount": 1,
             "maxOutputTokens": max_output_tokens,
             "responseMimeType": "application/json",
-            "responseSchema": gemini_response_schema()
+            "responseSchema": schema
         }
     });
 
@@ -140,141 +699,6 @@ pub(crate) fn build_gemini_repair_prompt(broken_json: &str, parse_error: &str) -
     format!(
         "Repair the following truncated or invalid JSON so it becomes valid JSON only.\n\nRules:\n- Return JSON only, no markdown.\n- Preserve the same schema and field names.\n- If a string is incomplete, close it safely.\n- If an array/object is incomplete, close it safely.\n- Do not add new source URLs, IOCs, leak links, or user-facing actions.\n- Keep Persian text concise.\n\nParser error: {parse_error}\n\nBroken JSON:\n{broken_json}"
     )
-}
-
-pub(crate) fn compact_brief_for_ai(config: &Config, brief: &Value) -> Value {
-    let mut compact = json!({
-        "site_title": brief.get("site_title").cloned().unwrap_or(Value::Null),
-        "date_fa": brief.get("date_fa").cloned().unwrap_or(Value::Null),
-        "date_en": brief.get("date_en").cloned().unwrap_or(Value::Null),
-        "risk_level": brief.get("risk_level").cloned().unwrap_or(Value::Null),
-        "stats": brief.get("stats").cloned().unwrap_or(Value::Null),
-        "priority_alert": brief.get("priority_alert").cloned().unwrap_or(Value::Null),
-        "iran_radar": take_array_items(brief.get("iran_radar"), config.gemini.max_iran_items),
-        "global_news": take_array_items(brief.get("global_news"), config.gemini.max_global_news),
-        "cves": take_array_items(brief.get("cves"), config.gemini.max_cves),
-    });
-
-    truncate_value_strings(&mut compact, 900);
-    compact
-}
-
-pub(crate) fn take_array_items(value: Option<&Value>, limit: usize) -> Value {
-    value
-        .and_then(|v| v.as_array())
-        .map(|items| Value::Array(items.iter().take(limit).cloned().collect()))
-        .unwrap_or_else(|| Value::Array(Vec::new()))
-}
-
-pub(crate) fn truncate_value_strings(value: &mut Value, max_chars: usize) {
-    match value {
-        Value::String(s) => {
-            if s.chars().count() > max_chars {
-                *s = truncate_chars(s, max_chars);
-            }
-        }
-        Value::Array(items) => {
-            for item in items {
-                truncate_value_strings(item, max_chars);
-            }
-        }
-        Value::Object(map) => {
-            for value in map.values_mut() {
-                truncate_value_strings(value, max_chars);
-            }
-        }
-        _ => {}
-    }
-}
-
-pub(crate) fn gemini_response_schema() -> Value {
-    json!({
-        "type": "OBJECT",
-        "properties": {
-            "priority_alert": {
-                "type": "OBJECT",
-                "properties": {
-                    "title_fa": {"type": "STRING"},
-                    "summary_fa": {"type": "STRING"},
-                    "why_it_matters": {"type": "STRING"},
-                    "ops_note": {"type": "STRING"}
-                }
-            },
-            "iran_radar": {
-                "type": "ARRAY",
-                "items": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "title_fa": {"type": "STRING"},
-                        "summary_fa": {"type": "STRING"},
-                        "why_it_matters": {"type": "STRING"},
-                        "ops_note": {"type": "STRING"}
-                    }
-                }
-            },
-            "global_news": {
-                "type": "ARRAY",
-                "items": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "title_fa": {"type": "STRING"},
-                        "summary_fa": {"type": "STRING"},
-                        "why_it_matters": {"type": "STRING"},
-                        "ops_note": {"type": "STRING"}
-                    }
-                }
-            },
-            "cves": {
-                "type": "ARRAY",
-                "items": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "title_fa": {"type": "STRING"},
-                        "summary_fa": {"type": "STRING"},
-                        "why_it_matters": {"type": "STRING"},
-                        "recommended_action": {"type": "STRING"},
-                        "ops_note": {"type": "STRING"}
-                    }
-                }
-            }
-        },
-        "required": ["priority_alert", "iran_radar", "global_news", "cves"]
-    })
-}
-
-pub(crate) fn build_gemini_prompt(compact: &Value) -> Result<String> {
-    Ok(format!(
-        r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
-
-Input is JSON generated from RSS, NVD, CISA KEV, and EPSS. Your job is to add a Persian display layer while preserving the original machine-generated/source fields.
-
-Hard rules:
-- Do not invent facts, CVEs, sources, URLs, exploitation status, affected products, victim geography, attribution, or exploit details.
-- Do not rewrite or return immutable fields such as url, source, cve_id, risk_score, cvss, epss, kev, severity, published, iran_context, tags, title, or summary.
-- Return editorial fields only: title_fa, summary_fa, why_it_matters, ops_note, and recommended_action for CVEs.
-- Keep the same item order and approximate same item count for iran_radar, global_news, and cves.
-- If an item is unclear, write a cautious Persian summary and say the original advisory should be checked.
-- Do not move Iran-related items between sections. If Iran appears only as attribution, do not imply the target is inside Iran.
-- Use defensive language only. No exploit chains, payloads, bypass steps, or unauthorized access guidance.
-- summary_fa: 1 short Persian sentence, max 170 characters.
-- why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
-- ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
-- title_fa: concise Persian headline, max 70 characters. For CVEs, include product/impact, not a full NVD sentence.
-- Return valid JSON only. No markdown fences, comments, trailing commas, or explanatory text.
-- Prefer short strings over complete sentences if needed; never stop mid-string.
-
-Return this exact top-level shape:
-{{
-  "priority_alert": {{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}},
-  "iran_radar": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}}],
-  "global_news": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "ops_note":"..."}}],
-  "cves": [{{"title_fa":"...", "summary_fa":"...", "why_it_matters":"...", "recommended_action":"...", "ops_note":"..."}}]
-}}
-
-Input JSON:
-{}"#,
-        serde_json::to_string_pretty(compact)?
-    ))
 }
 
 pub(crate) fn extract_gemini_text(response: &Value) -> Option<String> {
@@ -308,66 +732,6 @@ pub(crate) fn json_parse_hint(text: &str) -> String {
     let char_count = text.chars().count();
     let preview: String = text.chars().take(180).collect();
     format!("{} chars; starts with {:?}", char_count, preview)
-}
-
-pub(crate) fn validate_ai_result_shape(ai_json: &Value) -> Result<Value> {
-    let obj = ai_json
-        .as_object()
-        .context("Gemini returned JSON, but the top-level value was not an object")?;
-
-    let mut clean = serde_json::Map::new();
-
-    if let Some(value) = obj.get("priority_alert") {
-        if value.is_object() {
-            clean.insert("priority_alert".to_string(), value.clone());
-        }
-    }
-
-    for key in ["iran_radar", "global_news", "cves"] {
-        if let Some(value) = obj.get(key) {
-            if let Some(items) = value.as_array() {
-                let safe_items = items
-                    .iter()
-                    .filter(|item| item.is_object())
-                    .cloned()
-                    .collect::<Vec<_>>();
-                clean.insert(key.to_string(), Value::Array(safe_items));
-            }
-        }
-    }
-
-    if clean.is_empty() {
-        anyhow::bail!("Gemini returned JSON, but it did not contain any usable brief fields");
-    }
-
-    Ok(Value::Object(clean))
-}
-
-pub(crate) fn merge_ai_result(mut brief: Value, ai_json: &Value) -> Value {
-    if let Some(value) = ai_json.get("priority_alert") {
-        merge_object_preserve_existing(&mut brief["priority_alert"], value);
-    }
-
-    for key in ["iran_radar", "global_news", "cves"] {
-        if let Some(value) = ai_json.get(key) {
-            merge_array_items_by_index(&mut brief[key], value);
-        }
-    }
-
-    brief
-}
-
-pub(crate) fn merge_array_items_by_index(base: &mut Value, edits: &Value) {
-    let Some(base_items) = base.as_array_mut() else {
-        return;
-    };
-    let Some(edit_items) = edits.as_array() else {
-        return;
-    };
-
-    for (base_item, edit_item) in base_items.iter_mut().zip(edit_items.iter()) {
-        merge_object_preserve_existing(base_item, edit_item);
-    }
 }
 
 pub(crate) fn merge_object_preserve_existing(base: &mut Value, edit: &Value) {
@@ -417,12 +781,15 @@ pub(crate) fn protected_ai_field(key: &str) -> bool {
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn mark_ai_status(
     mut brief: Value,
     ok: bool,
     cache_hit: bool,
     model: &str,
     calls_used: u8,
+    item_cache_hits: u64,
+    items_generated: u64,
     error: Option<String>,
 ) -> Value {
     brief["ai_status"] = json!({
@@ -431,48 +798,12 @@ pub(crate) fn mark_ai_status(
         "cache_hit": cache_hit,
         "model": model,
         "calls_used": calls_used,
+        "item_cache_hits": item_cache_hits,
+        "items_generated": items_generated,
+        "prompt_version": AI_PROMPT_VERSION,
         "error": error
     });
     brief
-}
-
-pub(crate) fn ai_cache_key(model: &str, compact: &Value) -> String {
-    let raw = format!(
-        "{}\n{}",
-        model,
-        serde_json::to_string(compact).unwrap_or_default()
-    );
-    let mut hasher = DefaultHasher::new();
-    raw.hash(&mut hasher);
-    format!("{:016x}.json", hasher.finish())
-}
-
-pub(crate) fn ai_cache_path(config: &Config, key: &str) -> PathBuf {
-    PathBuf::from(&config.gemini.cache_dir).join(key)
-}
-
-pub(crate) fn read_ai_cache(config: &Config, key: &str) -> Result<Option<Value>> {
-    let path = ai_cache_path(config, key);
-    if !path.exists() {
-        return Ok(None);
-    }
-    let raw = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read AI cache: {}", path.display()))?;
-    serde_json::from_str(&raw)
-        .map(Some)
-        .with_context(|| format!("invalid AI cache JSON: {}", path.display()))
-}
-
-pub(crate) fn write_ai_cache(config: &Config, key: &str, value: &Value) -> Result<()> {
-    let path = ai_cache_path(config, key);
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|| {
-            format!("failed to create AI cache directory: {}", parent.display())
-        })?;
-    }
-    fs::write(&path, serde_json::to_string_pretty(value)?)
-        .with_context(|| format!("failed to write AI cache: {}", path.display()))?;
-    Ok(())
 }
 
 pub(crate) fn get_env_or_dotenv(key: &str) -> Option<String> {
@@ -492,7 +823,11 @@ pub(crate) fn get_env_or_dotenv(key: &str) -> Option<String> {
             continue;
         };
         if k.trim() == key {
-            let value = v.trim().trim_matches('"').trim_matches('\'').to_string();
+            let value = v
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\u{27}')
+                .to_string();
             if !value.is_empty() {
                 return Some(value);
             }
@@ -500,4 +835,86 @@ pub(crate) fn get_env_or_dotenv(key: &str) -> Option<String> {
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn item_cache_key_is_stable_and_content_sensitive() {
+        let item = json!({
+            "title": "Example advisory",
+            "url": "https://example.com/a",
+            "summary": "text"
+        });
+        let first = item_cache_key("gemini-2.5-flash", "global_news", &item);
+        let second = item_cache_key("gemini-2.5-flash", "global_news", &item);
+        assert_eq!(first, second);
+        assert!(first.starts_with("news-"));
+        assert!(first.ends_with(".json"));
+
+        let changed = json!({
+            "title": "Example advisory v2",
+            "url": "https://example.com/a",
+            "summary": "text"
+        });
+        assert_ne!(
+            first,
+            item_cache_key("gemini-2.5-flash", "global_news", &changed)
+        );
+        assert_ne!(first, item_cache_key("gemini-x", "global_news", &item));
+        assert_ne!(
+            first,
+            item_cache_key("gemini-2.5-flash", "iran_radar", &item)
+        );
+    }
+
+    #[test]
+    fn sanitize_editorial_keeps_only_editorial_fields() {
+        let raw = json!({
+            "ref": "n0",
+            "url": "https://evil.example",
+            "title_fa": "تیتر",
+            "summary_fa": " خلاصه ",
+            "iran_relevance": 55,
+            "unexpected": "x"
+        });
+        let clean = sanitize_editorial("news", &raw);
+        assert_eq!(clean["title_fa"], "تیتر");
+        assert_eq!(clean["summary_fa"], "خلاصه");
+        assert_eq!(clean["iran_relevance"], 55);
+        assert!(clean.get("url").is_none());
+        assert!(clean.get("ref").is_none());
+        assert!(clean.get("unexpected").is_none());
+
+        let cve = sanitize_editorial(
+            "cve",
+            &json!({"recommended_action": "پچ شود", "iran_relevance": 10}),
+        );
+        assert_eq!(cve["recommended_action"], "پچ شود");
+        assert!(cve.get("iran_relevance").is_none());
+    }
+
+    #[test]
+    fn merge_batch_item_respects_protected_fields() {
+        let mut brief = json!({
+            "global_news": [
+                {"title": "Original", "url": "https://a.example", "summary": "s"}
+            ]
+        });
+        let editorial = sanitize_editorial(
+            "news",
+            &json!({
+                "title_fa": "تیتر فارسی",
+                "ops_note": "بررسی شود",
+                "url": "https://b.example"
+            }),
+        );
+        assert!(merge_batch_item(&mut brief, "global_news", 0, &editorial));
+        assert_eq!(brief["global_news"][0]["title_fa"], "تیتر فارسی");
+        assert_eq!(brief["global_news"][0]["url"], "https://a.example");
+        assert!(merge_batch_item(&mut brief, "missing_section", 0, &editorial) == false);
+        assert!(!merge_batch_item(&mut brief, "global_news", 9, &editorial));
+    }
 }
