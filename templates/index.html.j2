@@ -13,17 +13,17 @@
 {% macro bars(rows, limit) %}
 <div class="bars">
   {% for r in rows %}{% if loop.index <= limit %}
-  <div class="bar-row"><span class="bar-label">{{ r.name }}</span><span class="bar-track"><b style="width: {{ r.bar_width }}%"></b></span><span class="bar-count">{{ r.count }}</span></div>
+  <div class="bar-row" role="button" tabindex="0" data-chart-name="{{ r.name }}" data-chart-count="{{ r.count }}"><span class="bar-label">{{ r.name }}</span><span class="bar-track"><b style="width: {{ r.bar_width }}%"></b></span><span class="bar-count">{{ r.count }}</span></div>
   {% endif %}{% endfor %}
 </div>
 {% endmacro %}
 {% macro news_card(item) %}
 <article class="item risk-{{ riskcls(item.risk_score) }}">
   <div class="item-head">
-    <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title_fa }}</a></h3>
+    <h3><a href="{{ item.url }}" rel="noopener noreferrer"><span class="t-fa">{{ item.title_fa }}</span><span class="t-en">{{ item.title or item.title_fa }}</span></a></h3>
     <span class="score">{{ item.risk_score }}</span>
   </div>
-  <p>{{ item.summary_fa }}</p>
+  <p><span class="t-fa">{{ item.summary_fa }}</span><span class="t-en">{{ item.summary or item.summary_fa }}</span></p>
   <div class="meta">
     <span>{{ item.source }}</span>
     <span>{{ item.freshness_label }}</span>
@@ -55,6 +55,8 @@
     <a class="ui-chip" href="weekly.html">جمع‌بندی هفتگی</a>
     <span class="ui-chip" role="button" tabindex="0" data-ui-action="density">نمای فشرده</span>
     <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">جمع‌کردن همه</span>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">روشن/تیره</span>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="lang">EN</span>
   </div>
 </header>
 
@@ -108,8 +110,8 @@
 
       <section id="priority" class="panel panel-priority">
         <div class="panel-head"><div><span class="eyebrow">Priority</span><h2>سیگنال اولویت‌دار امروز</h2></div><span class="chip chip-risk">Risk {{ brief.priority_alert.risk_score }}</span></div>
-        <h3 class="priority-title"><a href="{{ brief.priority_alert.url }}" rel="noopener noreferrer">{{ brief.priority_alert.title_fa }}</a></h3>
-        <p>{{ brief.priority_alert.summary_fa }}</p>
+        <h3 class="priority-title"><a href="{{ brief.priority_alert.url }}" rel="noopener noreferrer"><span class="t-fa">{{ brief.priority_alert.title_fa }}</span><span class="t-en">{{ brief.priority_alert.title or brief.priority_alert.title_fa }}</span></a></h3>
+        <p><span class="t-fa">{{ brief.priority_alert.summary_fa }}</span><span class="t-en">{{ brief.priority_alert.summary or brief.priority_alert.summary_fa }}</span></p>
         <p class="note">{{ brief.priority_alert.why_it_matters }}</p>
         <div class="meta">
           <span>{{ brief.priority_alert.source }}</span>
@@ -160,10 +162,10 @@
         {% for cve in brief.cves %}{% if loop.index <= 30 %}
         <article class="item sev-{{ cve.severity|lower }}">
           <div class="item-head">
-            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a> — {{ cve.title_fa }}</h3>
+            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a> — <span class="t-fa">{{ cve.title_fa }}</span><span class="t-en">{{ cve.title or cve.title_fa }}</span></h3>
             <span class="sev-badge sev-{{ cve.severity|lower }}">{{ cve.severity }}</span>
           </div>
-          <p>{{ cve.summary_fa }}</p>
+          <p><span class="t-fa">{{ cve.summary_fa }}</span><span class="t-en">{{ cve.summary or cve.summary_fa }}</span></p>
           <div class="meta">
             <span>CVSS {{ cve.cvss }}{% if cve.cvss_version %} · v{{ cve.cvss_version }}{% endif %}</span>
             <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} ↑{% endif %}</span>
@@ -263,8 +265,8 @@
         <div class="grid grid-2 grid-inner">
           {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 20 %}
           <article class="item risk-{{ w.risk }}">
-            <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer">{{ w.title_fa }}</a></h3><span class="tag">{{ w.kind_fa }}</span></div>
-            <p>{{ w.summary_fa }}</p>
+            <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer"><span class="t-fa">{{ w.title_fa }}</span><span class="t-en">{{ w.title or w.title_fa }}</span></a></h3><span class="tag">{{ w.kind_fa }}</span></div>
+            <p><span class="t-fa">{{ w.summary_fa }}</span><span class="t-en">{{ w.summary or w.summary_fa }}</span></p>
             <div class="meta"><span>{{ w.source }}</span><span>{{ w.freshness_label }}</span></div>
           </article>
           {% endif %}{% endfor %}

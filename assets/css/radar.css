@@ -276,3 +276,37 @@ body { overflow-x: clip; overflow-wrap: break-word; }
 
 /* ---- E4.2: brand logo ---- */
 .brand-logo { display: block; flex: none; }
+
+/* ---- E5: light theme ---- */
+body.theme-light {
+  --bg: #eef0f3;
+  --surface: #ffffff;
+  --raised: #e4e6ea;
+  --border: rgba(20, 30, 45, 0.14);
+  --border-strong: rgba(20, 30, 45, 0.28);
+  --text: #1a1d22;
+  --text-2: rgba(25, 32, 45, 0.68);
+  --text-3: rgba(25, 32, 45, 0.46);
+  --accent: #2f6fce;
+  --accent-soft: rgba(47, 111, 206, 0.12);
+  --green: #237a4e;
+  --green-soft: rgba(35, 122, 78, 0.12);
+  --amber: #8a6410;
+  --amber-soft: rgba(138, 100, 16, 0.12);
+  --red: #b3372c;
+  --red-soft: rgba(179, 55, 44, 0.12);
+}
+body.theme-light .topbar, body.theme-light .anchor-nav { background: rgba(238, 240, 243, 0.94); }
+body.theme-light .tag-new { color: #237a4e; border-color: rgba(35, 122, 78, 0.5); }
+body.theme-light .live-dot { background: #237a4e; box-shadow: 0 0 7px rgba(35, 122, 78, 0.55); }
+
+/* ---- E5: language switch ---- */
+.t-en { display: none; }
+body.lang-en .t-fa { display: none; }
+body.lang-en .t-en { display: inline; }
+
+/* ---- E5: interactive charts ---- */
+[data-chart-name] { cursor: pointer; }
+[data-chart-name]:hover .bar-label { color: var(--accent); }
+[data-chart-name].is-active .bar-label { color: var(--accent); font-weight: 600; }
+.bar-detail { font-size: 12px; color: var(--text-2); padding: 2px 2px 8px; border-bottom: 1px dashed var(--border); margin-bottom: 6px; }
