@@ -5,7 +5,7 @@ site:
 
 fetch:
   max_items_per_source: 8
-  max_total_items: 90
+  max_total_items: 130
   sleep_ms_between_sources: 450
   user_agent: "SecPathRadar/0.4.28 (+https://radar.secpath.space)"
 
@@ -206,6 +206,13 @@ writeup_sources:
   - name: "Cloudflare Security Research"
     url: "https://blog.cloudflare.com/tag/security/rss/"
 
+  - name: "Elastic Security Labs"
+    url: "https://www.elastic.co/security-labs/rss/feed.xml"
+  - name: "Check Point Research"
+    url: "https://research.checkpoint.com/feed/"
+  - name: "watchTowr Labs"
+    url: "https://labs.watchtowr.com/rss/"
+
 sources:
   - name: "CISA Advisories"
     url: "https://www.cisa.gov/cybersecurity-advisories/all.xml"
@@ -243,3 +250,21 @@ sources:
     url: "https://www.infosecurity-magazine.com/rss/news/"
   - name: "PortSwigger Research"
     url: "https://portswigger.net/research/rss"
+  - name: "Dark Reading"
+    url: "https://www.darkreading.com/rss.xml"
+  - name: "The Record"
+    url: "https://therecord.media/feed/"
+  - name: "Fortinet PSIRT"
+    url: "https://filestore.fortinet.com/fortiguard/rss/ir.xml"
+  - name: "Palo Alto Security Advisories"
+    url: "https://security.paloaltonetworks.com/rss.xml"
+  - name: "GBHackers"
+    url: "https://gbhackers.com/feed/"
+  - name: "Help Net Security"
+    url: "https://www.helpnetsecurity.com/feed/"
+  - name: "CyberScoop"
+    url: "https://cyberscoop.com/feed/"
+  - name: "Security Affairs"
+    url: "https://securityaffairs.com/feed"
+  - name: "The Register Security"
+    url: "https://www.theregister.com/security/headlines.atom"
