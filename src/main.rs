@@ -142,6 +142,8 @@ struct IntelConfig {
     #[serde(default)]
     ics_ot: IcsOtConfig,
     #[serde(default)]
+    nuclei_coverage: NucleiCoverageConfig,
+    #[serde(default)]
     poc_watch: PocWatchConfig,
 }
 
@@ -161,6 +163,7 @@ impl Default for IntelConfig {
             greynoise: GreyNoiseConfig::default(),
             phishing: PhishingPulseConfig::default(),
             ics_ot: IcsOtConfig::default(),
+            nuclei_coverage: NucleiCoverageConfig::default(),
             poc_watch: PocWatchConfig::default(),
         }
     }
@@ -548,6 +551,46 @@ impl Default for IcsOtConfig {
             ics_advisories_feed_url: default_ics_ot_advisories_feed_url(),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct NucleiCoverageConfig {
+    #[serde(default = "default_nuclei_coverage_enabled")]
+    enabled: bool,
+    #[serde(default = "default_nuclei_coverage_max_templates")]
+    max_templates: usize,
+    #[serde(default = "default_nuclei_coverage_max_missing")]
+    max_missing: usize,
+    #[serde(default = "default_nuclei_templates_tree_url")]
+    templates_tree_url: String,
+}
+
+impl Default for NucleiCoverageConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_nuclei_coverage_enabled(),
+            max_templates: default_nuclei_coverage_max_templates(),
+            max_missing: default_nuclei_coverage_max_missing(),
+            templates_tree_url: default_nuclei_templates_tree_url(),
+        }
+    }
+}
+
+fn default_nuclei_coverage_enabled() -> bool {
+    true
+}
+
+fn default_nuclei_coverage_max_templates() -> usize {
+    12
+}
+
+fn default_nuclei_coverage_max_missing() -> usize {
+    8
+}
+
+fn default_nuclei_templates_tree_url() -> String {
+    "https://api.github.com/repos/projectdiscovery/nuclei-templates/git/trees/main?recursive=1"
+        .to_string()
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -1225,6 +1268,18 @@ fn main() -> Result<()> {
         brief["stats"]["ics_high"] = json!(path_u64(&ics_ot_pulse, &["totals", "high"]));
         brief["stats"]["ics_vendors"] = json!(path_u64(&ics_ot_pulse, &["totals", "vendors"]));
         brief["ics_ot_pulse"] = ics_ot_pulse;
+
+        let nuclei_coverage = fetch_nuclei_coverage_or_fallback(
+            &config,
+            &brief["cves"],
+            args.offline,
+            args.refresh_cache,
+        );
+        brief["stats"]["nuclei_covered_cves"] =
+            json!(path_u64(&nuclei_coverage, &["totals", "covered_cves"]));
+        brief["stats"]["nuclei_coverage_pct"] =
+            json!(path_u64(&nuclei_coverage, &["totals", "coverage_pct"]));
+        brief["nuclei_coverage"] = nuclei_coverage;
 
         let poc_watch =
             fetch_poc_watch_or_fallback(&config, &brief["cves"], args.offline, args.refresh_cache);
@@ -5131,6 +5186,299 @@ fn empty_ics_ot_pulse(reason: &str) -> Value {
     })
 }
 
+fn fetch_nuclei_coverage_or_fallback(
+    config: &Config,
+    cves: &Value,
+    offline: bool,
+    refresh_cache: bool,
+) -> Value {
+    if !config.intel.enabled || !config.intel.nuclei_coverage.enabled {
+        return empty_nuclei_coverage("disabled");
+    }
+
+    match fetch_nuclei_coverage(config, cves, offline, refresh_cache) {
+        Ok(value) => value,
+        Err(err) => {
+            eprintln!("⚠️  Nuclei Template Coverage skipped: {err:#}");
+            let mut fallback = empty_nuclei_coverage("fetch_error");
+            fallback["errors"] = json!([source_error_summary(&err.to_string())]);
+            fallback
+        }
+    }
+}
+
+fn fetch_nuclei_coverage(
+    config: &Config,
+    cves: &Value,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Value> {
+    let cfg = &config.intel.nuclei_coverage;
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(35))
+        .build()
+        .context("failed to build HTTP client for Nuclei Template Coverage")?;
+
+    eprintln!("→ fetching Nuclei Template Coverage index");
+    let label = "ProjectDiscovery nuclei-templates tree";
+    let mut cache_misses = 0_u64;
+    let mut errors = Vec::new();
+
+    let tree_value = match get_bytes_cached_intel(
+        &client,
+        config,
+        &cfg.templates_tree_url,
+        label,
+        offline,
+        refresh_cache,
+    ) {
+        Ok(bytes) => serde_json::from_slice::<Value>(&bytes)
+            .context("ProjectDiscovery nuclei-templates tree was not valid JSON")?,
+        Err(err) => {
+            let err_text = err.to_string();
+            if offline && is_offline_cache_miss_error(&err_text) {
+                eprintln!("  ↳ cache miss: {label}");
+                cache_misses = 1;
+                Value::Null
+            } else {
+                errors.push(json!(source_error_summary(&err_text)));
+                Value::Null
+            }
+        }
+    };
+
+    let dashboard_cves = dashboard_cve_metadata(cves);
+    let dashboard_total = dashboard_cves.len();
+    let mut cve_to_paths: HashMap<String, Vec<String>> = HashMap::new();
+    let mut protocol_counts: HashMap<String, usize> = HashMap::new();
+    let mut indexed_template_paths = 0usize;
+    let tree_truncated = tree_value
+        .get("truncated")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+
+    if let Some(nodes) = tree_value.get("tree").and_then(|value| value.as_array()) {
+        for node in nodes {
+            if node.get("type").and_then(|value| value.as_str()) != Some("blob") {
+                continue;
+            }
+            let Some(path) = node.get("path").and_then(|value| value.as_str()) else {
+                continue;
+            };
+            let path_lower = path.to_ascii_lowercase();
+            if !(path_lower.ends_with(".yaml") || path_lower.ends_with(".yml")) {
+                continue;
+            }
+            let cve_ids = extract_cve_ids(path);
+            if cve_ids.is_empty() {
+                continue;
+            }
+            indexed_template_paths += 1;
+            let protocol = nuclei_protocol_from_path(path);
+            *protocol_counts.entry(protocol).or_insert(0) += 1;
+            for cve_id in cve_ids {
+                cve_to_paths
+                    .entry(cve_id)
+                    .or_insert_with(Vec::new)
+                    .push(path.to_string());
+            }
+        }
+    }
+
+    let indexed_cves = cve_to_paths.len();
+    let mut covered = Vec::new();
+    let mut missing = Vec::new();
+    let mut severity_counts: HashMap<String, usize> = HashMap::new();
+
+    for row in &dashboard_cves {
+        let cve_id = value_str(row, "cve_id").to_string();
+        let severity = value_str(row, "severity").to_string();
+        let title_fa = value_str(row, "title_fa").to_string();
+        if let Some(paths) = cve_to_paths.get(&cve_id) {
+            let first_path = paths.first().cloned().unwrap_or_default();
+            *severity_counts.entry(severity.clone()).or_insert(0) += 1;
+            let score = nuclei_coverage_score(&severity, paths.len());
+            covered.push(json!({
+                "cve_id": cve_id,
+                "severity": severity,
+                "title_fa": title_fa,
+                "template_path": first_path,
+                "template_path_safe": truncate_chars(&first_path, 82),
+                "protocol": nuclei_protocol_from_path(&first_path),
+                "template_count": paths.len(),
+                "risk": nuclei_coverage_risk(&severity),
+                "score": score,
+                "bar_width": score.clamp(12, 100),
+                "note_fa": nuclei_coverage_note_fa(&severity, paths.len()),
+                "safe_mode": "metadata only; template path only; no nuclei execution; no scan target"
+            }));
+        } else if missing.len() < cfg.max_missing {
+            missing.push(json!({
+                "cve_id": cve_id,
+                "severity": severity,
+                "title_fa": title_fa,
+                "risk": nuclei_coverage_risk(&severity),
+                "note_fa": "برای این CVE در index فعلی nuclei-templates مسیر template دیده نشد."
+            }));
+        }
+    }
+
+    covered.sort_by(|a, b| {
+        path_u64(b, &["score"])
+            .cmp(&path_u64(a, &["score"]))
+            .then_with(|| value_str(a, "cve_id").cmp(value_str(b, "cve_id")))
+    });
+    covered.truncate(cfg.max_templates);
+
+    let covered_cves = dashboard_cves
+        .iter()
+        .filter(|row| {
+            row.get("cve_id")
+                .and_then(|value| value.as_str())
+                .map(|cve_id| cve_to_paths.contains_key(cve_id))
+                .unwrap_or(false)
+        })
+        .count();
+    let missing_cves = dashboard_total.saturating_sub(covered_cves);
+    let coverage_pct = if dashboard_total == 0 {
+        0
+    } else {
+        ((covered_cves as f64 / dashboard_total as f64) * 100.0).round() as u64
+    };
+
+    let summary_fa = if cache_misses > 0 {
+        "در حالت offline، cache قبلی برای index عمومی nuclei-templates وجود نداشت؛ با یک اجرای online، coverage بعداً از cache خوانده می‌شود.".to_string()
+    } else if dashboard_total == 0 {
+        "CVE فعالی در این اجرا برای سنجش پوشش Nuclei وجود نداشت.".to_string()
+    } else if covered_cves == 0 {
+        format!("از {dashboard_total} CVE فعلی، مسیر template متناظر در index عمومی nuclei-templates دیده نشد یا index/cache محدود بود.")
+    } else {
+        format!("{covered_cves} از {dashboard_total} CVE فعلی در index عمومی nuclei-templates مسیر template دارند؛ این فقط سنجش پوشش metadata است و هیچ scan اجرا نمی‌شود.")
+    };
+
+    let mut coverage_counts = HashMap::new();
+    coverage_counts.insert("covered".to_string(), covered_cves);
+    coverage_counts.insert("missing".to_string(), missing_cves);
+
+    Ok(json!({
+        "enabled": true,
+        "ok": errors.is_empty(),
+        "provider": "ProjectDiscovery nuclei-templates Git tree",
+        "source": "projectdiscovery/nuclei-templates path metadata",
+        "mode": "template_path_coverage",
+        "summary_fa": summary_fa,
+        "safe_mode": "metadata only; no nuclei execution; no active scan; no target input; no exploit content",
+        "last_updated": Local::now().format("%Y-%m-%d %H:%M").to_string(),
+        "totals": {
+            "dashboard_cves": dashboard_total,
+            "covered_cves": covered_cves,
+            "missing_cves": missing_cves,
+            "coverage_pct": coverage_pct,
+            "indexed_cves": indexed_cves,
+            "template_paths": indexed_template_paths,
+            "tree_truncated": tree_truncated,
+            "cache_misses": cache_misses,
+            "errors": errors.len()
+        },
+        "covered": covered,
+        "missing": missing,
+        "coverage_chart": count_chart(coverage_counts, 2),
+        "severity_chart": count_chart(severity_counts, 5),
+        "protocol_chart": count_chart(protocol_counts, 6),
+        "errors": errors
+    }))
+}
+
+fn dashboard_cve_metadata(cves: &Value) -> Vec<Value> {
+    let mut seen = HashSet::new();
+    let mut rows = Vec::new();
+    let Some(items) = cves.as_array() else {
+        return rows;
+    };
+    for item in items {
+        let cve_id = item
+            .get("cve_id")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_ascii_uppercase();
+        if !is_cve_id(&cve_id) || !seen.insert(cve_id.clone()) {
+            continue;
+        }
+        rows.push(json!({
+            "cve_id": cve_id,
+            "severity": item.get("severity").and_then(|value| value.as_str()).unwrap_or("UNKNOWN"),
+            "title_fa": item.get("title_fa").and_then(|value| value.as_str()).unwrap_or("CVE فعلی داشبورد")
+        }));
+    }
+    rows
+}
+
+fn nuclei_protocol_from_path(path: &str) -> String {
+    path.split('/')
+        .next()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("templates")
+        .to_string()
+}
+
+fn nuclei_coverage_risk(severity: &str) -> &'static str {
+    match severity.to_ascii_uppercase().as_str() {
+        "CRITICAL" => "high",
+        "HIGH" => "high",
+        "MEDIUM" => "medium",
+        _ => "watch",
+    }
+}
+
+fn nuclei_coverage_score(severity: &str, template_count: usize) -> usize {
+    let base = match severity.to_ascii_uppercase().as_str() {
+        "CRITICAL" => 84,
+        "HIGH" => 72,
+        "MEDIUM" => 54,
+        _ => 36,
+    };
+    (base + template_count.saturating_sub(1).min(4) * 4).min(100)
+}
+
+fn nuclei_coverage_note_fa(severity: &str, template_count: usize) -> String {
+    if severity.eq_ignore_ascii_case("CRITICAL") || severity.eq_ignore_ascii_case("HIGH") {
+        format!("برای این CVE مسیر template عمومی Nuclei دیده شد ({template_count} مورد). این فقط نشانه پوشش detection است، نه اجرای scan.")
+    } else {
+        format!("پوشش template برای این CVE در index عمومی Nuclei دیده شد ({template_count} مورد)، به‌صورت metadata-only.")
+    }
+}
+
+fn empty_nuclei_coverage(reason: &str) -> Value {
+    json!({
+        "enabled": false,
+        "ok": false,
+        "reason": reason,
+        "provider": "ProjectDiscovery nuclei-templates Git tree",
+        "mode": "template_path_coverage",
+        "summary_fa": "داده Nuclei Template Coverage در این اجرا در دسترس نبود.",
+        "safe_mode": "metadata only; no nuclei execution; no active scan; no target input; no exploit content",
+        "totals": {
+            "dashboard_cves": 0,
+            "covered_cves": 0,
+            "missing_cves": 0,
+            "coverage_pct": 0,
+            "indexed_cves": 0,
+            "template_paths": 0,
+            "tree_truncated": false,
+            "cache_misses": 0,
+            "errors": 0
+        },
+        "covered": [],
+        "missing": [],
+        "coverage_chart": [],
+        "severity_chart": [],
+        "protocol_chart": [],
+        "errors": []
+    })
+}
+
 fn fetch_poc_watch_or_fallback(
     config: &Config,
     _cves: &Value,
@@ -6573,6 +6921,9 @@ fn intel_source_count(config: &Config) -> usize {
     if config.intel.ics_ot.enabled {
         count += 1;
     }
+    if config.intel.nuclei_coverage.enabled {
+        count += 1;
+    }
     if config.intel.poc_watch.enabled {
         count += 1;
     }
@@ -6768,6 +7119,8 @@ fn build_brief(
             "ics_advisories": 0,
             "ics_high": 0,
             "ics_vendors": 0,
+            "nuclei_covered_cves": 0,
+            "nuclei_coverage_pct": 0,
             "rss_sources": config.sources.len(),
             "intel_sources": intel_source_count(config)
         },
@@ -8127,7 +8480,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.27.6-poc-offline-cache-compile-fix");
+    brief["version"] = json!("v0.4.28-nuclei-template-coverage");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -8281,6 +8634,9 @@ fn apply_local_polish(brief: &mut Value) {
     if brief.get("ics_ot_pulse").is_none() {
         brief["ics_ot_pulse"] = empty_ics_ot_pulse("missing");
     }
+    if brief.get("nuclei_coverage").is_none() {
+        brief["nuclei_coverage"] = empty_nuclei_coverage("missing");
+    }
     if brief.get("writeups_pulse").is_none() {
         brief["writeups_pulse"] = empty_writeups_pulse("missing");
     }
@@ -8298,6 +8654,26 @@ fn apply_local_polish(brief: &mut Value) {
     {
         brief["stats"]["writeup_sources"] =
             json!(path_u64(brief, &["writeups_pulse", "totals", "sources"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("nuclei_covered_cves"))
+        .is_none()
+    {
+        brief["stats"]["nuclei_covered_cves"] = json!(path_u64(
+            brief,
+            &["nuclei_coverage", "totals", "covered_cves"]
+        ));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("nuclei_coverage_pct"))
+        .is_none()
+    {
+        brief["stats"]["nuclei_coverage_pct"] = json!(path_u64(
+            brief,
+            &["nuclei_coverage", "totals", "coverage_pct"]
+        ));
     }
     if brief
         .get("stats")

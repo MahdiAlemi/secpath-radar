@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.27.3-latest-poc-stream**
+Current phase: **v0.4.28-nuclei-template-coverage**
 
 ## What changed in v0.4.8
 
@@ -65,6 +65,24 @@ Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecu
 NVD, CISA KEV, EPSS, CISA Vulnrichment, Feodo Tracker, and SSLBL are used by the intelligence engine. Botnet C2 and TLS indicators are metadata-only; no malware samples or dangerous links are downloaded or rendered.
 
 
+
+## v0.4.28 — Nuclei Template Coverage
+
+Adds a defensive, metadata-only coverage layer for ProjectDiscovery `nuclei-templates`. This phase does **not** run nuclei, does not accept targets, and does not expose scan commands. It compares the current dashboard CVE list against public template path metadata from the `projectdiscovery/nuclei-templates` Git tree.
+
+- Fetches the public Git tree metadata for `projectdiscovery/nuclei-templates` and extracts CVE IDs from YAML/YML template paths.
+- Compares extracted template CVEs with the CVEs already selected by the dashboard engine.
+- Writes `nuclei_coverage`, `stats.nuclei_covered_cves`, and `stats.nuclei_coverage_pct`.
+- Shows compact coverage cards with CVE ID, severity, protocol bucket, template count, and safe template path only.
+- Keeps offline cache misses non-fatal, so a first `--offline` run stays production-looking until an online cache exists.
+- Remains observation-only: no active scan, no target input, no operation button, no raw template rendering, and no exploit workflow.
+
+Quick checks:
+
+```bash
+cargo run -- --offline
+jq '.version, .nuclei_coverage.ok, .nuclei_coverage.mode, .nuclei_coverage.totals, .nuclei_coverage.covered[:5]' data/latest_brief.json
+```
 
 ## v0.4.27.3 — Latest PoC Stream
 

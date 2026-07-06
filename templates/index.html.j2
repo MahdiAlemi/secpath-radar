@@ -155,6 +155,31 @@
           </div>
         </section>
 
+        <section id="nuclei-coverage" class="panel" aria-label="Nuclei Template Coverage">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">Nuclei Coverage</span><h2>پوشش template برای CVEها</h2></div>
+            <span class="count">{{ brief.nuclei_coverage.totals.covered_cves }}/{{ brief.nuclei_coverage.totals.dashboard_cves }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.nuclei_coverage.summary_fa }} خروجی فقط مسیر template و metadata است؛ هیچ nuclei scan، target input یا دستور اجرا وجود ندارد.</p>
+          <div class="tiny-bars split-two">
+            {% for row in brief.nuclei_coverage.coverage_chart %}<div class="risk-{% if row.name == 'covered' %}medium{% else %}watch{% endif %}"><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endfor %}
+          </div>
+          <div class="compact-list">
+            {% for item in brief.nuclei_coverage.covered %}{% if loop.index <= 4 %}
+            <article class="row-card risk-{{ item.risk }}">
+              <div class="row-main"><b>{{ item.cve_id }}</b><span>{{ item.protocol }} · {{ item.template_count }} template</span></div>
+              <p>{{ item.note_fa }}</p>
+              <div class="meter"><span style="--bar: {{ item.bar_width }}%"></span></div>
+              <div class="meta-row"><small>{{ item.severity }}</small><small>{{ item.template_path_safe }}</small><small>metadata only</small></div>
+            </article>
+            {% endif %}{% endfor %}
+            {% if brief.nuclei_coverage.covered | length == 0 %}<article class="empty-row">برای CVEهای فعلی، پوشش Nuclei قابل نمایش در cache/index فعلی دیده نشد.</article>{% endif %}
+          </div>
+          {% if brief.nuclei_coverage.missing | length > 0 %}
+          <div class="meta-row production-note">{% for item in brief.nuclei_coverage.missing %}{% if loop.index <= 3 %}<small>بدون template: {{ item.cve_id }}</small>{% endif %}{% endfor %}<small>{{ brief.nuclei_coverage.totals.coverage_pct }}٪ پوشش</small></div>
+          {% endif %}
+        </section>
+
         <section id="poc-watch" class="panel" aria-label="Latest PoC Watch Metadata">
           <div class="panel-head compact-head">
             <div><span class="eyebrow">PoC Watch</span><h2>جدیدترین PoCهای عمومی</h2></div>
