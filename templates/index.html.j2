@@ -211,6 +211,17 @@
       {% else %}
       {{ empty_pulse("supply-chain-radar", "زنجیره تأمین", "Supply Chain", brief.supply_chain_radar.provider, brief.supply_chain_radar.summary_fa) }}
       {% endif %}
+
+      {% if brief.vendor_watchlist.ok %}
+      <section id="vendor-watchlist" class="panel">
+        <div class="panel-head"><div><span class="eyebrow">Vendor Watchlist</span><h2>رصد وندورها</h2></div><span class="chip">{{ brief.vendor_watchlist.totals.vendors }} وندور</span></div>
+        <p class="lede">{{ brief.vendor_watchlist.summary_fa }}</p>
+        {{ bars(brief.vendor_watchlist.rows, 8) }}
+        <div class="meta"><span>{{ brief.vendor_watchlist.provider }}</span></div>
+      </section>
+      {% else %}
+      {{ empty_pulse("vendor-watchlist", "رصد وندورها", "Vendor Watchlist", brief.vendor_watchlist.provider, brief.vendor_watchlist.summary_fa) }}
+      {% endif %}
     </div>
   </section>
 
@@ -290,6 +301,17 @@
       </section>
       {% else %}
       {{ empty_pulse("attack-pressure", "فشار حمله", "Attack Pressure", brief.attack_pressure.provider, brief.attack_pressure.summary_fa) }}
+      {% endif %}
+
+      {% if brief.attack_matrix.ok %}
+      <section id="attack-matrix" class="panel">
+        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>الگوهای حمله</h2></div><span class="chip">{{ brief.attack_matrix.totals.techniques }} تکنیک</span></div>
+        <p class="lede">{{ brief.attack_matrix.summary_fa }}</p>
+        {{ bars(brief.attack_matrix.rows, 8) }}
+        <div class="meta"><span>{{ brief.attack_matrix.provider }}</span></div>
+      </section>
+      {% else %}
+      {{ empty_pulse("attack-matrix", "الگوهای حمله", "ATT&CK Map", brief.attack_matrix.provider, brief.attack_matrix.summary_fa) }}
       {% endif %}
 
       {% if brief.greynoise_context.ok %}

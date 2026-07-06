@@ -2,6 +2,7 @@
 
 mod ai;
 mod archive;
+mod attack;
 mod brief;
 mod cache;
 mod cli;
@@ -14,10 +15,12 @@ mod news;
 mod output;
 mod polish;
 mod prelude;
+mod ranking;
 mod render;
 mod snapshot;
 mod trend;
 mod util;
+mod vendors;
 mod weekly;
 mod writeups;
 
@@ -249,6 +252,9 @@ fn main() -> Result<()> {
 
     let previous_brief = read_previous_latest_brief();
     apply_local_polish(&mut brief);
+    build_vendor_watchlist(&mut brief);
+    build_attack_matrix(&mut brief);
+    apply_iran_relevance_sort(&mut brief);
     attach_history_snapshot(&mut brief, previous_brief.as_ref());
     brief["triage_signals"] = build_triage_signals(&brief);
     if let Err(err) = write_history_snapshot(&brief) {
