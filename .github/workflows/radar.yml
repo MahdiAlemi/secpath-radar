@@ -65,7 +65,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           rm -rf _pub && mkdir -p _pub/state
-          cp -r site _pub/site
+          cp -r site/. _pub/
+          echo "radar.secpath.space" > _pub/CNAME
+          touch _pub/.nojekyll
           [ -d data/cache ]              && cp -r data/cache _pub/state/cache          || true
           [ -d data/day_state ]          && cp -r data/day_state _pub/state/day_state  || true
           [ -d snapshots ]               && cp -r snapshots _pub/state/snapshots       || true
