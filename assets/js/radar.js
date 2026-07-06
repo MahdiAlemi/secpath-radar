@@ -1,149 +1,105 @@
-(() => {
-  const root = document.documentElement;
-  const storageKey = "secpath-radar-ui-v1";
-  const state = loadState();
-  let activePanel = null;
+// SecPath Radar — local-only display helpers.
+// Read-only dashboard: no data collection, no requests, no forms.
+(function () {
+  "use strict";
 
-  root.dataset.radarRuntime = "production-static";
-  root.dataset.density = state.density || "normal";
+  var body = document.body;
 
-  const chips = Array.from(document.querySelectorAll("[data-ui-action]"));
-  const panels = Array.from(document.querySelectorAll(".panel"));
+  // --- Local display chips (density / collapse-all) ---
+  function setChipState(chip, on) {
+    chip.classList.toggle("is-on", on);
+  }
 
-  panels.forEach((panel) => {
-    const head = panel.querySelector(".compact-head");
-    if (!head) return;
-    head.setAttribute("tabindex", "0");
-    head.setAttribute("role", "button");
-    head.setAttribute("aria-expanded", state.collapsed?.includes(panel.id) ? "false" : "true");
-    if (state.collapsed?.includes(panel.id)) panel.classList.add("is-collapsed");
+  function toggleDensity(chip) {
+    var on = body.classList.toggle("is-compact");
+    if (chip) setChipState(chip, on);
+  }
 
-    const activate = () => setActivePanel(panel);
-    panel.addEventListener("pointerdown", activate);
-    head.addEventListener("click", () => togglePanel(panel));
-    head.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        togglePanel(panel);
+  function toggleCollapseAll(chip) {
+    var panels = document.querySelectorAll(".panel");
+    var anyOpen = Array.prototype.some.call(panels, function (p) {
+      return !p.classList.contains("is-collapsed");
+    });
+    panels.forEach(function (p) {
+      p.classList.toggle("is-collapsed", anyOpen);
+    });
+    if (chip) setChipState(chip, anyOpen);
+  }
+
+  document.querySelectorAll("[data-ui-action]").forEach(function (chip) {
+    var action = chip.getAttribute("data-ui-action");
+    function run() {
+      if (action === "density") toggleDensity(chip);
+      if (action === "collapse") toggleCollapseAll(chip);
+    }
+    chip.addEventListener("click", run);
+    chip.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        run();
       }
     });
   });
 
-  chips.forEach((chip) => {
-    chip.addEventListener("click", () => runAction(chip.dataset.uiAction));
-    chip.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        runAction(chip.dataset.uiAction);
-      }
+  // --- Per-panel collapse on header click ---
+  document.querySelectorAll(".panel-head").forEach(function (head) {
+    head.addEventListener("click", function (ev) {
+      if (ev.target.closest("a")) return;
+      var panel = head.closest(".panel");
+      if (panel) panel.classList.toggle("is-collapsed");
     });
   });
 
-  document.addEventListener("keydown", (event) => {
-    if (event.target && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
-    const key = event.key.toLowerCase();
-    if (key === "d") runAction("density");
-    if (key === "f") runAction("focus");
-    if (event.key === "Escape") exitFocusMode();
+  // --- Keyboard shortcuts (local only) ---
+  document.addEventListener("keydown", function (ev) {
+    if (ev.target !== document.body) return;
+    if (ev.key === "d" || ev.key === "D") {
+      toggleDensity(document.querySelector('[data-ui-action="density"]'));
+    }
+    if (ev.key === "Escape") {
+      body.classList.remove("is-compact");
+      document.querySelectorAll(".panel.is-collapsed").forEach(function (p) {
+        p.classList.remove("is-collapsed");
+      });
+      document.querySelectorAll(".ui-chip.is-on").forEach(function (c) {
+        c.classList.remove("is-on");
+      });
+    }
   });
 
-  refreshControls();
+  // --- Scroll spy for anchor nav ---
+  var nav = document.querySelector(".anchor-nav");
+  if (nav && "IntersectionObserver" in window) {
+    var links = Array.prototype.slice.call(nav.querySelectorAll("a[href^='#']"));
+    var targets = links
+      .map(function (a) {
+        return document.querySelector(a.getAttribute("href"));
+      })
+      .filter(Boolean);
 
-  function runAction(action) {
-    if (action === "density") toggleDensity();
-    if (action === "collapse") toggleCollapseAll();
-    if (action === "focus") toggleFocusMode();
-  }
+    var activeId = targets.length ? targets[0].id : null;
+    var visible = {};
 
-  function toggleDensity() {
-    root.dataset.density = root.dataset.density === "dense" ? "normal" : "dense";
-    state.density = root.dataset.density;
-    saveState();
-    refreshControls();
-  }
-
-  function togglePanel(panel) {
-    panel.classList.toggle("is-collapsed");
-    const collapsed = panel.classList.contains("is-collapsed");
-    const head = panel.querySelector(".compact-head");
-    if (head) head.setAttribute("aria-expanded", String(!collapsed));
-    state.collapsed = panels.filter((item) => item.id && item.classList.contains("is-collapsed")).map((item) => item.id);
-    saveState();
-  }
-
-  function toggleCollapseAll() {
-    const shouldCollapse = panels.some((panel) => !panel.classList.contains("is-collapsed"));
-    panels.forEach((panel) => {
-      panel.classList.toggle("is-collapsed", shouldCollapse);
-      const head = panel.querySelector(".compact-head");
-      if (head) head.setAttribute("aria-expanded", String(!shouldCollapse));
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          visible[entry.target.id] = entry.isIntersecting;
+        });
+        var current = null;
+        targets.forEach(function (t) {
+          if (current === null && visible[t.id]) current = t.id;
+        });
+        if (current && current !== activeId) {
+          activeId = current;
+          links.forEach(function (a) {
+            a.classList.toggle("is-active", a.getAttribute("href") === "#" + current);
+          });
+        }
+      },
+      { rootMargin: "-100px 0px -55% 0px" }
+    );
+    targets.forEach(function (t) {
+      observer.observe(t);
     });
-    state.collapsed = shouldCollapse ? panels.map((panel) => panel.id).filter(Boolean) : [];
-    saveState();
-    refreshControls();
-  }
-
-  function setActivePanel(panel) {
-    if (!panel || !panel.id) return;
-    activePanel = panel;
-    panels.forEach((item) => item.classList.toggle("is-active-panel", item === panel));
-  }
-
-  function toggleFocusMode() {
-    if (root.classList.contains("radar-focus-mode")) {
-      exitFocusMode();
-      return;
-    }
-    const panel = activePanel || panels.find((item) => !item.classList.contains("is-collapsed")) || panels[0];
-    if (!panel) return;
-    setActivePanel(panel);
-    panels.forEach((item) => item.classList.toggle("is-focused", item === panel));
-    root.classList.add("radar-focus-mode");
-    document.body.dataset.radarMode = "focus";
-    showFocusNote(panel);
-    refreshControls();
-  }
-
-  function exitFocusMode() {
-    root.classList.remove("radar-focus-mode");
-    document.body.dataset.radarMode = "overview";
-    panels.forEach((item) => item.classList.remove("is-focused"));
-    document.querySelector(".focus-note")?.remove();
-    refreshControls();
-  }
-
-  function showFocusNote(panel) {
-    document.querySelector(".focus-note")?.remove();
-    const note = document.createElement("div");
-    note.className = "focus-note";
-    note.textContent = "Focus Mode محلی فعال است؛ Esc برای بازگشت به نمای کامل.";
-    panel.insertBefore(note, panel.children[1] || null);
-  }
-
-  function refreshControls() {
-    chips.forEach((chip) => {
-      const action = chip.dataset.uiAction;
-      chip.classList.toggle("is-active", action === "density" && root.dataset.density === "dense");
-      chip.classList.toggle("is-active", action === "focus" && root.classList.contains("radar-focus-mode"));
-      if (action === "collapse") {
-        chip.textContent = panels.some((panel) => !panel.classList.contains("is-collapsed")) ? "جمع‌کردن" : "بازکردن";
-      }
-    });
-  }
-
-  function loadState() {
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) || "{}");
-    } catch (_) {
-      return {};
-    }
-  }
-
-  function saveState() {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(state));
-    } catch (_) {
-      // Local storage may be disabled; the dashboard remains read-only and usable.
-    }
   }
 })();
