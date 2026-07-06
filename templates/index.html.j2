@@ -29,7 +29,7 @@
       <div>
         <span class="eyebrow">نمای عملیاتی فشرده</span>
         <h1>داشبورد امنیت سایبری امروز</h1>
-        <p>خلاصه تولیدی و سه‌ستونه از خبر، آسیب‌پذیری، فشار حمله، IOC، زیرساخت مشکوک، زنجیره تأمین، botnet C2، فیشینگ، ICS/OT و باج‌افزار؛ تعامل‌ها فقط محلی و نمایشی هستند، بدون scan، submit یا عملیات امنیتی.</p>
+        <p>نمای تصمیم‌محور از مهم‌ترین ریسک‌های امروز؛ ابتدا سیگنال‌های اولویت‌دار، سپس جزئیات CVE، تهدید فعال، ICS/OT، زنجیره تأمین و منابع. تعامل‌ها فقط محلی و نمایشی هستند.</p>
       </div>
       <div class="hero-score risk-{{ brief.executive_snapshot.level }}">
         <span>امتیاز ریسک</span>
@@ -46,33 +46,40 @@
     </section>
 
     <nav class="section-jump" aria-label="پرش محلی بین بخش‌ها">
+      <a href="#top-signals">اولویت‌ها</a>
+      <a href="#breaking-news">Breaking</a>
+      <a href="#global-news">خبر امروز</a>
       <a href="#executive-snapshot">مدیریتی</a>
       <a href="#history-snapshot">تغییرات</a>
       <a href="#cves">CVE</a>
-      <a href="#global-news">خبرها</a>
+      <a href="#ioc-radar">تهدید فعال</a>
+      <a href="#greynoise-context">GreyNoise</a>
       <a href="#phishing-pulse">Phishing</a>
       <a href="#ics-ot-pulse">ICS/OT</a>
-      <a href="#botnet-c2-pulse">C2</a>
-      <a href="#greynoise-context">GreyNoise</a>
       <a href="#sources">منابع</a>
     </nav>
 
-    <section class="metric-strip" aria-label="شاخص‌های یک نگاه">
-      <div><span>خبرها</span><b>{{ brief.stats.global_news }}</b></div>
-      <div><span>ایران</span><b>{{ brief.stats.iran_items }}</b></div>
-      <div><span>CVE</span><b>{{ brief.stats.cves }}</b><small>{{ brief.stats.critical_cves }} critical</small></div>
-      <div><span>EPSS</span><b>{{ brief.stats.epss_stable }}</b><small>{{ brief.stats.epss_rising }} رو به رشد</small></div>
-      <div><span>CISA</span><b>{{ brief.stats.vulnrichment_hits }}</b><small>{{ brief.stats.vulnrichment_checked }} بررسی</small></div>
-      <div><span>IOC</span><b>{{ brief.stats.iocs }}</b></div>
-      <div><span>Botnet C2</span><b>{{ brief.stats.botnet_c2 }}</b><small>{{ brief.stats.malicious_tls }} TLS</small></div>
-      <div><span>GreyNoise</span><b>{{ brief.stats.greynoise_noise }}</b><small>{{ brief.stats.greynoise_malicious }} malicious</small></div>
-      <div><span>Phishing</span><b>{{ brief.stats.phishing_urls }}</b><small>{{ brief.stats.phishing_high }} high</small></div>
-      <div><span>ICS/OT</span><b>{{ brief.stats.ics_advisories }}</b><small>{{ brief.stats.ics_high }} high</small></div>
-      <div><span>زیرساخت</span><b>{{ brief.stats.infrastructure_hosts }}</b></div>
-      <div><span>زنجیره تأمین</span><b>{{ brief.stats.supply_chain_advisories }}</b></div>
-      <div><span>Ransomware</span><b>{{ brief.stats.ransomware_victims }}</b></div>
-      <div><span>RSS خطادار</span><b>{{ brief.stats.failed_rss_sources }}</b></div>
-      <div><span>تغییرات</span><b>{{ brief.stats.history_changes }}</b><small>از اجرای قبل</small></div>
+    <section class="metric-strip metric-strip-core" aria-label="شاخص‌های تصمیم سریع">
+      <div class="metric-primary"><span>Risk Score</span><b>{{ brief.executive_snapshot.score }}</b><small>{{ brief.executive_snapshot.level }}</small></div>
+      <div><span>CVE بحرانی</span><b>{{ brief.stats.critical_cves }}</b><small>{{ brief.stats.cves }} CVE</small></div>
+      <div><span>Exploitability</span><b>{{ brief.stats.kev }}</b><small>{{ brief.stats.epss_rising }} EPSS↑ · {{ brief.stats.vulnrichment_hits }} CISA</small></div>
+      <div><span>خبر امروز</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} breaking · {{ brief.source_health.rss_sources }} RSS</small></div>
+      <div><span>تهدید فعال</span><b>{{ brief.stats.iocs }}</b><small>{{ brief.stats.botnet_c2 }} C2 · {{ brief.stats.phishing_urls }} phish</small></div>
+    </section>
+
+    <section id="top-signals" class="triage-strip" aria-label="مهم‌ترین سیگنال‌های امروز">
+      <div class="triage-intro">
+        <span class="eyebrow">Top Signals Today</span>
+        <h2>اولویت‌های دیدن، نه همه جزئیات</h2>
+        <p>این ردیف فقط مسیر خواندن را مشخص می‌کند؛ همه داده‌ها همچنان پایین صفحه و فقط read-only هستند.</p>
+      </div>
+      {% for signal in brief.triage_signals %}{% if loop.index <= 5 %}
+      <a class="triage-card risk-{{ signal.level }}" href="{{ signal.anchor }}">
+        <div><b>{{ signal.title }}</b><span>{{ signal.metric }}</span></div>
+        <p>{{ signal.note_fa }}</p>
+        <i style="--bar: {{ signal.bar_width }}%"></i>
+      </a>
+      {% endif %}{% endfor %}
     </section>
 
     <section class="dashboard-grid" aria-label="چیدمان سه‌ستونه رادار">
@@ -105,11 +112,15 @@
             <div><span>افزایش</span><b>{{ brief.history_snapshot.totals.increased }}</b></div>
             <div><span>کاهش</span><b>{{ brief.history_snapshot.totals.decreased }}</b></div>
           </div>
+          {% if brief.history_snapshot.totals.changed > 0 %}
           <div class="tiny-bars history-bars">
             {% for row in brief.history_snapshot.top_changes %}{% if loop.index <= 6 %}
             <div class="risk-{{ row.level }}"><span>{{ row.label_fa }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</b></div>
             {% endif %}{% endfor %}
           </div>
+          {% else %}
+          <article class="empty-row stability-row">تغییر معناداری نسبت به اجرای قبل دیده نشد؛ جزئیات flat پنهان شده تا صفحه خلوت بماند.</article>
+          {% endif %}
           <div class="meta-row production-note"><small>قبلی: {{ brief.history_snapshot.previous_version }}</small><small>{{ brief.history_snapshot.storage }}</small><small>local only</small></div>
         </section>
 
@@ -157,6 +168,24 @@
       </aside>
 
       <section class="column column-news" aria-label="خبرهای فارسی">
+        <section id="breaking-news" class="panel news-panel breaking-panel dominant-panel" aria-label="Breaking News">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">Breaking News</span><h2>خبرهای مهم امروز</h2></div>
+            <span class="count">{{ brief.breaking_news | length }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.news_window.note_fa }} Breaking فقط آیتم‌های مهم همان پنجره خبری را جدا می‌کند.</p>
+          <div class="news-list breaking-news-list">
+            {% if brief.breaking_news | length == 0 %}<article class="empty-row">خبر فوری/پرریسک در پنجره امروز دیده نشد.</article>{% endif %}
+            {% for item in brief.breaking_news %}{% if loop.index <= 5 %}
+            <article class="news-card breaking-card risk-news-{{ item.category }}">
+              <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title_fa }}</a></h3>
+              <p>{{ item.summary_fa }}</p>
+              <div class="meta-row"><span>{{ item.source }}</span><small>{{ item.freshness_label }}</small><small>Risk {{ item.risk_score }}</small><small>{{ item.category }}</small></div>
+            </article>
+            {% endif %}{% endfor %}
+          </div>
+        </section>
+
         <section id="iran" class="panel news-panel">
           <div class="panel-head compact-head">
             <div><span class="eyebrow">رادار ایران</span><h2>سیگنال‌های مرتبط با ایران</h2></div>
@@ -168,7 +197,7 @@
             <article class="news-card">
               <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title_fa }}</a></h3>
               <p>{{ item.summary_fa }}</p>
-              <div class="meta-row"><span>{{ item.source }}</span><small>Risk {{ item.risk_score }}</small><small>{{ item.iran_context }}</small></div>
+              <div class="meta-row"><span>{{ item.source }}</span><small>{{ item.freshness_label }}</small><small>Risk {{ item.risk_score }}</small><small>{{ item.iran_context }}</small></div>
             </article>
             {% endif %}{% endfor %}
           </div>
@@ -176,16 +205,17 @@
 
         <section id="global-news" class="panel news-panel dominant-panel">
           <div class="panel-head compact-head">
-            <div><span class="eyebrow">خبرهای جهانی</span><h2>خبرهای مهم جهانی</h2></div>
-            <span class="count">{{ brief.global_news | length }}</span>
+            <div><span class="eyebrow">Daily News</span><h2>{% if brief.news_window.mode == "latest-feed-backfill" %}تازه‌ترین خبرهای cache، جدیدتر اول{% elif brief.news_window.mode == "local-day-with-latest-backfill" %}خبرهای امروز + تکمیل تازه‌ها{% elif brief.news_window.mode == "latest-feed-day-fallback" %}آخرین روز خبری، جدیدتر اول{% else %}خبرهای امروز، جدیدتر اول{% endif %}</h2></div>
+            <span class="count">{{ brief.global_news | length }} / {{ brief.stats.daily_news }}</span>
           </div>
+          <p class="panel-summary">{{ brief.stats.rss_items_fetched }} خبر از {{ brief.source_health.rss_sources }} فید دریافت شد؛ امروز: {{ brief.stats.current_day_news | default(value=0) }} · تکمیلی cache: {{ brief.stats.news_backfill | default(value=0) }}. {{ brief.news_window.note_fa }} {{ brief.stats.daily_news_hidden }} آیتم پایین‌تر پنهان شده است.</p>
           <div class="news-list dense-news">
-            {% if brief.global_news | length == 0 %}<article class="empty-row">خبر جهانی مهمی وارد خروجی نشد.</article>{% endif %}
-            {% for item in brief.global_news %}{% if loop.index <= 10 %}
+            {% if brief.global_news | length == 0 %}<article class="empty-row">خبر غیر-breaking برای پنجره خبری فعلی باقی نماند.</article>{% endif %}
+            {% for item in brief.global_news %}{% if loop.index <= 7 %}
             <article class="news-card risk-news-{{ item.category }}">
               <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title_fa }}</a></h3>
               <p>{{ item.summary_fa }}</p>
-              <div class="meta-row"><span>{{ item.source }}</span><small>Risk {{ item.risk_score }}</small><small>{{ item.category }}</small></div>
+              <div class="meta-row"><span>{{ item.source }}</span><small>{{ item.freshness_label }}</small><small>Risk {{ item.risk_score }}</small><small>{{ item.category }}</small></div>
             </article>
             {% endif %}{% endfor %}
           </div>
@@ -213,7 +243,7 @@
             <div><span class="eyebrow">Phishing</span><h2>URLهای فیشینگ</h2></div>
             <span class="count">{{ brief.phishing_pulse.totals.urls }}</span>
           </div>
-          <p class="panel-summary">{{ brief.phishing_pulse.summary_fa }}</p>
+          <p class="panel-summary">{{ brief.phishing_pulse.summary_fa }} فقط چند نمونه defanged برای جلوگیری از شلوغی نمایش داده می‌شود.</p>
           <div class="tiny-bars split-two">
             {% for row in brief.phishing_pulse.brand_chart %}{% if loop.index <= 5 %}<div class="risk-{% if row.name == 'Unknown target' %}watch{% else %}medium{% endif %}"><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endif %}{% endfor %}
           </div>
@@ -342,7 +372,7 @@
         <section id="sources" class="panel source-panel" aria-label="سلامت منابع">
           <div class="panel-head compact-head">
             <div><span class="eyebrow">سلامت منابع</span><h2>سلامت منابع</h2></div>
-            <span class="count">{{ brief.source_health.failed_rss_sources }} خطا</span>
+            <span class="count">{{ brief.source_health.rss_sources }} RSS · {{ brief.source_health.failed_rss_sources }} خطا</span>
           </div>
           <div class="health-grid">
             <div><span>RSS</span><b>{{ brief.source_health.rss_sources }}</b></div>
@@ -354,14 +384,14 @@
             {% for failure in brief.source_health.rss_failures %}{% if loop.index <= 3 %}<span>{{ failure.name }}</span>{% endif %}{% endfor %}
           </div>
           {% else %}
-          <p class="panel-summary">همه منابع خبری اصلی در این اجرا قابل استفاده بودند.</p>
+          <p class="panel-summary source-ok">منابع اصلی قابل استفاده بودند؛ خطاهای 404/429 تله‌متری در صورت وجود به cache/stale fallback تبدیل می‌شوند.</p>
           {% endif %}
         </section>
       </aside>
     </section>
 
     <footer>
-      <p><b>SecPath Radar {{ brief.version }}</b> — نمای production، فشرده، فقط خواندنی و با تعامل محلی برای مرور سریع‌تر؛ بدون عملیات فعال.</p>
+      <p><b>SecPath Radar {{ brief.version }}</b> — خبرهای روزانه با ترتیب جدیدتر-اول، Breaking جدا و backfill امن برای cache ناقص/قدیمی؛ فقط خواندنی و با تعامل محلی.</p>
     </footer>
   </main>
 </body>

@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.23-ics-ot-advisory-pulse**
+Current phase: **v0.4.25.2-news-backfill**
 
 ## What changed in v0.4.8
 
@@ -211,6 +211,46 @@ This phase adds a local, read-only snapshot history layer. Before writing `data/
 
 The comparison is local only. It does not add network sources, forms, inputs, backend workflows, scanning, submission, or operational security actions.
 
+
+
+
+### v0.4.25.1 — Daily News fallback polish
+
+- Keeps the requested local-day model for news: 00:00–23:59 local time.
+- If the current local day has no timestamped RSS items in cache, the dashboard falls back to the latest available feed day instead of showing an empty news panel.
+- Marks the fallback in `news_window.mode = latest-feed-day-fallback` and explains it in `news_window.note_fa`.
+- Breaking News is still selected from the effective news window and remains read-only.
+
+## v0.4.25 — Daily News Freshness + Breaking News
+
+This phase keeps the same UI but changes news behavior:
+
+- RSS still fetches and dedupes all source items.
+- The user-facing news window is the current local day, 00:00–23:59.
+- Daily news is sorted newest-first instead of only risk/top-score first.
+- High-risk daily items are separated into a compact **Breaking News** panel.
+- `news_window`, `breaking_news`, and daily news counters are written to `data/latest_brief.json`.
+- Older or undated RSS items are counted but hidden from the daily news panel.
+- No new external data source, no scan, no submit workflow, and no backend.
+
+Quick checks:
+
+```bash
+cargo run -- --offline
+jq '.version, .news_window, .stats.daily_news, .stats.breaking_news, .breaking_news[:3], .global_news[:3] | .' data/latest_brief.json
+```
+
+## v0.4.24 — Production UX Triage Polish
+
+This phase keeps the existing dark glass production UI and improves triage UX without adding active capabilities.
+
+- Reduces the top KPI strip to the core decision metrics.
+- Adds a **Top Signals Today** triage strip above the three-column dashboard.
+- Makes Snapshot History quiet when there is no meaningful delta.
+- Improves visual hierarchy for high / medium / watch cards.
+- Cleans ICS/OT vendor and product extraction so vendor charts do not show long `Product Version:` strings.
+- Keeps all interactions local/client-side only: collapse, dense mode, focus mode, and local anchors.
+- No input, form, select, operational button, scan, submit, backend workflow, exploit content, or dangerous links.
 
 ## v0.4.23 — ICS/OT Advisory Pulse
 

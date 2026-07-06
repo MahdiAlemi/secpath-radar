@@ -140,7 +140,7 @@ footer {
 .metric-strip {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 .metric-strip > div {
@@ -153,6 +153,63 @@ footer {
 .metric-strip span { color: var(--muted); font-size: 11px; }
 .metric-strip b { font-size: 23px; line-height: 1; }
 .metric-strip small { color: var(--muted); font-size: 10px; }
+
+.metric-primary {
+  border-color: rgba(125, 211, 252, 0.38) !important;
+  background: linear-gradient(145deg, rgba(125, 211, 252, 0.10), rgba(255,255,255,0.035)) !important;
+}
+.triage-strip {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1.35fr repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+.triage-intro,
+.triage-card {
+  border: 1px solid var(--line);
+  background: linear-gradient(145deg, rgba(25, 34, 48, 0.68), rgba(13, 18, 28, 0.42));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px) saturate(128%);
+  padding: 10px;
+  min-width: 0;
+}
+.triage-intro h2 { margin: 0; font-size: 15px; }
+.triage-intro p,
+.triage-card p { margin: 5px 0 0; color: var(--soft); font-size: 11px; }
+.triage-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 6px;
+  border-inline-start: 3px solid var(--line-strong);
+}
+.triage-card:hover { border-color: var(--line-strong); background: rgba(125, 211, 252, 0.07); }
+.triage-card div { display: grid; gap: 2px; }
+.triage-card b { font-size: 12px; }
+.triage-card span { color: var(--muted); font-size: 10.5px; font-family: var(--mono); direction: ltr; unicode-bidi: plaintext; text-align: right; }
+.triage-card i {
+  height: 5px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
+}
+.triage-card i::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--bar, 0%);
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+.triage-card.risk-high { border-inline-start-color: var(--high); }
+.triage-card.risk-medium { border-inline-start-color: var(--medium); }
+.triage-card.risk-watch,
+.triage-card.risk-low { border-inline-start-color: var(--watch); }
+.triage-card.risk-high i::before { background: linear-gradient(90deg, var(--high), #ffb3bd); }
+.triage-card.risk-medium i::before { background: linear-gradient(90deg, var(--medium), #fff0a8); }
+.triage-card.risk-watch i::before,
+.triage-card.risk-low i::before { background: linear-gradient(90deg, var(--watch), #d4f4ff); }
 
 .dashboard-grid {
   margin-top: 12px;
@@ -227,6 +284,16 @@ footer {
 .row-card.risk-medium { border-inline-start-color: var(--medium); }
 .mini-card.risk-watch,
 .row-card.risk-watch { border-inline-start-color: var(--watch); }
+.row-card.risk-high,
+.mini-card.risk-high,
+.triage-card.risk-high { background: linear-gradient(145deg, rgba(255, 107, 122, 0.10), rgba(255,255,255,0.035)); }
+.row-card.risk-medium,
+.mini-card.risk-medium,
+.triage-card.risk-medium { background: linear-gradient(145deg, rgba(255, 209, 102, 0.08), rgba(255,255,255,0.032)); }
+.row-card.risk-watch,
+.row-card.risk-low,
+.mini-card.risk-watch,
+.triage-card.risk-watch { opacity: 0.92; }
 .mini-card > div,
 .row-main {
   display: flex;
@@ -248,7 +315,7 @@ footer {
 .lead-card { background: linear-gradient(145deg, rgba(125,211,252,0.08), rgba(255,255,255,0.035)); }
 .dense-news .news-card { padding: 7px 8px; }
 .dense-news .news-card p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.news-panel.dominant-panel { min-height: 700px; }
+.news-panel.dominant-panel { min-height: 540px; }
 
 .meta-row {
   margin-top: 6px;
@@ -332,6 +399,8 @@ footer {
 .failure-mini span { border: 1px solid rgba(255, 125, 138, 0.35); color: var(--danger); padding: 2px 5px; font-size: 10px; }
 .production-note { margin-top: 8px; }
 .empty-row { color: var(--muted); font-size: 12px; }
+.stability-row,
+.source-ok { border-color: rgba(126, 231, 198, 0.20); color: var(--soft); }
 
 footer {
   margin-top: 12px;
@@ -410,6 +479,7 @@ html[data-density="dense"] .row-card p,
 html[data-density="dense"] .panel-summary { font-size: 11px; }
 html[data-density="dense"] .dense-news .news-card p { -webkit-line-clamp: 1; }
 html.radar-focus-mode .metric-strip,
+html.radar-focus-mode .triage-strip,
 html.radar-focus-mode .view-help,
 html.radar-focus-mode .section-jump { display: none; }
 html.radar-focus-mode .dashboard-grid { grid-template-columns: 1fr; }
@@ -435,7 +505,9 @@ html.radar-focus-mode .panel.is-focused {
 @media (max-width: 1320px) {
   .dashboard-grid { grid-template-columns: 1fr 1fr; }
   .column-news { grid-column: 1 / -1; grid-row: 1; }
-  .metric-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .metric-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .triage-strip { grid-template-columns: 1fr 1fr 1fr; }
+  .triage-intro { grid-column: 1 / -1; }
 }
 
 @media (max-width: 820px) {
@@ -443,6 +515,7 @@ html.radar-focus-mode .panel.is-focused {
   .topbar { height: auto; min-height: 44px; align-items: start; padding: 9px; flex-direction: column; gap: 6px; }
   .hero { grid-template-columns: 1fr; }
   .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .triage-strip { grid-template-columns: 1fr; }
   .dashboard-grid { grid-template-columns: 1fr; }
   .column-news { grid-column: auto; grid-row: auto; }
 }
@@ -450,3 +523,29 @@ html.radar-focus-mode .panel.is-focused {
 .history-panel .history-bars { margin-top: 8px; }
 .compact-history-grid { margin-bottom: 8px; }
 .history-panel .production-note { margin-top: 8px; }
+
+.breaking-panel {
+  border-color: rgba(255, 107, 122, 0.28);
+  background: linear-gradient(145deg, rgba(255, 107, 122, 0.075), rgba(13, 18, 28, 0.48));
+}
+.breaking-news-list { gap: 8px; }
+.breaking-card {
+  border-inline-start: 3px solid var(--high);
+  background: linear-gradient(145deg, rgba(255, 107, 122, 0.10), rgba(255,255,255,0.035));
+}
+.breaking-card h3 { font-size: 14.5px; }
+.breaking-card .meta-row small:nth-child(2) {
+  color: var(--accent);
+  border-color: rgba(125, 211, 252, 0.28);
+}
+.news-card.risk-news-active_exploitation,
+.news-card.risk-news-malware_incident {
+  border-inline-start: 3px solid var(--high);
+}
+.news-card.risk-news-vulnerability {
+  border-inline-start: 3px solid var(--medium);
+}
+.news-card.risk-news-ai_security,
+.news-card.risk-news-general {
+  border-inline-start: 3px solid var(--watch);
+}

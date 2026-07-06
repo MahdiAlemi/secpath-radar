@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.23-ics-ot-advisory-pulse",
+  "version": "v0.4.25.2-news-backfill",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -438,7 +438,7 @@
     "generated_at": "sample",
     "previous_available": false,
     "previous_version": "none",
-    "current_version": "v0.4.23-ics-ot-advisory-pulse",
+    "current_version": "v0.4.25.2-news-backfill",
     "summary_fa": "نمونه محلی برای نمایش تغییرات نسبت به اجرای قبل؛ در اجرای واقعی از data/latest_brief.json قبلی محاسبه می‌شود.",
     "totals": {
       "tracked": 13,
@@ -490,5 +490,31 @@
     "sector_chart": [],
     "risk_chart": [],
     "safe_mode": "metadata only; no active scan; no exploit content"
-  }
+  },
+  "triage_signals": [
+    {
+      "title": "تصمیم سریع امروز",
+      "metric": "Risk 100",
+      "level": "high",
+      "anchor": "#executive-snapshot",
+      "bar_width": 100,
+      "note_fa": "ابتدا خلاصه مدیریتی و دلیل امتیاز ریسک را ببین."
+    },
+    {
+      "title": "آسیب‌پذیری قابل اقدام",
+      "metric": "2 critical · 0 KEV · 0 EPSS↑",
+      "level": "high",
+      "anchor": "#cves",
+      "bar_width": 76,
+      "note_fa": "CVEهای critical/KEV را قبل از خبرهای عمومی مرور کن."
+    },
+    {
+      "title": "تهدید فعال و C2",
+      "metric": "36 IOC · 5 C2 · 16 TLS",
+      "level": "high",
+      "anchor": "#ioc-radar",
+      "bar_width": 96,
+      "note_fa": "IOC، C2 و TLS بدخواه را فقط برای correlation دفاعی ببین."
+    }
+  ]
 }

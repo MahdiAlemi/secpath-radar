@@ -1,6 +1,6 @@
 [package]
 name = "secpath-radar"
-version = "0.4.23"
+version = "0.4.25"
 edition = "2021"
 
 [dependencies]

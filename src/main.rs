@@ -1191,6 +1191,7 @@ fn main() -> Result<()> {
     let previous_brief = read_previous_latest_brief();
     apply_local_polish(&mut brief);
     attach_history_snapshot(&mut brief, previous_brief.as_ref());
+    brief["triage_signals"] = build_triage_signals(&brief);
     if let Err(err) = write_history_snapshot(&brief) {
         eprintln!("⚠️  history snapshot skipped: {err:#}");
     }
@@ -4651,22 +4652,41 @@ fn fetch_ics_ot_pulse(config: &Config, offline: bool, refresh_cache: bool) -> Re
             "Vendor:",
             &[
                 "Equipment:",
+                "Product Version:",
+                "Product:",
                 "Vulnerabilities:",
                 "CRITICAL INFRASTRUCTURE SECTORS:",
                 "COUNTRIES/AREAS DEPLOYED:",
             ],
         )
+        .map(|value| clean_ics_entity_value(&value))
+        .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| infer_vendor_from_title(&title));
         let equipment = extract_labeled_field(
             &detail,
             "Equipment:",
             &[
+                "Product Version:",
                 "Vulnerabilities:",
                 "CRITICAL INFRASTRUCTURE SECTORS:",
                 "COUNTRIES/AREAS DEPLOYED:",
                 "COMPANY HEADQUARTERS LOCATION:",
             ],
         )
+        .or_else(|| {
+            extract_labeled_field(
+                &detail,
+                "Product Version:",
+                &[
+                    "Vulnerabilities:",
+                    "CRITICAL INFRASTRUCTURE SECTORS:",
+                    "COUNTRIES/AREAS DEPLOYED:",
+                    "COMPANY HEADQUARTERS LOCATION:",
+                ],
+            )
+        })
+        .map(|value| clean_ics_entity_value(&value))
+        .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| infer_equipment_from_title(&title, &vendor));
         let sector = extract_labeled_field(
             &detail,
@@ -4771,6 +4791,33 @@ fn extract_labeled_field(text: &str, label: &str, next_labels: &[&str]) -> Optio
     } else {
         Some(truncate_chars(&value, 90))
     }
+}
+
+fn clean_ics_entity_value(value: &str) -> String {
+    let mut out = clean_text(value);
+    let markers = [
+        "Product Version:",
+        "Product:",
+        "Equipment:",
+        "Vulnerabilities:",
+        "CRITICAL INFRASTRUCTURE SECTORS:",
+        "COUNTRIES/AREAS DEPLOYED:",
+        "COMPANY HEADQUARTERS LOCATION:",
+    ];
+    let lower = out.to_lowercase();
+    let mut cut_at = out.len();
+    for marker in markers {
+        if let Some(idx) = lower.find(&marker.to_lowercase()) {
+            if idx > 0 && idx < cut_at {
+                cut_at = idx;
+            }
+        }
+    }
+    out = out[..cut_at]
+        .trim_matches(|ch: char| ch == ':' || ch == '-' || ch == '–' || ch.is_whitespace())
+        .to_string();
+    let compact = out.split_whitespace().collect::<Vec<_>>().join(" ");
+    truncate_chars(&compact, 42)
 }
 
 fn extract_ics_advisory_id(title: &str, url: &str) -> String {
@@ -5770,10 +5817,88 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
     let date_en = format!("{}-{:02}-{:02}", now.year(), now.month(), now.day());
     let generated_at = now.format("%Y-%m-%d %H:%M").to_string();
 
-    let mut iran: Vec<_> = items.iter().filter(|i| i.iran_related).cloned().collect();
-    let mut global: Vec<_> = items.iter().filter(|i| !i.iran_related).cloned().collect();
-    iran.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
-    global.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
+    let requested_news_day = now.date_naive();
+    let mut effective_news_day = requested_news_day;
+    let mut news_window_mode = "local-day";
+    let news_display_floor = (config.limits.global_news + config.limits.iran_radar + 5)
+        .max(12)
+        .min(items.len().max(1));
+    let mut daily_items: Vec<_> = items
+        .iter()
+        .filter(|item| feed_item_is_local_day(item, requested_news_day))
+        .cloned()
+        .collect();
+    sort_news_latest_first(&mut daily_items);
+    let current_day_news_total = daily_items.len();
+
+    if daily_items.len() < news_display_floor {
+        let mut seen_keys: HashSet<String> = daily_items.iter().map(news_dedupe_key).collect();
+        let mut backfill: Vec<_> = items
+            .iter()
+            .filter(|item| !seen_keys.contains(&news_dedupe_key(item)))
+            .cloned()
+            .collect();
+        sort_news_latest_first(&mut backfill);
+        let needed = news_display_floor.saturating_sub(daily_items.len());
+        for item in backfill.into_iter().take(needed) {
+            seen_keys.insert(news_dedupe_key(&item));
+            daily_items.push(item);
+        }
+        if current_day_news_total == 0 {
+            news_window_mode = "latest-feed-backfill";
+            if let Some(latest_feed_day) = latest_feed_item_local_day(&daily_items)
+                .or_else(|| latest_feed_item_local_day(&items))
+            {
+                effective_news_day = latest_feed_day;
+            }
+        } else if daily_items.len() > current_day_news_total {
+            news_window_mode = "local-day-with-latest-backfill";
+        }
+        sort_news_latest_first(&mut daily_items);
+    }
+
+    let mut breaking_news: Vec<_> = daily_items
+        .iter()
+        .filter(|item| is_breaking_news_item(item))
+        .cloned()
+        .collect();
+    sort_breaking_news(&mut breaking_news);
+    breaking_news.truncate(5);
+    let breaking_keys: HashSet<String> = breaking_news.iter().map(news_dedupe_key).collect();
+
+    let mut iran: Vec<_> = daily_items
+        .iter()
+        .filter(|item| item.iran_related && !breaking_keys.contains(&news_dedupe_key(item)))
+        .cloned()
+        .collect();
+    let mut global: Vec<_> = daily_items
+        .iter()
+        .filter(|item| !item.iran_related && !breaking_keys.contains(&news_dedupe_key(item)))
+        .cloned()
+        .collect();
+    sort_news_latest_first(&mut iran);
+    sort_news_latest_first(&mut global);
+    let daily_news_total = daily_items.len();
+    let backfill_news_total = daily_news_total.saturating_sub(current_day_news_total);
+    let daily_news_hidden = items.len().saturating_sub(daily_news_total);
+    let effective_news_date = format!(
+        "{}-{:02}-{:02}",
+        effective_news_day.year(),
+        effective_news_day.month(),
+        effective_news_day.day()
+    );
+    let news_window_note_fa = match news_window_mode {
+        "latest-feed-backfill" => format!(
+            "برای تاریخ محلی {} خبر زمان‌دار کافی در cache نبود؛ تازه‌ترین آیتم‌های موجود از cache نمایش داده شدند، با اولویت تاریخ جدیدتر.",
+            date_en
+        ),
+        "local-day-with-latest-backfill" => format!(
+            "{} خبر برای امروز پیدا شد؛ برای جلوگیری از خالی‌شدن پنل، {} آیتم تازه‌تر/مهم از cache هم اضافه شد. خبرهای جدیدتر همچنان بالاتر هستند.",
+            current_day_news_total, backfill_news_total
+        ),
+        _ if daily_news_total == 0 => "در پنجره امروز هنوز خبر قابل نمایش در cache فعلی دیده نشده است.".to_string(),
+        _ => "خبرهای پنجره روز محلی نمایش داده می‌شوند؛ جدیدترین خبرها بالاتر قرار می‌گیرند.".to_string(),
+    };
     iran.truncate(config.limits.iran_radar);
     global.truncate(config.limits.global_news);
     let news_lanes = build_news_lanes(&global);
@@ -5781,7 +5906,11 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
     cves.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
     cves.truncate(config.limits.cves);
 
-    let news_priority = items.iter().max_by_key(|i| i.risk_score);
+    let news_priority = breaking_news
+        .iter()
+        .chain(iran.iter())
+        .chain(global.iter())
+        .max_by_key(|item| item.risk_score);
     let cve_priority = cves.iter().max_by_key(|c| c.risk_score);
 
     let priority = match (news_priority, cve_priority) {
@@ -5817,13 +5946,19 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
     Ok(json!({
         "site_title": config.site.title,
         "date_fa": "امروز",
-        "date_en": date_en,
+        "date_en": date_en.clone(),
         "risk_level": risk_level,
         "generated_at": generated_at,
         "stats": {
             "total_items": items.len() + cve_count,
             "iran_items": iran.len(),
             "global_news": global.len(),
+            "breaking_news": breaking_news.len(),
+            "daily_news": daily_news_total,
+            "current_day_news": current_day_news_total,
+            "news_backfill": backfill_news_total,
+            "daily_news_hidden": daily_news_hidden,
+            "rss_items_fetched": items.len(),
             "cves": cve_count,
             "critical_cves": critical_count,
             "kev": kev_count,
@@ -5860,11 +5995,136 @@ fn build_brief(config: &Config, items: Vec<FeedItem>, mut cves: Vec<CveItem>) ->
             "intel_cache_dir": config.intel.cache_dir.clone()
         },
         "priority_alert": priority,
+        "news_window": {
+            "mode": news_window_mode,
+            "date": effective_news_date,
+            "requested_date": date_en.clone(),
+            "start": "00:00",
+            "end": "23:59",
+            "timezone": now.format("%:z").to_string(),
+            "rss_items_fetched": items.len(),
+            "daily_news": daily_news_total,
+            "current_day_news": current_day_news_total,
+            "backfill_news": backfill_news_total,
+            "hidden_old_or_undated": daily_news_hidden,
+            "note_fa": news_window_note_fa
+        },
+        "breaking_news": breaking_news,
         "iran_radar": iran,
         "global_news": global,
         "news_lanes": news_lanes,
         "cves": cves
     }))
+}
+
+fn parse_feed_item_local_time(item: &FeedItem) -> Option<chrono::DateTime<Local>> {
+    if item.published.trim().is_empty() {
+        return None;
+    }
+
+    chrono::DateTime::parse_from_rfc3339(&item.published)
+        .map(|dt| dt.with_timezone(&Local))
+        .ok()
+}
+
+fn feed_item_is_local_day(item: &FeedItem, day: NaiveDate) -> bool {
+    parse_feed_item_local_time(item)
+        .map(|dt| dt.date_naive() == day)
+        .unwrap_or(false)
+}
+
+fn latest_feed_item_local_day(items: &[FeedItem]) -> Option<NaiveDate> {
+    items
+        .iter()
+        .filter_map(parse_feed_item_local_time)
+        .max()
+        .map(|dt| dt.date_naive())
+}
+
+fn feed_item_timestamp(item: &FeedItem) -> i64 {
+    parse_feed_item_local_time(item)
+        .map(|dt| dt.timestamp())
+        .unwrap_or(0)
+}
+
+fn sort_news_latest_first(items: &mut [FeedItem]) {
+    items.sort_by(|a, b| {
+        feed_item_timestamp(b)
+            .cmp(&feed_item_timestamp(a))
+            .then_with(|| b.risk_score.cmp(&a.risk_score))
+            .then_with(|| a.source.cmp(&b.source))
+            .then_with(|| a.title.cmp(&b.title))
+    });
+}
+
+fn sort_breaking_news(items: &mut [FeedItem]) {
+    items.sort_by(|a, b| {
+        b.risk_score
+            .cmp(&a.risk_score)
+            .then_with(|| feed_item_timestamp(b).cmp(&feed_item_timestamp(a)))
+            .then_with(|| a.source.cmp(&b.source))
+            .then_with(|| a.title.cmp(&b.title))
+    });
+}
+
+fn news_dedupe_key(item: &FeedItem) -> String {
+    if !item.url.trim().is_empty() {
+        item.url.trim().to_ascii_lowercase()
+    } else {
+        format!(
+            "{}::{}",
+            item.source.to_ascii_lowercase(),
+            item.title.to_ascii_lowercase()
+        )
+    }
+}
+
+fn is_breaking_news_item(item: &FeedItem) -> bool {
+    if item.risk_score >= 8 {
+        return true;
+    }
+    if matches!(
+        item.category.as_str(),
+        "active_exploitation" | "malware_incident"
+    ) && item.risk_score >= 6
+    {
+        return true;
+    }
+
+    let haystack = format!(
+        "{} {} {}",
+        item.title.to_ascii_lowercase(),
+        item.summary.to_ascii_lowercase(),
+        item.tags.join(" ").to_ascii_lowercase()
+    );
+    [
+        "zero-day",
+        "0-day",
+        "actively exploited",
+        "exploited in the wild",
+        "mass exploitation",
+        "ransomware",
+        "critical vulnerability",
+        "emergency patch",
+        "data breach",
+    ]
+    .iter()
+    .any(|needle| haystack.contains(needle))
+}
+
+fn news_time_display_fields(published: &str) -> (String, String, String) {
+    let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(published) else {
+        return ("".to_string(), "".to_string(), "زمان نامشخص".to_string());
+    };
+    let local = parsed.with_timezone(&Local);
+    let date = local.format("%Y-%m-%d").to_string();
+    let time = local.format("%H:%M").to_string();
+    let label = if local.date_naive() == Local::now().date_naive() {
+        format!("امروز {time}")
+    } else {
+        format!("{date} {time}")
+    };
+    (date, time, label)
 }
 
 fn build_news_lanes(global: &[FeedItem]) -> Value {
@@ -6676,7 +6936,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.23-ics-ot-advisory-pulse");
+    brief["version"] = json!("v0.4.25.2-news-backfill");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -6700,6 +6960,108 @@ fn apply_local_polish(brief: &mut Value) {
     }
     if brief["source_health"].get("rss_failures").is_none() {
         brief["source_health"]["rss_failures"] = json!([]);
+    }
+    if brief.get("breaking_news").is_none() {
+        brief["breaking_news"] = json!([]);
+    }
+    if brief.get("news_window").is_none() {
+        let daily_news = brief
+            .get("global_news")
+            .and_then(|v| v.as_array())
+            .map(|items| items.len())
+            .unwrap_or(0)
+            + brief
+                .get("iran_radar")
+                .and_then(|v| v.as_array())
+                .map(|items| items.len())
+                .unwrap_or(0)
+            + brief
+                .get("breaking_news")
+                .and_then(|v| v.as_array())
+                .map(|items| items.len())
+                .unwrap_or(0);
+        brief["news_window"] = json!({
+            "mode": "local-day",
+            "date": brief.get("date_en").and_then(|v| v.as_str()).unwrap_or(""),
+            "start": "00:00",
+            "end": "23:59",
+            "timezone": Local::now().format("%:z").to_string(),
+            "rss_items_fetched": daily_news,
+            "daily_news": daily_news,
+            "hidden_old_or_undated": 0
+        });
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("breaking_news"))
+        .is_none()
+    {
+        let count = brief
+            .get("breaking_news")
+            .and_then(|v| v.as_array())
+            .map(|items| items.len())
+            .unwrap_or(0);
+        brief["stats"]["breaking_news"] = json!(count);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("daily_news"))
+        .is_none()
+    {
+        let count = brief
+            .get("news_window")
+            .and_then(|v| v.get("daily_news"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["daily_news"] = json!(count);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("current_day_news"))
+        .is_none()
+    {
+        let count = brief
+            .get("news_window")
+            .and_then(|v| v.get("current_day_news"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["current_day_news"] = json!(count);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("news_backfill"))
+        .is_none()
+    {
+        let count = brief
+            .get("news_window")
+            .and_then(|v| v.get("backfill_news"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["news_backfill"] = json!(count);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("daily_news_hidden"))
+        .is_none()
+    {
+        let count = brief
+            .get("news_window")
+            .and_then(|v| v.get("hidden_old_or_undated"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["daily_news_hidden"] = json!(count);
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("rss_items_fetched"))
+        .is_none()
+    {
+        let count = brief
+            .get("news_window")
+            .and_then(|v| v.get("rss_items_fetched"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        brief["stats"]["rss_items_fetched"] = json!(count);
     }
     if brief.get("attack_pressure").is_none() {
         brief["attack_pressure"] = empty_attack_pressure("missing");
@@ -6954,6 +7316,7 @@ fn apply_local_polish(brief: &mut Value) {
     }
 
     polish_priority(brief);
+    polish_array_items(brief, "breaking_news", 88, 240);
     polish_array_items(brief, "iran_radar", 88, 240);
     polish_array_items(brief, "global_news", 88, 240);
     polish_cves(brief);
@@ -6962,6 +7325,177 @@ fn apply_local_polish(brief: &mut Value) {
 
     let executive_snapshot = build_executive_snapshot(brief);
     brief["executive_snapshot"] = executive_snapshot;
+}
+
+fn build_triage_signals(brief: &Value) -> Value {
+    let breaking_news = stat_u64(brief, "breaking_news");
+    let daily_news = stat_u64(brief, "daily_news");
+    let critical_cves = stat_u64(brief, "critical_cves");
+    let cves = stat_u64(brief, "cves");
+    let kev = stat_u64(brief, "kev");
+    let epss_rising = stat_u64(brief, "epss_rising");
+    let iocs = stat_u64(brief, "iocs");
+    let botnet_c2 = stat_u64(brief, "botnet_c2");
+    let malicious_tls = stat_u64(brief, "malicious_tls");
+    let greynoise_malicious = stat_u64(brief, "greynoise_malicious");
+    let greynoise_noise = stat_u64(brief, "greynoise_noise");
+    let phishing_urls = stat_u64(brief, "phishing_urls");
+    let phishing_high = stat_u64(brief, "phishing_high");
+    let ics_advisories = stat_u64(brief, "ics_advisories");
+    let ics_high = stat_u64(brief, "ics_high");
+    let history_changes = stat_u64(brief, "history_changes");
+    let failed_rss = stat_u64(brief, "failed_rss_sources");
+    let risk_score = path_u64(brief, &["executive_snapshot", "score"]);
+
+    let mut signals: Vec<(u64, Value)> = Vec::new();
+
+    signals.push((
+        100 + risk_score,
+        json!({
+            "title": "تصمیم سریع امروز",
+            "metric": format!("Risk {risk_score}"),
+            "level": snapshot_level(risk_score),
+            "anchor": "#executive-snapshot",
+            "bar_width": risk_score.max(12),
+            "note_fa": "ابتدا خلاصه مدیریتی و دلیل امتیاز ریسک را ببین."
+        }),
+    ));
+
+    if breaking_news > 0 || daily_news > 0 {
+        let score = (breaking_news * 18 + daily_news.min(40)).min(100).max(12);
+        signals.push((
+            95 + score,
+            json!({
+                "title": "Breaking / خبر تازه",
+                "metric": format!("{breaking_news} breaking · {daily_news} امروز"),
+                "level": if breaking_news > 0 { "high" } else { "watch" },
+                "anchor": "#breaking-news",
+                "bar_width": score,
+                "note_fa": "خبرهای امروز با ترتیب زمان انتشار نمایش داده می‌شوند؛ خبرهای مهم جدا شده‌اند."
+            }),
+        ));
+    }
+
+    if critical_cves > 0 || kev > 0 || epss_rising > 0 || cves > 0 {
+        let score = (critical_cves * 28 + kev * 32 + epss_rising * 18 + cves * 3)
+            .min(100)
+            .max(12);
+        signals.push((
+            90 + score,
+            json!({
+                "title": "آسیب‌پذیری قابل اقدام",
+                "metric": format!("{critical_cves} critical · {kev} KEV · {epss_rising} EPSS↑"),
+                "level": snapshot_level(score),
+                "anchor": "#cves",
+                "bar_width": score,
+                "note_fa": if kev > 0 || critical_cves > 0 { "CVEهای critical/KEV را قبل از خبرهای عمومی مرور کن." } else { "CVEها برای تطبیق با asset inventory نگه داشته شده‌اند." }
+            }),
+        ));
+    }
+
+    if greynoise_malicious > 0 || greynoise_noise > 0 {
+        let score = (greynoise_malicious * 42 + greynoise_noise * 6)
+            .min(100)
+            .max(12);
+        signals.push((
+            80 + score,
+            json!({
+                "title": "Context اسکنرها",
+                "metric": format!("{greynoise_malicious} malicious · {greynoise_noise} noise"),
+                "level": if greynoise_malicious > 0 { "high" } else { "watch" },
+                "anchor": "#greynoise-context",
+                "bar_width": score,
+                "note_fa": "GreyNoise برای کاهش false positive و اولویت‌بندی IPها استفاده شود."
+            }),
+        ));
+    }
+
+    if botnet_c2 > 0 || malicious_tls > 0 || iocs > 0 {
+        let score = (botnet_c2 * 12 + malicious_tls * 4 + iocs.min(45))
+            .min(100)
+            .max(12);
+        signals.push((
+            75 + score,
+            json!({
+                "title": "تهدید فعال و C2",
+                "metric": format!("{iocs} IOC · {botnet_c2} C2 · {malicious_tls} TLS"),
+                "level": if botnet_c2 > 0 { "high" } else if iocs > 0 { "medium" } else { "watch" },
+                "anchor": "#ioc-radar",
+                "bar_width": score,
+                "note_fa": "IOC، C2 و TLS بدخواه را فقط برای correlation دفاعی ببین."
+            }),
+        ));
+    }
+
+    if phishing_urls > 0 {
+        let score = (phishing_high * 16 + phishing_urls.min(40))
+            .min(100)
+            .max(12);
+        signals.push((
+            65 + score,
+            json!({
+                "title": "Phishing Pulse",
+                "metric": format!("{phishing_urls} URL · {phishing_high} high"),
+                "level": if phishing_high > 0 { "medium" } else { "watch" },
+                "anchor": "#phishing-pulse",
+                "bar_width": score,
+                "note_fa": "نمایش فقط defanged و برای آگاهی/همبستگی دفاعی است."
+            }),
+        ));
+    }
+
+    if ics_advisories > 0 {
+        let score = (ics_high * 20 + ics_advisories.min(30)).min(100).max(12);
+        signals.push((
+            60 + score,
+            json!({
+                "title": "ICS/OT Advisory",
+                "metric": format!("{ics_advisories} advisory · {ics_high} high"),
+                "level": if ics_high > 0 { "medium" } else { "watch" },
+                "anchor": "#ics-ot-pulse",
+                "bar_width": score,
+                "note_fa": "Vendor و تجهیز را با موجودی OT/ICS تطبیق بده."
+            }),
+        ));
+    }
+
+    if history_changes > 0 {
+        let score = (history_changes * 12).min(100).max(12);
+        signals.push((
+            55 + score,
+            json!({
+                "title": "تغییر نسبت به قبل",
+                "metric": format!("{history_changes} شاخص تغییر کرد"),
+                "level": "medium",
+                "anchor": "#history-snapshot",
+                "bar_width": score,
+                "note_fa": "اول تغییرهای تازه را ببین، بعد وارد جزئیات پنل‌ها شو."
+            }),
+        ));
+    }
+
+    if failed_rss > 0 {
+        let score = (failed_rss * 15).min(100).max(12);
+        signals.push((
+            45 + score,
+            json!({
+                "title": "سلامت منابع",
+                "metric": format!("{failed_rss} RSS failed"),
+                "level": "medium",
+                "anchor": "#sources",
+                "bar_width": score,
+                "note_fa": "قبل از تصمیم‌گیری، محدودیت پوشش منبع را در نظر بگیر."
+            }),
+        ));
+    }
+
+    signals.sort_by(|a, b| b.0.cmp(&a.0));
+    let values: Vec<Value> = signals
+        .into_iter()
+        .take(5)
+        .map(|(_, value)| value)
+        .collect();
+    json!(values)
 }
 
 fn read_previous_latest_brief() -> Option<Value> {
@@ -7028,7 +7562,16 @@ fn attach_history_snapshot(brief: &mut Value, previous: Option<&Value>) {
         .count() as u64;
     let tracked = deltas.len() as u64;
     let unchanged = tracked.saturating_sub(changed);
-    let top_changes: Vec<Value> = deltas.into_iter().take(9).collect();
+    let changed_rows: Vec<Value> = deltas
+        .iter()
+        .filter(|row| row.get("delta").and_then(|v| v.as_i64()).unwrap_or(0) != 0)
+        .cloned()
+        .collect();
+    let top_changes: Vec<Value> = if changed_rows.is_empty() {
+        deltas.into_iter().take(5).collect()
+    } else {
+        changed_rows.into_iter().take(9).collect()
+    };
 
     let summary_fa = if previous.is_none() {
         "برای مقایسه با اجرای قبل هنوز snapshot قبلی در دسترس نبود؛ از اجرای بعدی تغییرات روزانه نمایش داده می‌شود.".to_string()
@@ -7296,6 +7839,7 @@ fn polish_cves(brief: &mut Value) {
 
 fn add_editorial_display_fields(brief: &mut Value) {
     enrich_priority_fields(brief);
+    enrich_news_fields(brief, "breaking_news", false);
     enrich_news_fields(brief, "iran_radar", true);
     enrich_news_fields(brief, "global_news", false);
     enrich_cve_fields(brief);
@@ -7365,6 +7909,22 @@ fn enrich_news_fields(brief: &mut Value, key: &str, iran_section: bool) {
             .get("risk_score")
             .and_then(|value| value.as_i64())
             .unwrap_or(1);
+        let published = obj
+            .get("published")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string();
+        let (published_date_local, published_time_local, freshness_label) =
+            news_time_display_fields(&published);
+        obj.insert(
+            "published_date_local".to_string(),
+            json!(published_date_local),
+        );
+        obj.insert(
+            "published_time_local".to_string(),
+            json!(published_time_local),
+        );
+        obj.insert("freshness_label".to_string(), json!(freshness_label));
 
         insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
         insert_string_if_missing(
