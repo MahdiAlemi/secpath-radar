@@ -151,9 +151,9 @@
           </div>
           <p>{{ cve.summary_fa }}</p>
           <div class="meta">
-            <span>CVSS {{ cve.cvss }}</span>
+            <span>CVSS {{ cve.cvss }}{% if cve.cvss_version %} · v{{ cve.cvss_version }}{% endif %}</span>
             <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} ↑{% endif %}</span>
-            {% if cve.kev %}<span class="tag tag-risk">KEV</span>{% endif %}
+            {% if cve.kev %}<span class="tag tag-risk">KEV{% if cve.kev_due_date %} · مهلت {{ cve.kev_due_date }}{% endif %}</span>{% endif %}{% if cve.kev_ransomware %}<span class="tag tag-risk">باج‌افزار</span>{% endif %}
             {% if cve.cisa_priority %}<span class="tag">CISA {{ cve.cisa_priority }}</span>{% endif %}
           </div>
           <p class="note">{{ cve.why_it_matters }}</p>

@@ -36,6 +36,9 @@ pub(crate) struct CveItem {
     pub(crate) ssvc_automatable: String,
     pub(crate) ssvc_technical_impact: String,
     pub(crate) cisa_priority: String,
+    pub(crate) cvss_version: String,
+    pub(crate) kev_due_date: String,
+    pub(crate) kev_ransomware: bool,
     pub(crate) published: String,
     pub(crate) url: String,
     pub(crate) recommended_action: String,
@@ -47,6 +50,12 @@ pub(crate) struct CveItem {
 pub(crate) struct EpssSnapshot {
     pub(crate) epss: f64,
     pub(crate) percentile: f64,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct KevEntry {
+    pub(crate) due_date: String,
+    pub(crate) ransomware: bool,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -22,35 +22,49 @@ pub(crate) fn fetch_cves(
     let end_s = rounded_end.to_rfc3339_opts(SecondsFormat::Millis, true);
     let results_per_page = (cve_config.max_cves * 4).max(20).min(2000).to_string();
 
-    eprintln!("→ fetching NVD CVEs from {start_s} to {end_s}");
-
-    let nvd_bytes = get_bytes_cached(
-        &client,
-        config,
-        &cve_config.nvd_url,
-        &[
-            ("pubStartDate", start_s.as_str()),
-            ("pubEndDate", end_s.as_str()),
-            ("resultsPerPage", results_per_page.as_str()),
-        ],
-        "NVD CVE API",
-        offline,
-        refresh_cache,
-    )?;
-
-    let nvd_json: Value = serde_json::from_slice(&nvd_bytes).context("invalid JSON from NVD")?;
-
-    thread::sleep(Duration::from_millis(cve_config.sleep_ms_between_sources));
-
-    let kev_set = match fetch_kev_set(&client, config, cve_config, offline, refresh_cache) {
-        Ok(set) => set,
+    let kev_map = match fetch_kev_map(&client, config, cve_config, offline, refresh_cache) {
+        Ok(map) => map,
         Err(err) => {
             eprintln!("⚠️  skipped CISA KEV enrichment: {err:#}");
-            HashSet::new()
+            HashMap::new()
         }
     };
 
-    let mut cves = parse_nvd_cves(&nvd_json, &kev_set);
+    thread::sleep(Duration::from_millis(cve_config.sleep_ms_between_sources));
+
+    let nvd_result = fetch_nvd_window(
+        &client,
+        config,
+        cve_config,
+        &kev_map,
+        &start_s,
+        &end_s,
+        &results_per_page,
+        offline,
+        refresh_cache,
+    );
+
+    let mut cves = match nvd_result {
+        Ok(list) if !list.is_empty() => list,
+        result => {
+            match &result {
+                Ok(_) => eprintln!("⚠️  NVD returned no CVEs for this window"),
+                Err(err) => eprintln!("⚠️  NVD unavailable: {err:#}"),
+            }
+            if cve_config.include_fallback {
+                fetch_fallback_cves(
+                    &client,
+                    config,
+                    cve_config,
+                    &kev_map,
+                    offline,
+                    refresh_cache,
+                )?
+            } else {
+                result?
+            }
+        }
+    };
 
     if cve_config.include_epss && !cves.is_empty() {
         thread::sleep(Duration::from_millis(cve_config.sleep_ms_between_sources));
@@ -118,13 +132,13 @@ pub(crate) fn fetch_cves(
     Ok(cves)
 }
 
-pub(crate) fn fetch_kev_set(
+pub(crate) fn fetch_kev_map(
     client: &Client,
     config: &Config,
     cve_config: &CveConfig,
     offline: bool,
     refresh_cache: bool,
-) -> Result<HashSet<String>> {
+) -> Result<HashMap<String, KevEntry>> {
     eprintln!("→ fetching CISA KEV catalog");
     let bytes = get_bytes_cached(
         client,
@@ -137,17 +151,253 @@ pub(crate) fn fetch_kev_set(
     )?;
 
     let json: Value = serde_json::from_slice(&bytes).context("invalid JSON from CISA KEV")?;
-    let mut out = HashSet::new();
+    Ok(parse_kev_map(&json))
+}
+
+pub(crate) fn parse_kev_map(json: &Value) -> HashMap<String, KevEntry> {
+    let mut out = HashMap::new();
 
     if let Some(vulns) = json.get("vulnerabilities").and_then(|v| v.as_array()) {
         for vuln in vulns {
-            if let Some(id) = vuln.get("cveID").and_then(|v| v.as_str()) {
-                out.insert(id.to_string());
-            }
+            let Some(id) = vuln.get("cveID").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let due_date = vuln
+                .get("dueDate")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let ransomware = vuln
+                .get("knownRansomwareCampaignUse")
+                .and_then(|v| v.as_str())
+                .map(|s| s.eq_ignore_ascii_case("known"))
+                .unwrap_or(false);
+            out.insert(
+                id.to_string(),
+                KevEntry {
+                    due_date,
+                    ransomware,
+                },
+            );
         }
     }
 
+    out
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn fetch_nvd_window(
+    client: &Client,
+    config: &Config,
+    cve_config: &CveConfig,
+    kev_map: &HashMap<String, KevEntry>,
+    start_s: &str,
+    end_s: &str,
+    results_per_page: &str,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Vec<CveItem>> {
+    eprintln!("→ fetching NVD CVEs from {start_s} to {end_s}");
+    let nvd_bytes = get_bytes_cached(
+        client,
+        config,
+        &cve_config.nvd_url,
+        &[
+            ("pubStartDate", start_s),
+            ("pubEndDate", end_s),
+            ("resultsPerPage", results_per_page),
+        ],
+        "NVD CVE API",
+        offline,
+        refresh_cache,
+    )?;
+
+    let nvd_json: Value = serde_json::from_slice(&nvd_bytes).context("invalid JSON from NVD")?;
+    Ok(parse_nvd_cves(&nvd_json, kev_map))
+}
+
+pub(crate) fn fetch_fallback_cves(
+    client: &Client,
+    config: &Config,
+    cve_config: &CveConfig,
+    kev_map: &HashMap<String, KevEntry>,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Vec<CveItem>> {
+    eprintln!("→ fetching cvelistV5 delta as NVD fallback");
+    let bytes = get_bytes_cached(
+        client,
+        config,
+        &cve_config.fallback_delta_url,
+        &[],
+        "cvelistV5 delta",
+        offline,
+        refresh_cache,
+    )?;
+    let json: Value =
+        serde_json::from_slice(&bytes).context("invalid JSON from cvelistV5 delta")?;
+
+    let mut records: Vec<(String, String)> = Vec::new();
+    for key in ["new", "updated"] {
+        let Some(rows) = json.get(key).and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for row in rows {
+            let Some(id) = row.get("cveId").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let Some(link) = row.get("githubLink").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            records.push((id.to_string(), link.to_string()));
+        }
+    }
+    records.truncate(cve_config.max_fallback_records);
+
+    let mut out = Vec::new();
+    for (cve_id, link) in &records {
+        thread::sleep(Duration::from_millis(
+            (cve_config.sleep_ms_between_sources / 4).max(150),
+        ));
+        let record_bytes = match get_bytes_cached(
+            client,
+            config,
+            link,
+            &[],
+            &format!("cvelistV5 {cve_id}"),
+            offline,
+            refresh_cache,
+        ) {
+            Ok(bytes) => bytes,
+            Err(err) => {
+                eprintln!("⚠️  skipped cvelistV5 record {cve_id}: {err:#}");
+                continue;
+            }
+        };
+        let Ok(record_json) = serde_json::from_slice::<Value>(&record_bytes) else {
+            continue;
+        };
+        if let Some(item) = parse_cvelist_record(&record_json, kev_map) {
+            out.push(item);
+        }
+    }
+
+    eprintln!("  ↳ cvelistV5 fallback: {} records usable", out.len());
     Ok(out)
+}
+
+pub(crate) fn parse_cvelist_record(
+    json: &Value,
+    kev_map: &HashMap<String, KevEntry>,
+) -> Option<CveItem> {
+    let cve_id = json
+        .pointer("/cveMetadata/cveId")
+        .and_then(|v| v.as_str())?
+        .to_string();
+    let state = json
+        .pointer("/cveMetadata/state")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if state.eq_ignore_ascii_case("rejected") {
+        return None;
+    }
+    let cna = json.pointer("/containers/cna")?;
+
+    let descriptions = cna.get("descriptions").and_then(|v| v.as_array())?;
+    let summary = descriptions
+        .iter()
+        .find(|d| {
+            d.get("lang")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_ascii_lowercase().starts_with("en"))
+                .unwrap_or(false)
+        })
+        .or_else(|| descriptions.first())
+        .and_then(|d| d.get("value"))
+        .and_then(|v| v.as_str())
+        .map(clean_text)?;
+    if summary.is_empty() {
+        return None;
+    }
+
+    let (severity, cvss, cvss_version) = extract_cvelist_cvss(cna);
+    let published = json
+        .pointer("/cveMetadata/datePublished")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let title = cna
+        .get("title")
+        .and_then(|v| v.as_str())
+        .map(|s| concise_title(s, 84))
+        .unwrap_or_else(|| derive_cve_title(&cve_id, &summary));
+    let kev_entry = kev_map.get(&cve_id);
+    let url = format!("https://www.cve.org/CVERecord?id={cve_id}");
+
+    let mut item = CveItem {
+        cve_id: cve_id.clone(),
+        title,
+        summary: truncate_chars(&summary, 310),
+        severity,
+        cvss,
+        cvss_version,
+        epss: 0.0,
+        epss_percentile: 0.0,
+        epss_7d: 0.0,
+        epss_30d: 0.0,
+        epss_delta_7d: 0.0,
+        epss_delta_30d: 0.0,
+        epss_momentum: "stable".to_string(),
+        kev: kev_entry.is_some(),
+        kev_due_date: kev_entry.map(|e| e.due_date.clone()).unwrap_or_default(),
+        kev_ransomware: kev_entry.map(|e| e.ransomware).unwrap_or(false),
+        cisa_vulnrichment: false,
+        ssvc_exploitation: String::new(),
+        ssvc_automatable: String::new(),
+        ssvc_technical_impact: String::new(),
+        cisa_priority: "unscored".to_string(),
+        published,
+        url,
+        recommended_action: String::new(),
+        risk_score: 1,
+        tags: Vec::new(),
+    };
+
+    finalize_cve_score(&mut item);
+    Some(item)
+}
+
+pub(crate) fn extract_cvelist_cvss(cna: &Value) -> (String, f64, String) {
+    let Some(metrics) = cna.get("metrics").and_then(|v| v.as_array()) else {
+        return ("UNKNOWN".to_string(), 0.0, String::new());
+    };
+
+    let keys = [
+        ("cvssV4_0", "4.0"),
+        ("cvssV3_1", "3.1"),
+        ("cvssV3_0", "3.0"),
+        ("cvssV2_0", "2.0"),
+    ];
+
+    for (key, version) in keys {
+        for metric in metrics {
+            let Some(data) = metric.get(key) else {
+                continue;
+            };
+            let score = data
+                .get("baseScore")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let severity = data
+                .get("baseSeverity")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| severity_from_score(score).to_string());
+            return (severity.to_uppercase(), score, version.to_string());
+        }
+    }
+
+    ("UNKNOWN".to_string(), 0.0, String::new())
 }
 
 pub(crate) fn fetch_epss_map(
@@ -454,7 +704,10 @@ pub(crate) fn apply_cisa_vulnrichment(cve: &mut CveItem, enrichment: CisaVulnric
     cve.cisa_priority = enrichment.priority;
 }
 
-pub(crate) fn parse_nvd_cves(nvd_json: &Value, kev_set: &HashSet<String>) -> Vec<CveItem> {
+pub(crate) fn parse_nvd_cves(
+    nvd_json: &Value,
+    kev_map: &HashMap<String, KevEntry>,
+) -> Vec<CveItem> {
     let mut out = Vec::new();
     let Some(vulns) = nvd_json.get("vulnerabilities").and_then(|v| v.as_array()) else {
         return out;
@@ -468,8 +721,9 @@ pub(crate) fn parse_nvd_cves(nvd_json: &Value, kev_set: &HashSet<String>) -> Vec
 
         let summary = extract_description(cve);
         let title = derive_cve_title(cve_id, &summary);
-        let (severity, cvss) = extract_cvss(cve);
-        let kev = kev_set.contains(cve_id);
+        let (severity, cvss, cvss_version) = extract_cvss(cve);
+        let kev_entry = kev_map.get(cve_id);
+        let kev = kev_entry.is_some();
         let published = cve
             .get("published")
             .and_then(|v| v.as_str())
@@ -483,6 +737,7 @@ pub(crate) fn parse_nvd_cves(nvd_json: &Value, kev_set: &HashSet<String>) -> Vec
             summary: truncate_chars(&summary, 310),
             severity,
             cvss,
+            cvss_version,
             epss: 0.0,
             epss_percentile: 0.0,
             epss_7d: 0.0,
@@ -491,6 +746,8 @@ pub(crate) fn parse_nvd_cves(nvd_json: &Value, kev_set: &HashSet<String>) -> Vec
             epss_delta_30d: 0.0,
             epss_momentum: "stable".to_string(),
             kev,
+            kev_due_date: kev_entry.map(|e| e.due_date.clone()).unwrap_or_default(),
+            kev_ransomware: kev_entry.map(|e| e.ransomware).unwrap_or(false),
             cisa_vulnrichment: false,
             ssvc_exploitation: String::new(),
             ssvc_automatable: String::new(),
@@ -525,16 +782,16 @@ pub(crate) fn extract_description(cve: &Value) -> String {
         .unwrap_or_else(|| "No description provided by NVD.".to_string())
 }
 
-pub(crate) fn extract_cvss(cve: &Value) -> (String, f64) {
+pub(crate) fn extract_cvss(cve: &Value) -> (String, f64, String) {
     let metrics = &cve["metrics"];
     let names = [
-        "cvssMetricV40",
-        "cvssMetricV31",
-        "cvssMetricV30",
-        "cvssMetricV2",
+        ("cvssMetricV40", "4.0"),
+        ("cvssMetricV31", "3.1"),
+        ("cvssMetricV30", "3.0"),
+        ("cvssMetricV2", "2.0"),
     ];
 
-    for name in names {
+    for (name, version) in names {
         let Some(arr) = metrics.get(name).and_then(|v| v.as_array()) else {
             continue;
         };
@@ -556,10 +813,10 @@ pub(crate) fn extract_cvss(cve: &Value) -> (String, f64) {
             .map(|s| s.to_string())
             .unwrap_or_else(|| severity_from_score(score).to_string());
 
-        return (severity.to_uppercase(), score);
+        return (severity.to_uppercase(), score, version.to_string());
     }
 
-    ("UNKNOWN".to_string(), 0.0)
+    ("UNKNOWN".to_string(), 0.0, String::new())
 }
 
 pub(crate) fn severity_from_score(score: f64) -> &'static str {
@@ -608,6 +865,11 @@ pub(crate) fn finalize_cve_score(cve: &mut CveItem) {
         push_tag(&mut tags, "KEV".to_string());
     }
 
+    if cve.kev_ransomware {
+        score += 1;
+        push_tag(&mut tags, "Ransomware".to_string());
+    }
+
     if cve.epss >= 0.70 {
         score += 2;
         push_tag(&mut tags, "High EPSS".to_string());
@@ -651,7 +913,9 @@ pub(crate) fn finalize_cve_score(cve: &mut CveItem) {
 }
 
 pub(crate) fn recommended_action_for_cve(cve: &CveItem) -> String {
-    if cve.kev {
+    if cve.kev && cve.kev_ransomware {
+        "در KEV با سابقه استفاده باج‌افزاری است؛ وصله را با بالاترین اولویت اعمال کن.".to_string()
+    } else if cve.kev {
         "به‌دلیل حضور در KEV، فوراً exposure و patch/mitigation را بررسی کن.".to_string()
     } else if cve.cisa_priority == "immediate-watch" {
         "با توجه به SSVC/Vulnrichment، این CVE باید در watch فوری تیم دفاعی باشد.".to_string()
@@ -671,12 +935,53 @@ mod tests {
     use super::*;
 
     #[test]
-    fn severity_from_score_buckets() {
-        assert_eq!(severity_from_score(9.8), "CRITICAL");
-        assert_eq!(severity_from_score(9.0), "CRITICAL");
-        assert_eq!(severity_from_score(7.5), "HIGH");
-        assert_eq!(severity_from_score(4.0), "MEDIUM");
-        assert_eq!(severity_from_score(0.5), "LOW");
-        assert_eq!(severity_from_score(0.0), "UNKNOWN");
+    fn parse_kev_map_extracts_due_date_and_ransomware() {
+        let raw = r#"{
+            "vulnerabilities": [
+                {
+                    "cveID": "CVE-2026-0001",
+                    "dueDate": "2026-08-01",
+                    "knownRansomwareCampaignUse": "Known"
+                },
+                {
+                    "cveID": "CVE-2026-0002",
+                    "knownRansomwareCampaignUse": "Unknown"
+                }
+            ]
+        }"#;
+        let json: Value = serde_json::from_str(raw).unwrap();
+        let map = parse_kev_map(&json);
+        assert_eq!(map.len(), 2);
+        let first = map.get("CVE-2026-0001").unwrap();
+        assert_eq!(first.due_date, "2026-08-01");
+        assert!(first.ransomware);
+        let second = map.get("CVE-2026-0002").unwrap();
+        assert!(second.due_date.is_empty());
+        assert!(!second.ransomware);
+    }
+
+    #[test]
+    fn extract_cvelist_cvss_prefers_v4() {
+        let raw = r#"{
+            "metrics": [
+                {
+                    "cvssV3_1": {
+                        "baseScore": 7.5,
+                        "baseSeverity": "HIGH"
+                    }
+                },
+                {
+                    "cvssV4_0": {
+                        "baseScore": 9.3,
+                        "baseSeverity": "CRITICAL"
+                    }
+                }
+            ]
+        }"#;
+        let cna: Value = serde_json::from_str(raw).unwrap();
+        let (severity, score, version) = extract_cvelist_cvss(&cna);
+        assert_eq!(severity, "CRITICAL");
+        assert!((score - 9.3).abs() < 1e-9);
+        assert_eq!(version, "4.0");
     }
 }

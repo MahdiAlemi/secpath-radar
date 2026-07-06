@@ -678,6 +678,12 @@ pub(crate) struct CveConfig {
     pub(crate) vulnrichment_base_url: String,
     #[serde(default = "default_max_vulnrichment")]
     pub(crate) max_vulnrichment: usize,
+    #[serde(default = "default_include_fallback")]
+    pub(crate) include_fallback: bool,
+    #[serde(default = "default_fallback_delta_url")]
+    pub(crate) fallback_delta_url: String,
+    #[serde(default = "default_max_fallback_records")]
+    pub(crate) max_fallback_records: usize,
 }
 
 impl Default for CveConfig {
@@ -695,6 +701,9 @@ impl Default for CveConfig {
             include_vulnrichment: true,
             vulnrichment_base_url: default_vulnrichment_base_url(),
             max_vulnrichment: default_max_vulnrichment(),
+            include_fallback: default_include_fallback(),
+            fallback_delta_url: default_fallback_delta_url(),
+            max_fallback_records: default_max_fallback_records(),
         }
     }
 }
@@ -734,6 +743,18 @@ pub(crate) fn default_vulnrichment_base_url() -> String {
 
 pub(crate) fn default_max_vulnrichment() -> usize {
     10
+}
+
+pub(crate) fn default_include_fallback() -> bool {
+    true
+}
+
+pub(crate) fn default_fallback_delta_url() -> String {
+    "https://raw.githubusercontent.com/CVEProject/cvelistV5/main/cves/delta.json".to_string()
+}
+
+pub(crate) fn default_max_fallback_records() -> usize {
+    20
 }
 
 #[derive(Debug, Deserialize, Clone)]

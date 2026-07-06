@@ -24,6 +24,9 @@ cve:
   include_vulnrichment: true
   vulnrichment_base_url: "https://raw.githubusercontent.com/cisagov/vulnrichment/develop"
   max_vulnrichment: 10
+  include_fallback: true
+  fallback_delta_url: "https://raw.githubusercontent.com/CVEProject/cvelistV5/main/cves/delta.json"
+  max_fallback_records: 20
 
 intel:
   enabled: true
