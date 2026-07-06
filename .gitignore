@@ -9,3 +9,11 @@ data/latest_brief.json
 .DS_Store
 data/cache/
 snapshots/
+secpath-radar.tar
+secpath-radar.tar.gz
+*.tar
+*.tar.gz
+secpath-radar.tar
+secpath-radar.tar.gz
+*.tar
+*.tar.gz
