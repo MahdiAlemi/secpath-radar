@@ -323,3 +323,37 @@ jq '.version, .stats.ics_advisories, .stats.ics_high, .stats.ics_vendors, .ics_o
 cargo run -- --offline
 jq '.version, .stats.ics_advisories, .stats.ics_high, .stats.ics_vendors, .ics_ot_pulse.totals, .stats.failed_rss_sources' data/latest_brief.json
 ```
+
+## v0.4.28.1 — Phase A: Modular architecture
+
+`src/main.rs` (~10,500 lines) is split into focused modules. Behavior is unchanged; this is a mechanical, compile-equivalent restructuring.
+
+```text
+src/
+  main.rs        entry point: CLI dispatch and top-level pipeline only
+  prelude.rs     external imports + crate-wide re-exports
+  cli.rs         argument parsing (Args, parse_args)
+  config.rs      config.yaml structures and defaults (load_config)
+  model.rs       shared data structs (FeedItem, CveItem, indicators, ...)
+  news.rs        RSS fetching, scoring, classification
+  cve.rs         NVD, CISA KEV, EPSS, Vulnrichment
+  brief.rs       brief assembly, news lanes, priority
+  writeups.rs    research write-ups pulse
+  ai.rs          Gemini editorial layer (prompt, schema, cache, merge)
+  snapshot.rs    executive snapshot + triage signals
+  polish.rs      local Persian editorial polish (no AI)
+  history.rs     snapshot history + delta comparison
+  render.rs      minijinja rendering + static asset copy
+  cache.rs       HTTP/intel disk caches
+  util.rs        small text utilities, PHASE_NAME
+  intel/         one file per passive pulse:
+    attack_pressure, ioc_radar, infrastructure, botnet_c2,
+    greynoise, phishing, ics_ot, nuclei_coverage, poc_watch,
+    supply_chain, ransomware
+```
+
+Conventions:
+
+- Items are `pub(crate)` and shared through `prelude.rs`; each module starts with `use crate::prelude::*;`.
+- The brief version string is now derived from `Cargo.toml` (`env!("CARGO_PKG_VERSION")`) plus `PHASE_NAME` in `util.rs` — update the version in one place only.
+- Unit tests live next to the code they cover (`cargo test`): CSV parsing, CVE ID extraction, severity buckets, public-IP filtering, text utilities.
