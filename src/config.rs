@@ -26,6 +26,7 @@ pub(crate) struct SiteConfig {
     pub(crate) title: String,
     #[allow(dead_code)]
     pub(crate) tagline: Option<String>,
+    pub(crate) github: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

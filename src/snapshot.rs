@@ -21,35 +21,12 @@ pub(crate) fn build_executive_snapshot(brief: &Value) -> Value {
     let infrastructure_hosts = stat_u64(brief, "infrastructure_hosts");
     let supply_advisories = stat_u64(brief, "supply_chain_advisories");
     let ransomware_victims = stat_u64(brief, "ransomware_victims");
-    let failed_rss = stat_u64(brief, "failed_rss_sources");
 
     let infra_high = path_u64(brief, &["infrastructure_radar", "totals", "high"]);
     let supply_critical = path_u64(brief, &["supply_chain_radar", "totals", "critical"]);
     let supply_high = path_u64(brief, &["supply_chain_radar", "totals", "high"]);
     let ransomware_24h = path_u64(brief, &["ransomware_pulse", "totals", "recent_24h"]);
     let attack_level = path_string(brief, &["attack_pressure", "level"], "Unknown");
-
-    let score = (critical_cves * 18
-        + kev * 20
-        + iocs.min(60)
-        + botnet_c2.min(25)
-        + malicious_tls.min(20)
-        + greynoise_noise.min(20)
-        + greynoise_malicious * 12
-        + phishing_urls.min(20)
-        + phishing_high * 6
-        + poc_watch.min(18)
-        + poc_watch_high * 10
-        + ics_advisories.min(18)
-        + ics_high * 8
-        + infrastructure_hosts.min(25)
-        + infra_high * 10
-        + supply_critical * 12
-        + supply_high * 4
-        + ransomware_24h * 5
-        + failed_rss * 4)
-        .min(100);
-    let level = snapshot_level(score);
 
     let cve_score =
         (critical_cves * 32 + kev * 28 + cves * 4 + poc_watch.min(20) + poc_watch_high * 12)
@@ -75,6 +52,12 @@ pub(crate) fn build_executive_snapshot(brief: &Value) -> Value {
             .min(100)
             .max(12);
 
+    let score = ((cve_score * 45 + intel_score * 35 + ecosystem_score * 20) / 100).clamp(12, 100);
+    let level = snapshot_level(score);
+    let score_formula_fa = format!(
+        "ترکیب وزنی: ۴۵٪ آسیب‌پذیری ({cve_score}) + ۳۵٪ تله‌متری ({intel_score}) + ۲۰٪ اکوسیستم ({ecosystem_score})"
+    );
+
     let top_port = top_attack_port(brief);
     let top_ioc = first_chart_entry(brief, &["ioc_radar", "malware_chart"])
         .or_else(|| first_chart_entry(brief, &["ioc_radar", "source_chart"]))
@@ -96,6 +79,7 @@ pub(crate) fn build_executive_snapshot(brief: &Value) -> Value {
         "level": level,
         "score": score,
         "bar_width": score.max(12),
+        "score_formula_fa": score_formula_fa,
         "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
         "summary_fa": format!(
             "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} PoC metadata، {} IOC، {} C2 botnet، {} URL فیشینگ، {} advisory ICS/OT، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",

@@ -150,7 +150,7 @@ pub(crate) fn fetch_supply_chain_radar(
         "provider": "GitHub Global Advisories + OSV references",
         "level": level,
         "summary_fa": summary_fa,
-        "last_updated": Local::now().format("%Y-%m-%d %H:%M").to_string(),
+        "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "refresh_hours": config.intel.refresh_hours,
         "totals": {
             "advisories": total,

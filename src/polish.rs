@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 pub(crate) fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.33-vendor-attack-watch");
+    brief["version"] = json!("v0.4.34-day-machine");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -52,7 +52,7 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
             "date": brief.get("date_en").and_then(|v| v.as_str()).unwrap_or(""),
             "start": "00:00",
             "end": "23:59",
-            "timezone": Local::now().format("%:z").to_string(),
+            "timezone": tehran_now().format("%:z").to_string(),
             "rss_items_fetched": daily_news,
             "daily_news": daily_news,
             "hidden_old_or_undated": 0
@@ -456,6 +456,12 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
 
     let executive_snapshot = build_executive_snapshot(brief);
     brief["executive_snapshot"] = executive_snapshot;
+    let synced_level = match brief["executive_snapshot"]["level"].as_str() {
+        Some("high") => "High",
+        Some("medium") => "Medium",
+        _ => "Watch",
+    };
+    brief["risk_level"] = json!(synced_level);
 }
 
 pub(crate) fn polish_priority(brief: &mut Value) {

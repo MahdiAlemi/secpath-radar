@@ -27,6 +27,7 @@
   <div class="meta">
     <span>{{ item.source }}</span>
     <span>{{ item.freshness_label }}</span>
+    {% if item.is_new %}<span class="tag tag-new">جدید</span>{% endif %}
     {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
   </div>
   <p class="note">{{ item.why_it_matters }}</p>
@@ -44,15 +45,14 @@
 {% endmacro %}
 
 <header class="topbar">
-  <div class="brand"><span class="brand-mark">▦</span><strong>SecPath Radar</strong><span class="brand-sub">رصد غیرفعال امنیت سایبری</span></div>
+  <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">رصد غیرفعال امنیت سایبری</span></div>
   <div class="topbar-meta">
-    <span>{{ brief.date_fa }} · {{ brief.date_en }}</span>
-    <span>{{ brief.generated_at }}</span>
+    <span class="live-chip"><i class="live-dot"></i><span>آخرین به‌روزرسانی: {{ brief.generated_at }} تهران</span></span>
     <span class="chip chip-version">{{ brief.version }}</span>
   </div>
   <div class="topbar-actions">
+    {% if brief.site_github %}<a class="ui-chip" href="{{ brief.site_github }}" rel="noopener noreferrer">GitHub</a>{% endif %}
     <a class="ui-chip" href="weekly.html">جمع‌بندی هفتگی</a>
-    <span class="risk-badge risk-{{ brief.risk_level|lower }}"><small>ریسک امروز</small><b>{{ brief.executive_snapshot.score }}</b><i>{{ brief.risk_level }}</i></span>
     <span class="ui-chip" role="button" tabindex="0" data-ui-action="density">نمای فشرده</span>
     <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">جمع‌کردن همه</span>
   </div>
@@ -78,9 +78,9 @@
   </section>
 
   <section id="top-signals" class="cluster" aria-label="مهم‌ترین سیگنال‌ها">
-    <div class="cluster-head"><span class="eyebrow">Top Signals</span><h2>مسیر خواندن امروز</h2></div>
+    <div class="cluster-head"><span class="eyebrow">Top Signals</span><h2>مهم‌ترین سیگنال‌های امروز</h2></div>
     <div class="triage-row">
-      {% for s in brief.triage_signals %}{% if loop.index <= 5 %}
+      {% for s in brief.top_signals %}{% if loop.index <= 5 %}
       <a class="triage-card risk-{{ s.level }}" href="{{ s.anchor }}">
         <div class="triage-top"><b>{{ s.title }}</b><span>{{ s.metric }}</span></div>
         <p>{{ s.note_fa }}</p>
@@ -96,6 +96,7 @@
       <section id="executive-snapshot" class="panel">
         <div class="panel-head"><div><span class="eyebrow">Executive</span><h2>خلاصه ۶۰ ثانیه‌ای</h2></div><span class="chip">{{ brief.executive_snapshot.score }} / 100</span></div>
         <p class="lede">{{ brief.executive_snapshot.summary_fa }}</p>
+        <p class="note">{{ brief.executive_snapshot.score_formula_fa }}</p>
         <span class="bar-track meter risk-{{ brief.risk_level|lower }}"><b style="width: {{ brief.executive_snapshot.bar_width }}%"></b></span>
         {% for card in brief.executive_snapshot.risk_cards %}
         <div class="row risk-{{ card.level }}">
@@ -126,7 +127,7 @@
           <div><span>کاهش</span><b class="down">{{ brief.history_snapshot.totals.decreased }}</b></div>
         </div>
         {% if brief.history_snapshot.totals.changed > 0 %}
-        {% for row in brief.history_snapshot.top_changes %}{% if loop.index <= 5 %}
+        {% for row in brief.history_snapshot.top_changes %}{% if loop.index <= 10 %}
         <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label_fa }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
         {% endif %}{% endfor %}
         {% else %}
@@ -138,7 +139,7 @@
         <div class="panel-head"><div><span class="eyebrow">Trend</span><h2>روند چند اجرای اخیر</h2></div><span class="chip">{{ brief.trend_pulse.totals.runs }} اجرا</span></div>
         {% if brief.trend_pulse.ok %}
         <p class="lede">{{ brief.trend_pulse.summary_fa }}</p>
-        {% for row in brief.trend_pulse.rows %}{% if loop.index <= 6 %}
+        {% for row in brief.trend_pulse.rows %}{% if loop.index <= 10 %}
         <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label_fa }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
         {% endif %}{% endfor %}
         <div class="meta"><span>{{ brief.trend_pulse.span_fa }}</span><span>local snapshots</span></div>
@@ -156,7 +157,7 @@
       <section id="cves" class="panel panel-wide">
         <div class="panel-head"><div><span class="eyebrow">CVE</span><h2>اولویت وصله</h2></div><span class="chip">{{ brief.stats.critical_cves }} بحرانی · {{ brief.stats.cves }} کل</span></div>
         {% if brief.cves %}
-        {% for cve in brief.cves %}{% if loop.index <= 6 %}
+        {% for cve in brief.cves %}{% if loop.index <= 30 %}
         <article class="item sev-{{ cve.severity|lower }}">
           <div class="item-head">
             <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a> — {{ cve.title_fa }}</h3>
@@ -180,7 +181,7 @@
       <section id="nuclei-coverage" class="panel">
         <div class="panel-head"><div><span class="eyebrow">Nuclei Coverage</span><h2>پوشش Template</h2></div><span class="chip">{{ brief.nuclei_coverage.totals.coverage_pct }}٪</span></div>
         <p class="lede">{{ brief.nuclei_coverage.summary_fa }}</p>
-        {% for row in brief.nuclei_coverage.covered %}{% if loop.index <= 4 %}
+        {% for row in brief.nuclei_coverage.covered %}{% if loop.index <= 8 %}
         <div class="row">
           <div class="row-head"><b>{{ row.cve_id }}</b><span>{{ row.template_count }} template · {{ row.protocol }}</span></div>
           <p class="note">{{ row.note_fa }}</p>
@@ -192,7 +193,7 @@
       <section id="poc-watch" class="panel">
         <div class="panel-head"><div><span class="eyebrow">PoC Watch</span><h2>PoCهای عمومی تازه</h2></div><span class="chip">{{ brief.poc_watch.totals.repos }} repo · {{ brief.poc_watch.totals.cves_with_poc }} CVE</span></div>
         <p class="lede">{{ brief.poc_watch.summary_fa }}</p>
-        {% for repo in brief.poc_watch.repos %}{% if loop.index <= 4 %}
+        {% for repo in brief.poc_watch.repos %}{% if loop.index <= 8 %}
         <div class="row risk-{{ repo.risk }}">
           <div class="row-head"><b>{{ repo.cve_id }}</b><span>{{ repo.language }} · ★{{ repo.stars }} · {{ repo.age_fa }}</span></div>
           <p class="note">{{ repo.note_fa }}</p>
@@ -232,7 +233,7 @@
       <section id="breaking-news" class="panel">
         <div class="panel-head"><div><span class="eyebrow">Breaking</span><h2>خبر فوری</h2></div><span class="chip">{{ brief.breaking_news|length }}</span></div>
         {% if brief.breaking_news %}
-        {% for item in brief.breaking_news %}{% if loop.index <= 4 %}{{ news_card(item) }}{% endif %}{% endfor %}
+        {% for item in brief.breaking_news %}{% if loop.index <= 12 %}{{ news_card(item) }}{% endif %}{% endfor %}
         {% else %}
         <p class="empty-note">خبر فوری تازه‌ای در پنجره امروز ثبت نشده است.</p>
         {% endif %}
@@ -241,7 +242,7 @@
       <section id="iran" class="panel">
         <div class="panel-head"><div><span class="eyebrow">Iran Radar</span><h2>رصد ایران</h2></div><span class="chip">{{ brief.iran_radar|length }}</span></div>
         {% if brief.iran_radar %}
-        {% for item in brief.iran_radar %}{% if loop.index <= 4 %}{{ news_card(item) }}{% endif %}{% endfor %}
+        {% for item in brief.iran_radar %}{% if loop.index <= 12 %}{{ news_card(item) }}{% endif %}{% endfor %}
         {% else %}
         <p class="empty-note">آیتم مرتبط با ایران در این اجرا دیده نشد.</p>
         {% endif %}
@@ -250,7 +251,7 @@
       <section id="global-news" class="panel">
         <div class="panel-head"><div><span class="eyebrow">Global</span><h2>خبر امروز</h2></div><span class="chip">{{ brief.global_news|length }}</span></div>
         {% if brief.global_news %}
-        {% for item in brief.global_news %}{% if loop.index <= 5 %}{{ news_card(item) }}{% endif %}{% endfor %}
+        {% for item in brief.global_news %}{% if loop.index <= 30 %}{{ news_card(item) }}{% endif %}{% endfor %}
         {% else %}
         <p class="empty-note">خبر تازه‌ای در پنجره امروز نمایش داده نشده است.</p>
         {% endif %}
@@ -260,7 +261,7 @@
         <div class="panel-head"><div><span class="eyebrow">Research</span><h2>تحلیل‌های تازه</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} از {{ brief.writeups_pulse.totals.sources }} منبع</span></div>
         <p class="lede">{{ brief.writeups_pulse.summary_fa }}</p>
         <div class="grid grid-2 grid-inner">
-          {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 4 %}
+          {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 20 %}
           <article class="item risk-{{ w.risk }}">
             <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer">{{ w.title_fa }}</a></h3><span class="tag">{{ w.kind_fa }}</span></div>
             <p>{{ w.summary_fa }}</p>
@@ -291,7 +292,7 @@
       <section id="attack-pressure" class="panel">
         <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>فشار حمله</h2></div><span class="chip">{{ brief.attack_pressure.level }}</span></div>
         <p class="lede">{{ brief.attack_pressure.summary_fa }}</p>
-        {% for p in brief.attack_pressure.top_ports %}{% if loop.index <= 4 %}
+        {% for p in brief.attack_pressure.top_ports %}{% if loop.index <= 8 %}
         <div class="row risk-{{ p.risk }}">
           <div class="row-head"><b>Port {{ p.port }} · {{ p.service }}</b><span>{{ p.description }}</span></div>
           <p class="note">{{ p.note_fa }}</p>
@@ -318,7 +319,7 @@
       <section id="greynoise-context" class="panel">
         <div class="panel-head"><div><span class="eyebrow">GreyNoise</span><h2>زمینه زیرساخت</h2></div><span class="chip">{{ brief.greynoise_context.totals.checked }} IP</span></div>
         <p class="lede">{{ brief.greynoise_context.summary_fa }}</p>
-        {% for c in brief.greynoise_context.contexts %}{% if loop.index <= 4 %}
+        {% for c in brief.greynoise_context.contexts %}{% if loop.index <= 8 %}
         <div class="row risk-{{ c.risk }}">
           <div class="row-head"><b dir="ltr">{{ c.ip_safe }}</b><span>{{ c.classification }} · {{ c.last_seen }}</span></div>
           <p class="note">{{ c.note_fa }}</p>

@@ -82,7 +82,7 @@ pub(crate) fn fetch_phishing_pulse(
         "provider": "OpenPhish Community Feed",
         "level": level,
         "summary_fa": summary_fa,
-        "last_updated": Local::now().format("%Y-%m-%d %H:%M").to_string(),
+        "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "metadata_only": true,
         "defanged": true,
         "totals": {

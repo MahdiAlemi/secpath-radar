@@ -185,7 +185,7 @@ pub(crate) fn fetch_nuclei_coverage(
         "mode": "template_path_coverage",
         "summary_fa": summary_fa,
         "safe_mode": "metadata only; no nuclei execution; no active scan; no target input; no exploit content",
-        "last_updated": Local::now().format("%Y-%m-%d %H:%M").to_string(),
+        "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "totals": {
             "dashboard_cves": dashboard_total,
             "covered_cves": covered_cves,

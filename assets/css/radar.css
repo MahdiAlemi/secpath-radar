@@ -57,7 +57,7 @@ a:hover { color: var(--accent); }
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
 }
-.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; }
 .brand-mark { color: var(--accent); font-size: 18px; }
 .brand strong { font-size: 16px; letter-spacing: 0.2px; }
 .brand-sub { color: var(--text-3); font-size: 14px; }
@@ -265,3 +265,14 @@ body { overflow-x: clip; overflow-wrap: break-word; }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
   a { color: var(--text); }
 }
+
+/* ---- E4: live header, scrollable panels, new badge ---- */
+.live-chip { display: inline-flex; align-items: center; gap: 7px; }
+.live-dot { width: 8px; height: 8px; background: #34d399; display: inline-block; box-shadow: 0 0 7px rgba(52, 211, 153, 0.7); animation: livepulse 2.4s ease-in-out infinite; }
+@keyframes livepulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.panel { max-height: 540px; overflow-y: auto; scrollbar-width: thin; }
+.panel-head { position: sticky; top: 0; z-index: 2; background: var(--surface); }
+.tag-new { color: #34d399; border-color: rgba(52, 211, 153, 0.55); }
+
+/* ---- E4.2: brand logo ---- */
+.brand-logo { display: block; flex: none; }

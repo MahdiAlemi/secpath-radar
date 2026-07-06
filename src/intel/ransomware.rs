@@ -149,7 +149,7 @@ pub(crate) fn fetch_ransomware_pulse(
         "provider": "Ransomware.live public API",
         "level": level,
         "summary_fa": summary_fa,
-        "last_updated": Local::now().format("%Y-%m-%d %H:%M").to_string(),
+        "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "refresh_hours": config.intel.refresh_hours,
         "totals": {
             "victims": total,
@@ -300,7 +300,7 @@ pub(crate) fn ransomware_recency_score(claimed_date: &str) -> usize {
     let Ok(date) = NaiveDate::parse_from_str(claimed_date, "%Y-%m-%d") else {
         return 30;
     };
-    let today = Local::now().date_naive();
+    let today = tehran_now().date_naive();
     let days = today.signed_duration_since(date).num_days();
     if days <= 1 {
         100

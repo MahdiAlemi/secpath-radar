@@ -8,7 +8,7 @@ pub(crate) fn build_brief(
     writeup_items: Vec<FeedItem>,
     mut cves: Vec<CveItem>,
 ) -> Result<Value> {
-    let now = Local::now();
+    let now = tehran_now();
     let date_en = format!("{}-{:02}-{:02}", now.year(), now.month(), now.day());
     let generated_at = now.format("%Y-%m-%d %H:%M").to_string();
 
@@ -151,6 +151,7 @@ pub(crate) fn build_brief(
 
     Ok(json!({
         "site_title": config.site.title,
+        "site_github": config.site.github.clone(),
         "date_fa": "امروز",
         "date_en": date_en.clone(),
         "risk_level": risk_level,
@@ -231,13 +232,15 @@ pub(crate) fn build_brief(
     }))
 }
 
-pub(crate) fn parse_feed_item_local_time(item: &FeedItem) -> Option<chrono::DateTime<Local>> {
+pub(crate) fn parse_feed_item_local_time(
+    item: &FeedItem,
+) -> Option<chrono::DateTime<chrono::FixedOffset>> {
     if item.published.trim().is_empty() {
         return None;
     }
 
     chrono::DateTime::parse_from_rfc3339(&item.published)
-        .map(|dt| dt.with_timezone(&Local))
+        .map(|dt| dt.with_timezone(&tehran_offset()))
         .ok()
 }
 
@@ -330,10 +333,10 @@ pub(crate) fn news_time_display_fields(published: &str) -> (String, String, Stri
     let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(published) else {
         return ("".to_string(), "".to_string(), "زمان نامشخص".to_string());
     };
-    let local = parsed.with_timezone(&Local);
+    let local = parsed.with_timezone(&tehran_offset());
     let date = local.format("%Y-%m-%d").to_string();
     let time = local.format("%H:%M").to_string();
-    let label = if local.date_naive() == Local::now().date_naive() {
+    let label = if local.date_naive() == tehran_now().date_naive() {
         format!("امروز {time}")
     } else {
         format!("{date} {time}")

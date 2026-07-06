@@ -18,6 +18,7 @@ mod prelude;
 mod ranking;
 mod render;
 mod snapshot;
+mod today;
 mod trend;
 mod util;
 mod vendors;
@@ -251,10 +252,12 @@ fn main() -> Result<()> {
     }
 
     let previous_brief = read_previous_latest_brief();
+    apply_day_accumulation(&mut brief);
     apply_local_polish(&mut brief);
     build_vendor_watchlist(&mut brief);
     build_attack_matrix(&mut brief);
     apply_iran_relevance_sort(&mut brief);
+    brief["top_signals"] = build_top_signals(&brief);
     attach_history_snapshot(&mut brief, previous_brief.as_ref());
     brief["triage_signals"] = build_triage_signals(&brief);
     if let Err(err) = write_history_snapshot(&brief) {
