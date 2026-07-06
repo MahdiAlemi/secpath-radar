@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 use anyhow::{Context, Result};
 use chrono::{Datelike, Duration as ChronoDuration, Local, NaiveDate, SecondsFormat, Utc};
 use feed_rs::parser;
@@ -139,6 +141,8 @@ struct IntelConfig {
     phishing: PhishingPulseConfig,
     #[serde(default)]
     ics_ot: IcsOtConfig,
+    #[serde(default)]
+    poc_watch: PocWatchConfig,
 }
 
 impl Default for IntelConfig {
@@ -157,6 +161,7 @@ impl Default for IntelConfig {
             greynoise: GreyNoiseConfig::default(),
             phishing: PhishingPulseConfig::default(),
             ics_ot: IcsOtConfig::default(),
+            poc_watch: PocWatchConfig::default(),
         }
     }
 }
@@ -543,6 +548,59 @@ impl Default for IcsOtConfig {
             ics_advisories_feed_url: default_ics_ot_advisories_feed_url(),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct PocWatchConfig {
+    #[serde(default = "default_poc_watch_enabled")]
+    enabled: bool,
+    #[serde(default = "default_poc_watch_max_cves")]
+    max_cves: usize,
+    #[serde(default = "default_poc_watch_max_repos_per_cve")]
+    max_repos_per_cve: usize,
+    #[serde(default = "default_poc_watch_max_results")]
+    max_results: usize,
+    #[serde(default = "default_github_search_repositories_url")]
+    github_search_repositories_url: String,
+    #[serde(default = "default_github_token_env")]
+    github_token_env: String,
+}
+
+impl Default for PocWatchConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_poc_watch_enabled(),
+            max_cves: default_poc_watch_max_cves(),
+            max_repos_per_cve: default_poc_watch_max_repos_per_cve(),
+            max_results: default_poc_watch_max_results(),
+            github_search_repositories_url: default_github_search_repositories_url(),
+            github_token_env: default_github_token_env(),
+        }
+    }
+}
+
+fn default_poc_watch_enabled() -> bool {
+    true
+}
+
+fn default_poc_watch_max_cves() -> usize {
+    8
+}
+
+fn default_poc_watch_max_repos_per_cve() -> usize {
+    3
+}
+
+fn default_poc_watch_max_results() -> usize {
+    18
+}
+
+fn default_github_search_repositories_url() -> String {
+    "https://api.github.com/search/repositories".to_string()
+}
+
+fn default_github_token_env() -> String {
+    "GITHUB_TOKEN".to_string()
 }
 
 fn default_phishing_enabled() -> bool {
@@ -1160,6 +1218,14 @@ fn main() -> Result<()> {
         brief["stats"]["ics_high"] = json!(path_u64(&ics_ot_pulse, &["totals", "high"]));
         brief["stats"]["ics_vendors"] = json!(path_u64(&ics_ot_pulse, &["totals", "vendors"]));
         brief["ics_ot_pulse"] = ics_ot_pulse;
+
+        let poc_watch =
+            fetch_poc_watch_or_fallback(&config, &brief["cves"], args.offline, args.refresh_cache);
+        brief["stats"]["poc_watch"] = json!(path_u64(&poc_watch, &["totals", "repos"]));
+        brief["stats"]["poc_watch_high"] = json!(path_u64(&poc_watch, &["totals", "high"]));
+        brief["stats"]["poc_watch_cves"] =
+            json!(path_u64(&poc_watch, &["totals", "cves_with_poc"]));
+        brief["poc_watch"] = poc_watch;
 
         let executive_snapshot = build_executive_snapshot(&brief);
         brief["executive_snapshot"] = executive_snapshot;
@@ -5067,6 +5133,578 @@ fn empty_ics_ot_pulse(reason: &str) -> Value {
     })
 }
 
+fn fetch_poc_watch_or_fallback(
+    config: &Config,
+    cves: &Value,
+    offline: bool,
+    refresh_cache: bool,
+) -> Value {
+    if !config.intel.enabled || !config.intel.poc_watch.enabled {
+        return empty_poc_watch("disabled");
+    }
+
+    match fetch_poc_watch(config, cves, offline, refresh_cache) {
+        Ok(value) => value,
+        Err(err) => {
+            eprintln!("⚠️  CVE PoC Watch skipped: {err:#}");
+            empty_poc_watch("fetch_error")
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct PocCveMeta {
+    cve_id: String,
+    severity: String,
+    epss: f64,
+    epss_momentum: String,
+    kev: bool,
+    cisa_priority: String,
+}
+
+fn fetch_poc_watch(
+    config: &Config,
+    cves: &Value,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Value> {
+    let cfg = &config.intel.poc_watch;
+    let cve_meta = poc_cve_meta_from_brief(cves, cfg.max_cves);
+    if cve_meta.is_empty() {
+        return Ok(empty_poc_watch("no_cves"));
+    }
+
+    let client = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(20))
+        .build()
+        .context("failed to build HTTP client for CVE PoC Watch")?;
+
+    eprintln!("→ fetching CVE PoC Watch metadata");
+
+    let mut candidates = Vec::new();
+    let mut errors = Vec::new();
+    let mut queries = 0usize;
+
+    for meta in &cve_meta {
+        queries += 1;
+        let label = format!("GitHub PoC metadata {}", meta.cve_id);
+        match fetch_github_repository_search(
+            &client,
+            config,
+            cfg,
+            &meta.cve_id,
+            &label,
+            offline,
+            refresh_cache,
+        ) {
+            Ok(value) => {
+                if let Some(items) = value.get("items").and_then(|v| v.as_array()) {
+                    let mut per_cve = Vec::new();
+                    for repo in items {
+                        if let Some(mapped) = map_github_poc_candidate(meta, repo) {
+                            per_cve.push(mapped);
+                        }
+                    }
+                    per_cve.sort_by(|a, b| {
+                        path_u64(b, &["score"])
+                            .cmp(&path_u64(a, &["score"]))
+                            .then_with(|| {
+                                value_str(b, "updated_at").cmp(value_str(a, "updated_at"))
+                            })
+                    });
+                    candidates.extend(per_cve.into_iter().take(cfg.max_repos_per_cve));
+                }
+            }
+            Err(err) => {
+                eprintln!("⚠️  skipped GitHub PoC metadata {}: {err:#}", meta.cve_id);
+                errors.push(json!({
+                    "cve_id": meta.cve_id,
+                    "error": source_error_summary(&err.to_string())
+                }));
+            }
+        }
+        thread::sleep(Duration::from_millis(config.intel.sleep_ms_between_sources));
+    }
+
+    let mut seen = HashSet::new();
+    candidates.retain(|item| {
+        let key = format!(
+            "{}::{}",
+            item.get("cve_id").and_then(|v| v.as_str()).unwrap_or(""),
+            item.get("repo").and_then(|v| v.as_str()).unwrap_or("")
+        );
+        seen.insert(key)
+    });
+
+    candidates.sort_by(|a, b| {
+        path_u64(b, &["score"])
+            .cmp(&path_u64(a, &["score"]))
+            .then_with(|| value_str(b, "updated_at").cmp(value_str(a, "updated_at")))
+            .then_with(|| value_str(a, "repo").cmp(value_str(b, "repo")))
+    });
+    candidates.truncate(cfg.max_results);
+
+    let repos = candidates.len() as u64;
+    let high = candidates
+        .iter()
+        .filter(|item| item.get("risk").and_then(|v| v.as_str()) == Some("high"))
+        .count() as u64;
+    let cves_with_poc = candidates
+        .iter()
+        .filter_map(|item| item.get("cve_id").and_then(|v| v.as_str()))
+        .collect::<HashSet<_>>()
+        .len() as u64;
+    let kev_related = candidates
+        .iter()
+        .filter(|item| item.get("kev").and_then(|v| v.as_bool()).unwrap_or(false))
+        .count() as u64;
+    let epss_rising_related = candidates
+        .iter()
+        .filter(|item| item.get("epss_momentum").and_then(|v| v.as_str()) == Some("rising"))
+        .count() as u64;
+
+    let mut cve_counts: HashMap<String, usize> = HashMap::new();
+    let mut risk_counts: HashMap<String, usize> = HashMap::new();
+    for item in &candidates {
+        if let Some(cve_id) = item.get("cve_id").and_then(|v| v.as_str()) {
+            *cve_counts.entry(cve_id.to_string()).or_insert(0) += 1;
+        }
+        if let Some(risk) = item.get("risk").and_then(|v| v.as_str()) {
+            *risk_counts.entry(risk.to_string()).or_insert(0) += 1;
+        }
+    }
+
+    let summary_fa = if repos == 0 {
+        format!("برای {} CVE منتخب، PoC public قابل اتکای metadata-only در GitHub پیدا نشد یا rate-limit/cache اجازه نداد.", cve_meta.len())
+    } else {
+        format!("{repos} نشانه metadata-only از PoC public برای {cves_with_poc} CVE منتخب پیدا شد؛ لینک raw، clone و کد exploit نمایش داده نمی‌شود.")
+    };
+
+    Ok(json!({
+        "enabled": true,
+        "ok": errors.is_empty() || repos > 0,
+        "provider": "GitHub Repository Search API",
+        "source": "GitHub repository metadata only",
+        "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands; repository URLs are not rendered in UI",
+        "summary_fa": summary_fa,
+        "totals": {
+            "cves_checked": cve_meta.len(),
+            "cves_with_poc": cves_with_poc,
+            "repos": repos,
+            "high": high,
+            "kev_related": kev_related,
+            "epss_rising_related": epss_rising_related,
+            "queries": queries,
+            "errors": errors.len()
+        },
+        "repos": candidates,
+        "cve_chart": count_chart(cve_counts, 8),
+        "risk_chart": count_chart(risk_counts, 4),
+        "errors": errors
+    }))
+}
+
+fn fetch_github_repository_search(
+    client: &Client,
+    config: &Config,
+    cfg: &PocWatchConfig,
+    cve_id: &str,
+    label: &str,
+    offline: bool,
+    refresh_cache: bool,
+) -> Result<Value> {
+    let query = format!("{cve_id} in:name,description,readme");
+    let per_page = cfg
+        .max_repos_per_cve
+        .saturating_mul(6)
+        .clamp(8, 30)
+        .to_string();
+    let query_params = [
+        ("q", query.as_str()),
+        ("sort", "updated"),
+        ("order", "desc"),
+        ("per_page", per_page.as_str()),
+    ];
+    let cache_key = cache_key(&cfg.github_search_repositories_url, &query_params);
+    let ttl_minutes = config.intel.refresh_hours.saturating_mul(60).max(60);
+
+    if !refresh_cache {
+        if let Some(bytes) =
+            read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, false)?
+        {
+            eprintln!("  ↳ cache hit: {label}");
+            return serde_json::from_slice(&bytes)
+                .with_context(|| format!("cached GitHub search was not valid JSON for {label}"));
+        }
+    }
+
+    if offline {
+        let bytes = read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
+            .with_context(|| format!("offline mode has no cached response for {label}"))?;
+        return serde_json::from_slice(&bytes)
+            .with_context(|| format!("cached GitHub search was not valid JSON for {label}"));
+    }
+
+    let mut request = client
+        .get(&cfg.github_search_repositories_url)
+        .query(&query_params)
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28");
+
+    if let Ok(token) = env::var(&cfg.github_token_env) {
+        let token = token.trim();
+        if !token.is_empty() {
+            request = request.header("Authorization", format!("Bearer {token}"));
+        }
+    }
+
+    match request
+        .send()
+        .and_then(|response| response.error_for_status())
+    {
+        Ok(response) => {
+            let bytes = response
+                .bytes()
+                .with_context(|| format!("failed to read response body for {label}"))?
+                .to_vec();
+            write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)?;
+            serde_json::from_slice(&bytes)
+                .with_context(|| format!("GitHub search response was not valid JSON for {label}"))
+        }
+        Err(err) => {
+            if let Some(bytes) =
+                read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
+            {
+                eprintln!("⚠️  using stale intel cache for {label}: {err}");
+                serde_json::from_slice(&bytes)
+                    .with_context(|| format!("cached GitHub search was not valid JSON for {label}"))
+            } else {
+                Err(err).with_context(|| {
+                    format!(
+                        "request failed for {label}: {}",
+                        cfg.github_search_repositories_url
+                    )
+                })
+            }
+        }
+    }
+}
+
+fn poc_cve_meta_from_brief(cves: &Value, limit: usize) -> Vec<PocCveMeta> {
+    cves.as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|item| {
+            let cve_id = item
+                .get("cve_id")
+                .and_then(|v| v.as_str())?
+                .trim()
+                .to_string();
+            if !is_cve_id(&cve_id) {
+                return None;
+            }
+            Some(PocCveMeta {
+                cve_id,
+                severity: item
+                    .get("severity")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("UNKNOWN")
+                    .to_string(),
+                epss: item.get("epss").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                epss_momentum: item
+                    .get("epss_momentum")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("stable")
+                    .to_string(),
+                kev: item.get("kev").and_then(|v| v.as_bool()).unwrap_or(false),
+                cisa_priority: item
+                    .get("cisa_priority")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unscored")
+                    .to_string(),
+            })
+        })
+        .take(limit)
+        .collect()
+}
+
+fn is_cve_id(value: &str) -> bool {
+    let parts = value.split('-').collect::<Vec<_>>();
+    parts.len() == 3
+        && parts[0].eq_ignore_ascii_case("CVE")
+        && parts[1].len() == 4
+        && parts[1].chars().all(|ch| ch.is_ascii_digit())
+        && parts[2].len() >= 4
+        && parts[2].chars().all(|ch| ch.is_ascii_digit())
+}
+
+fn map_github_poc_candidate(meta: &PocCveMeta, repo: &Value) -> Option<Value> {
+    let full_name = repo.get("full_name").and_then(|v| v.as_str())?.trim();
+    let description = repo
+        .get("description")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim();
+    let repo_lower = full_name.to_ascii_lowercase();
+    let text = format!("{} {}", repo_lower, description.to_ascii_lowercase());
+    let cve_lower = meta.cve_id.to_ascii_lowercase();
+
+    if !text.contains(&cve_lower) {
+        return None;
+    }
+    if github_poc_negative_match(&text) {
+        return None;
+    }
+
+    let poc_signal = github_poc_positive_signal(&text, &cve_lower);
+    if !poc_signal {
+        return None;
+    }
+
+    let stars = repo
+        .get("stargazers_count")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    let forks = repo
+        .get("forks_count")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    let updated_at = repo
+        .get("updated_at")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let created_at = repo
+        .get("created_at")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let pushed_at = repo
+        .get("pushed_at")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let language = repo
+        .get("language")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let score = github_poc_score(meta, stars, forks, &updated_at, &text);
+    let risk = if score >= 78 {
+        "high"
+    } else if score >= 50 {
+        "medium"
+    } else {
+        "watch"
+    };
+    let repo_type = github_poc_repo_type(&text);
+    let note_fa = github_poc_note_fa(meta, risk, repo_type);
+
+    Some(json!({
+        "cve_id": meta.cve_id,
+        "repo": full_name,
+        "repo_safe": full_name,
+        "github_path": format!("github.com/{full_name}"),
+        "url_rendered": false,
+        "title": format!("{} public PoC metadata", meta.cve_id),
+        "title_fa": format!("نشانه PoC عمومی برای {}", meta.cve_id),
+        "description": concise_text(description, 180),
+        "description_fa": fallback_persian_summary(description, "این repository فقط به‌عنوان metadata برای وجود PoC عمومی ثبت شده است"),
+        "stars": stars,
+        "forks": forks,
+        "language": language,
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "pushed_at": pushed_at,
+        "severity": meta.severity,
+        "epss": meta.epss,
+        "epss_momentum": meta.epss_momentum,
+        "kev": meta.kev,
+        "cisa_priority": meta.cisa_priority,
+        "repo_type": repo_type,
+        "risk": risk,
+        "score": score,
+        "bar_width": score,
+        "note_fa": note_fa,
+        "safe_mode": "metadata only; no code, no raw URL, no clone/download command",
+        "tags": github_poc_tags(meta, repo_type, risk)
+    }))
+}
+
+fn github_poc_negative_match(text: &str) -> bool {
+    [
+        "advisory-database",
+        "cvelist",
+        "cve-list",
+        "cve database",
+        "cve dictionary",
+        "nvd mirror",
+        "vulnerability database",
+        "vuldb",
+        "oval definitions",
+        "nessus plugin",
+        "scanner collection",
+        "awesome-cve",
+        "poc-in-github",
+        "nomi-sec",
+        "trickest",
+        "nuclei-templates",
+        "template collection",
+        "exploitdb mirror",
+    ]
+    .iter()
+    .any(|needle| text.contains(needle))
+}
+
+fn github_poc_positive_signal(text: &str, cve_lower: &str) -> bool {
+    let explicit = [
+        "poc",
+        "proof-of-concept",
+        "proof of concept",
+        "exploit",
+        "exp",
+        "rce",
+        "privilege escalation",
+        "local privilege escalation",
+        "lpe",
+        "weaponized",
+        "reproducer",
+        "trigger",
+    ]
+    .iter()
+    .any(|needle| text.contains(needle));
+
+    explicit || text.contains(&format!("/{cve_lower}")) || text.ends_with(cve_lower)
+}
+
+fn github_poc_repo_type(text: &str) -> &'static str {
+    if text.contains("proof-of-concept")
+        || text.contains("proof of concept")
+        || text.contains("poc")
+    {
+        "poc"
+    } else if text.contains("exploit")
+        || text.contains("rce")
+        || text.contains("privilege escalation")
+    {
+        "exploit-metadata"
+    } else if text.contains("reproducer") || text.contains("trigger") {
+        "reproducer"
+    } else {
+        "public-reference"
+    }
+}
+
+fn github_poc_score(
+    meta: &PocCveMeta,
+    stars: u64,
+    forks: u64,
+    updated_at: &str,
+    text: &str,
+) -> u64 {
+    let mut score = 24_u64;
+    if meta.kev {
+        score += 22;
+    }
+    if meta.epss_momentum == "rising" {
+        score += 16;
+    }
+    if meta.severity == "CRITICAL" {
+        score += 14;
+    } else if meta.severity == "HIGH" {
+        score += 8;
+    }
+    score += stars.min(80) / 4;
+    score += forks.min(40) / 4;
+    if text.contains("exploit") || text.contains("rce") {
+        score += 12;
+    } else if text.contains("poc")
+        || text.contains("proof-of-concept")
+        || text.contains("proof of concept")
+    {
+        score += 8;
+    }
+    let updated_ts = parse_rfc3339_timestamp(updated_at).unwrap_or(0);
+    let age_days = if updated_ts > 0 {
+        ((Utc::now().timestamp() - updated_ts).max(0) / 86_400) as u64
+    } else {
+        365
+    };
+    if age_days <= 7 {
+        score += 12;
+    } else if age_days <= 30 {
+        score += 7;
+    } else if age_days <= 90 {
+        score += 3;
+    }
+    score.clamp(12, 100)
+}
+
+fn parse_rfc3339_timestamp(value: &str) -> Option<i64> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|dt| dt.timestamp())
+}
+
+fn github_poc_note_fa(meta: &PocCveMeta, risk: &str, repo_type: &str) -> String {
+    if meta.kev {
+        format!("برای {} هم KEV و هم نشانه PoC عمومی دیده شده؛ فقط برای triage دفاعی و اولویت patch استفاده شود.", meta.cve_id)
+    } else if meta.epss_momentum == "rising" {
+        format!("برای {} هم EPSS رو به رشد و هم metadata PoC عمومی دیده شده؛ exposure و backlog patch را تطبیق بده.", meta.cve_id)
+    } else if risk == "high" || repo_type == "exploit-metadata" {
+        format!(
+            "برای {} نشانه public exploit/PoC دیده شده؛ کد یا دستور اجرا نمایش داده نمی‌شود.",
+            meta.cve_id
+        )
+    } else {
+        format!("برای {} فقط metadata مربوط به PoC/public reference ثبت شده؛ قبل از تصمیم عملیاتی اعتبارسنجی دستی لازم است.", meta.cve_id)
+    }
+}
+
+fn github_poc_tags(meta: &PocCveMeta, repo_type: &str, risk: &str) -> Vec<String> {
+    let mut tags = vec![
+        "PoC metadata".to_string(),
+        repo_type.to_string(),
+        risk.to_string(),
+    ];
+    if meta.kev {
+        tags.push("KEV".to_string());
+    }
+    if meta.epss_momentum == "rising" {
+        tags.push("EPSS rising".to_string());
+    }
+    if !meta.cisa_priority.is_empty() && meta.cisa_priority != "unscored" {
+        tags.push(format!("CISA {}", meta.cisa_priority));
+    }
+    tags
+}
+
+fn empty_poc_watch(reason: &str) -> Value {
+    json!({
+        "enabled": reason != "disabled",
+        "ok": false,
+        "provider": "GitHub Repository Search API",
+        "source": reason,
+        "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands",
+        "summary_fa": "CVE PoC Watch در این اجرا داده‌ای ندارد.",
+        "totals": {
+            "cves_checked": 0,
+            "cves_with_poc": 0,
+            "repos": 0,
+            "high": 0,
+            "kev_related": 0,
+            "epss_rising_related": 0,
+            "queries": 0,
+            "errors": 0
+        },
+        "repos": [],
+        "cve_chart": [],
+        "risk_chart": [],
+        "errors": []
+    })
+}
+
 fn fetch_supply_chain_radar_or_fallback(
     config: &Config,
     offline: bool,
@@ -5885,6 +6523,9 @@ fn intel_source_count(config: &Config) -> usize {
     if config.intel.ics_ot.enabled {
         count += 1;
     }
+    if config.intel.poc_watch.enabled {
+        count += 1;
+    }
     count
 }
 
@@ -6053,6 +6694,9 @@ fn build_brief(
             "rss_items_fetched": items.len(),
             "writeups": writeups_total,
             "writeup_sources": writeup_sources,
+            "poc_watch": 0,
+            "poc_watch_high": 0,
+            "poc_watch_cves": 0,
             "cves": cve_count,
             "critical_cves": critical_count,
             "kev": kev_count,
@@ -7178,6 +7822,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
     let greynoise_malicious = stat_u64(brief, "greynoise_malicious");
     let phishing_urls = stat_u64(brief, "phishing_urls");
     let phishing_high = stat_u64(brief, "phishing_high");
+    let poc_watch = stat_u64(brief, "poc_watch");
+    let poc_watch_high = stat_u64(brief, "poc_watch_high");
     let ics_advisories = stat_u64(brief, "ics_advisories");
     let ics_high = stat_u64(brief, "ics_high");
     let infrastructure_hosts = stat_u64(brief, "infrastructure_hosts");
@@ -7200,6 +7846,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         + greynoise_malicious * 12
         + phishing_urls.min(20)
         + phishing_high * 6
+        + poc_watch.min(18)
+        + poc_watch_high * 10
         + ics_advisories.min(18)
         + ics_high * 8
         + infrastructure_hosts.min(25)
@@ -7211,7 +7859,10 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         .min(100);
     let level = snapshot_level(score);
 
-    let cve_score = (critical_cves * 32 + kev * 28 + cves * 4).min(100).max(12);
+    let cve_score =
+        (critical_cves * 32 + kev * 28 + cves * 4 + poc_watch.min(20) + poc_watch_high * 12)
+            .min(100)
+            .max(12);
     let intel_score = (iocs.min(55)
         + botnet_c2.min(25)
         + malicious_tls.min(20)
@@ -7219,6 +7870,8 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         + greynoise_malicious * 12
         + phishing_urls.min(20)
         + phishing_high * 6
+        + poc_watch.min(18)
+        + poc_watch_high * 10
         + ics_advisories.min(18)
         + ics_high * 8
         + infrastructure_hosts.min(25)
@@ -7241,7 +7894,7 @@ fn build_executive_snapshot(brief: &Value) -> Value {
     let top_supply = first_chart_entry(brief, &["supply_chain_radar", "severity_chart"])
         .unwrap_or_else(|| ("بدون severity برجسته".to_string(), 0));
 
-    let impact_a = cves + critical_cves + kev;
+    let impact_a = cves + critical_cves + kev + poc_watch;
     let impact_b = iocs + infrastructure_hosts + botnet_c2 + malicious_tls + phishing_urls;
     let impact_c = supply_advisories + ransomware_victims;
     let impact_max = impact_a.max(impact_b).max(impact_c).max(1);
@@ -7253,13 +7906,13 @@ fn build_executive_snapshot(brief: &Value) -> Value {
         "bar_width": score.max(12),
         "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
         "summary_fa": format!(
-            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} IOC، {} C2 botnet، {} URL فیشینگ، {} advisory ICS/OT، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
-            total_items, cves, iocs, botnet_c2, phishing_urls, ics_advisories, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
+            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} PoC metadata، {} IOC، {} C2 botnet، {} URL فیشینگ، {} advisory ICS/OT، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
+            total_items, cves, poc_watch, iocs, botnet_c2, phishing_urls, ics_advisories, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
         ),
         "risk_cards": [
             {
                 "title": "ریسک آسیب‌پذیری‌ها",
-                "metric": format!("{} critical / {} CVE", critical_cves, cves),
+                "metric": format!("{} critical / {} CVE / {} PoC", critical_cves, cves, poc_watch),
                 "level": snapshot_level(cve_score),
                 "bar_width": cve_score,
                 "note_fa": if critical_cves > 0 { "CVEهای critical باید در اولویت patch و exposure review دیده شوند." } else { "در این اجرا CVE critical برجسته‌ای دیده نشده است." }
@@ -7351,6 +8004,14 @@ fn path_string(value: &Value, path: &[&str], fallback: &str) -> String {
         .unwrap_or_else(|| fallback.to_string())
 }
 
+fn value_str<'a>(value: &'a Value, key: &str) -> &'a str {
+    value.get(key).and_then(|v| v.as_str()).unwrap_or("")
+}
+
+fn concise_text(input: &str, max_chars: usize) -> String {
+    truncate_chars(input.trim(), max_chars)
+}
+
 fn first_chart_entry(brief: &Value, path: &[&str]) -> Option<(String, u64)> {
     let row = path_value(brief, path)?.as_array()?.first()?;
     let name = row.get("name")?.as_str()?.trim();
@@ -7416,7 +8077,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.26.2-independent-writeup-feeds");
+    brief["version"] = json!("v0.4.27.2-independent-writeup-feeds");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -7573,6 +8234,9 @@ fn apply_local_polish(brief: &mut Value) {
     if brief.get("writeups_pulse").is_none() {
         brief["writeups_pulse"] = empty_writeups_pulse("missing");
     }
+    if brief.get("poc_watch").is_none() {
+        brief["poc_watch"] = empty_poc_watch("missing");
+    }
     if brief.get("stats").and_then(|v| v.get("writeups")).is_none() {
         brief["stats"]["writeups"] =
             json!(path_u64(brief, &["writeups_pulse", "totals", "writeups"]));
@@ -7584,6 +8248,28 @@ fn apply_local_polish(brief: &mut Value) {
     {
         brief["stats"]["writeup_sources"] =
             json!(path_u64(brief, &["writeups_pulse", "totals", "sources"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("poc_watch"))
+        .is_none()
+    {
+        brief["stats"]["poc_watch"] = json!(path_u64(brief, &["poc_watch", "totals", "repos"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("poc_watch_high"))
+        .is_none()
+    {
+        brief["stats"]["poc_watch_high"] = json!(path_u64(brief, &["poc_watch", "totals", "high"]));
+    }
+    if brief
+        .get("stats")
+        .and_then(|v| v.get("poc_watch_cves"))
+        .is_none()
+    {
+        brief["stats"]["poc_watch_cves"] =
+            json!(path_u64(brief, &["poc_watch", "totals", "cves_with_poc"]));
     }
     if brief.get("executive_snapshot").is_none() {
         brief["executive_snapshot"] = json!({});
@@ -7841,6 +8527,9 @@ fn build_triage_signals(brief: &Value) -> Value {
     let ics_high = stat_u64(brief, "ics_high");
     let writeups = stat_u64(brief, "writeups");
     let writeup_sources = stat_u64(brief, "writeup_sources");
+    let poc_watch = stat_u64(brief, "poc_watch");
+    let poc_watch_high = stat_u64(brief, "poc_watch_high");
+    let poc_watch_cves = stat_u64(brief, "poc_watch_cves");
     let history_changes = stat_u64(brief, "history_changes");
     let failed_rss = stat_u64(brief, "failed_rss_sources");
     let risk_score = path_u64(brief, &["executive_snapshot", "score"]);
@@ -7902,6 +8591,23 @@ fn build_triage_signals(brief: &Value) -> Value {
                 "anchor": "#cves",
                 "bar_width": score,
                 "note_fa": if kev > 0 || critical_cves > 0 { "CVEهای critical/KEV را قبل از خبرهای عمومی مرور کن." } else { "CVEها برای تطبیق با asset inventory نگه داشته شده‌اند." }
+            }),
+        ));
+    }
+
+    if poc_watch > 0 {
+        let score = (poc_watch_high * 30 + poc_watch_cves * 16 + poc_watch * 4)
+            .min(100)
+            .max(12);
+        signals.push((
+            89 + score,
+            json!({
+                "title": "PoC public metadata",
+                "metric": format!("{poc_watch} repo · {poc_watch_cves} CVE"),
+                "level": if poc_watch_high > 0 { "high" } else if score >= 55 { "medium" } else { "watch" },
+                "anchor": "#poc-watch",
+                "bar_width": score,
+                "note_fa": "برای CVEهای منتخب، فقط وجود metadata عمومی PoC دیده می‌شود؛ کد و لینک raw نمایش داده نمی‌شود."
             }),
         ));
     }
@@ -8177,6 +8883,12 @@ fn history_metrics() -> Vec<HistoryMetric> {
             baseline: 20,
         },
         HistoryMetric {
+            key: "poc_watch",
+            label_fa: "PoC public metadata",
+            path: &["stats", "poc_watch"],
+            baseline: 20,
+        },
+        HistoryMetric {
             key: "cves",
             label_fa: "CVE",
             path: &["stats", "cves"],
@@ -8276,6 +8988,8 @@ fn history_delta_level(key: &str, delta: i64) -> &'static str {
         "risk_score"
         | "critical_cves"
         | "epss_rising"
+        | "poc_watch"
+        | "poc_watch_high"
         | "botnet_c2"
         | "malicious_tls"
         | "greynoise_malicious"
@@ -8942,6 +9656,14 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
             .unwrap_or(false)
         {
             coverage.push_str(" ICS/OT Advisory Pulse هم از CISA ICS Advisories به‌صورت metadata-only ساخته شده است.");
+        }
+        if brief
+            .get("poc_watch")
+            .and_then(|v| v.get("ok"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
+            coverage.push_str(" CVE PoC Watch نیز از GitHub Search به‌صورت metadata-only و بدون نمایش کد exploit ساخته شده است.");
         }
         if failed_sources > 0 {
             coverage.push_str(&format!(

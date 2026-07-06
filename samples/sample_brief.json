@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.26.2-independent-writeup-feeds",
+  "version": "v0.4.27-poc-watch-metadata",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -38,7 +38,10 @@
     "ics_high": 0,
     "ics_vendors": 0,
     "writeups": 2,
-    "writeup_sources": 2
+    "writeup_sources": 2,
+    "poc_watch": 2,
+    "poc_watch_high": 1,
+    "poc_watch_cves": 1
   },
   "source_health": {
     "rss_sources": 18,
@@ -440,7 +443,7 @@
     "generated_at": "sample",
     "previous_available": false,
     "previous_version": "none",
-    "current_version": "v0.4.26.2-independent-writeup-feeds",
+    "current_version": "v0.4.27.2-independent-writeup-feeds",
     "summary_fa": "نمونه محلی برای نمایش تغییرات نسبت به اجرای قبل؛ در اجرای واقعی از data/latest_brief.json قبلی محاسبه می‌شود.",
     "totals": {
       "tracked": 13,
@@ -603,5 +606,27 @@
         "bar_width": 100
       }
     ]
+  },
+  "poc_watch": {
+    "enabled": true,
+    "ok": true,
+    "provider": "GitHub Repository Search API",
+    "source": "GitHub repository metadata only",
+    "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands",
+    "summary_fa": "۲ نشانه metadata-only از PoC عمومی برای ۱ CVE منتخب پیدا شد؛ لینک raw، clone و کد exploit نمایش داده نمی‌شود.",
+    "totals": {
+      "cves_checked": 3,
+      "cves_with_poc": 1,
+      "repos": 2,
+      "high": 1,
+      "kev_related": 0,
+      "epss_rising_related": 0,
+      "queries": 3,
+      "errors": 0
+    },
+    "repos": [],
+    "cve_chart": [],
+    "risk_chart": [],
+    "errors": []
   }
 }

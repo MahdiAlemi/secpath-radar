@@ -53,6 +53,7 @@
       <a href="#executive-snapshot">مدیریتی</a>
       <a href="#history-snapshot">تغییرات</a>
       <a href="#cves">CVE</a>
+      <a href="#poc-watch">PoC</a>
       <a href="#ioc-radar">تهدید فعال</a>
       <a href="#greynoise-context">GreyNoise</a>
       <a href="#phishing-pulse">Phishing</a>
@@ -151,6 +152,28 @@
             </article>
             {% endif %}{% endfor %}
             {% if brief.cves | length == 0 %}<article class="empty-row">CVE مهمی برای این بازه دریافت نشد.</article>{% endif %}
+          </div>
+        </section>
+
+        <section id="poc-watch" class="panel" aria-label="CVE PoC Watch Metadata">
+          <div class="panel-head compact-head">
+            <div><span class="eyebrow">PoC Watch</span><h2>PoC عمومی برای CVEها</h2></div>
+            <span class="count">{{ brief.poc_watch.totals.repos }}</span>
+          </div>
+          <p class="panel-summary">{{ brief.poc_watch.summary_fa }} خروجی فقط metadata است؛ لینک raw، کد exploit، clone/download و دستور اجرا نمایش داده نمی‌شود.</p>
+          <div class="tiny-bars split-two">
+            {% for row in brief.poc_watch.cve_chart %}{% if loop.index <= 5 %}<div class="risk-medium"><span>{{ row.name }}</span><i style="--bar: {{ row.bar_width }}%"></i><b>{{ row.count }}</b></div>{% endif %}{% endfor %}
+          </div>
+          <div class="compact-list">
+            {% for repo in brief.poc_watch.repos %}{% if loop.index <= 5 %}
+            <article class="row-card risk-{{ repo.risk }}">
+              <div class="row-main"><b>{{ repo.cve_id }}</b><span>{{ repo.repo_safe }}</span></div>
+              <p>{{ repo.note_fa }}</p>
+              <div class="meter"><span style="--bar: {{ repo.bar_width }}%"></span></div>
+              <div class="meta-row"><small>{{ repo.repo_type }}</small><small>★ {{ repo.stars }}</small><small>⑂ {{ repo.forks }}</small><small>{{ repo.language }}</small><small>metadata only</small></div>
+            </article>
+            {% endif %}{% endfor %}
+            {% if brief.poc_watch.repos | length == 0 %}<article class="empty-row">برای CVEهای منتخب، PoC metadata قابل نمایش پیدا نشد یا cache/API محدود بود.</article>{% endif %}
           </div>
         </section>
 

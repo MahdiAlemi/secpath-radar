@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.26.2-independent-writeup-feeds**
+Current phase: **v0.4.27-poc-watch-metadata**
 
 ## What changed in v0.4.8
 
@@ -64,6 +64,25 @@ Configured RSS sources include CISA, BleepingComputer, SecurityWeek, KrebsOnSecu
 
 NVD, CISA KEV, EPSS, CISA Vulnrichment, Feodo Tracker, and SSLBL are used by the intelligence engine. Botnet C2 and TLS indicators are metadata-only; no malware samples or dangerous links are downloaded or rendered.
 
+
+
+## v0.4.27 — CVE PoC Watch Metadata
+
+Adds a passive metadata-only watch for public GitHub repositories that mention selected dashboard CVEs. This is a defensive triage signal only. The UI does **not** render raw exploit links, clone/download commands, payloads, or exploit code.
+
+- Searches GitHub Repository Search API for selected CVE IDs.
+- Uses `GITHUB_TOKEN` if present, but works with unauthenticated/rate-limited public metadata when available.
+- Caches GitHub search responses under the intel cache and supports offline reuse.
+- Correlates each repository metadata hit with severity, KEV, EPSS momentum, and CISA priority from the local CVE engine.
+- Writes `poc_watch`, `stats.poc_watch`, `stats.poc_watch_high`, and `stats.poc_watch_cves`.
+- Excludes CVE database mirrors, advisory databases, nuclei template collections, scanners, and generic roundup/index repositories.
+
+Quick checks:
+
+```bash
+cargo run -- --full --refresh-cache
+jq '.version, .stats.poc_watch, .stats.poc_watch_high, .stats.poc_watch_cves, .poc_watch.totals, .poc_watch.repos[:5]' data/latest_brief.json
+```
 
 ## v0.4.26.2 — Independent Writeup Feeds
 
