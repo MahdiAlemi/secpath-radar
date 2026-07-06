@@ -47,7 +47,7 @@
 <header class="topbar">
   <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">رصد غیرفعال امنیت سایبری</span></div>
   <div class="topbar-meta">
-    <span class="live-chip"><i class="live-dot"></i><span>آخرین به‌روزرسانی: {{ brief.generated_at }} تهران</span></span>
+    <span class="live-chip" id="today-chip" data-today="{{ brief.date_en }}"><i class="live-dot"></i><span>امروز · {{ brief.date_en }}</span></span>
     <span class="chip chip-version">{{ brief.version }}</span>
   </div>
   <div class="topbar-actions">
@@ -423,38 +423,26 @@
     </div>
   </section>
 
-  <section id="sources" class="cluster" aria-label="منابع و سلامت">
-    <div class="cluster-head"><span class="eyebrow">Sources &amp; Health</span><h2>منابع و سلامت اجرا</h2></div>
-    <div class="grid grid-3">
+  <section id="sources" class="cluster" aria-label="درباره">
+    <div class="cluster-head"><span class="eyebrow">About</span><h2>درباره</h2></div>
+    <div class="grid grid-2">
       <section class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Feeds</span><h2>منابع داده</h2></div></div>
-        <div class="stat-row">
-          <div><span>RSS</span><b>{{ brief.source_health.rss_sources }}</b></div>
-          <div><span>تله‌متری</span><b>{{ brief.source_health.intel_sources }}</b></div>
-          <div><span>خطا</span><b>{{ brief.source_health.failed_rss_sources }}</b></div>
-        </div>
-        <div class="meta"><span>پنجره خبر: {{ brief.news_window.mode }}</span><span>{{ brief.news_window.timezone }}</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Data</span><h2>منابع داده</h2></div></div>
+        <p class="note">گردآوری خودکار از خبرخوان‌های امنیتی معتبر، NVD، CISA KEV، EPSS و تله‌متری عمومی تهدید؛ همگی read-only و بدون اسکن فعال.</p>
+        <div class="meta"><span>{{ brief.source_health.rss_sources }} فید خبری</span><span>{{ brief.source_health.intel_sources }} منبع تله‌متری</span></div>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><span class="eyebrow">AI</span><h2>لایه تحلیلی</h2></div><span class="chip">{% if brief.ai_status.enabled %}فعال{% else %}غیرفعال{% endif %}</span></div>
-        <div class="stat-row">
-          <div><span>مدل</span><b>{{ brief.ai_status.model }}</b></div>
-          <div><span>فراخوانی</span><b>{{ brief.ai_status.calls_used }}</b></div>
-        </div>
-        <div class="meta"><span>خروجی بدون AI هم کامل است</span></div>
-      </section>
-      <section class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Notes</span><h2>یادداشت اجرا</h2></div></div>
-        {% for n in brief.brief_notes %}<p class="note">{{ n }}</p>{% endfor %}
-        <div class="meta"><span>{{ brief.version }}</span><span>{{ brief.generated_at }}</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Project</span><h2>درباره پروژه</h2></div></div>
+        <p class="note">SecPath Radar یک داشبورد استاتیک و فقط‌خواندنی برای رصد روزانه فضای تهدید سایبری است؛ بدون جمع‌آوری داده از بازدیدکننده.</p>
+        <div class="meta"><span>طراحی و توسعه: Mahdi Alemi</span><span>{{ brief.version }}</span></div>
       </section>
     </div>
   </section>
 
   <footer class="footer">
-    <span>SecPath Radar · رصد غیرفعال و read-only · بدون اسکن فعال</span>
-    <span>{{ brief.version }} · {{ brief.generated_at }}</span>
-    <span>تعامل‌ها فقط محلی و نمایشی هستند</span>
+    <span>SecPath Radar · رصد غیرفعال امنیت سایبری</span>
+    <span>طراحی و توسعه: Mahdi Alemi</span>
+    <span>{{ brief.version }}</span>
   </footer>
 </main>
 </body>

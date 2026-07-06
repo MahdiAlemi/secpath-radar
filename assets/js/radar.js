@@ -219,6 +219,13 @@
     "تله‌متری": "Telemetry",
     "فعال": "Active",
     "غیرفعال": "Disabled",
+    "درباره": "About",
+    "درباره پروژه": "About the project",
+    "منابع داده": "Data sources",
+    "گردآوری خودکار از خبرخوان‌های امنیتی معتبر، NVD، CISA KEV، EPSS و تله‌متری عمومی تهدید؛ همگی read-only و بدون اسکن فعال.": "Automatically aggregated from trusted security feeds, NVD, CISA KEV, EPSS and public threat telemetry - all read-only, with no active scanning.",
+    "SecPath Radar یک داشبورد استاتیک و فقط‌خواندنی برای رصد روزانه فضای تهدید سایبری است؛ بدون جمع‌آوری داده از بازدیدکننده.": "SecPath Radar is a static, read-only dashboard for daily monitoring of the cyber threat landscape; no visitor data is collected.",
+    "طراحی و توسعه: Mahdi Alemi": "Designed & developed by Mahdi Alemi",
+    "SecPath Radar · رصد غیرفعال امنیت سایبری": "SecPath Radar \u00b7 passive cyber threat monitoring",
   };
   var LANG_SELECTORS = "h2, .anchor-nav a, .kpi > span, .brand-sub, .ui-chip, .footer span, .note, .ops, .tag, .chip, .empty-note, .stat-row span, .meta span";
 
@@ -284,4 +291,18 @@
       if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleDetail(); }
     });
   });
+})();
+
+// today-chip: render today's date as Jalali + Gregorian
+(function () {
+  var chip = document.getElementById("today-chip");
+  if (!chip) return;
+  var iso = chip.getAttribute("data-today") || "";
+  var label = chip.querySelector("span:last-child");
+  if (!label || !iso) return;
+  try {
+    var d = new Date(iso + "T12:00:00");
+    var fa = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { year: "numeric", month: "long", day: "numeric" }).format(d);
+    label.textContent = fa + " \u00b7 " + iso;
+  } catch (e) {}
 })();

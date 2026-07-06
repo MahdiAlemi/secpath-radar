@@ -2,6 +2,8 @@ site:
   title: "SecPath Radar"
   tagline: "رادار روزانه امنیت سایبری، CVEها و تهدیدهای مهم"
   domain: "radar.secpath.space"
+  github: "https://github.com/mahdiialemii/secpath-radar"
+
 
 fetch:
   max_items_per_source: 8
