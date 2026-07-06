@@ -155,9 +155,9 @@
           </div>
         </section>
 
-        <section id="poc-watch" class="panel" aria-label="CVE PoC Watch Metadata">
+        <section id="poc-watch" class="panel" aria-label="Latest PoC Watch Metadata">
           <div class="panel-head compact-head">
-            <div><span class="eyebrow">PoC Watch</span><h2>PoC عمومی برای CVEها</h2></div>
+            <div><span class="eyebrow">PoC Watch</span><h2>جدیدترین PoCهای عمومی</h2></div>
             <span class="count">{{ brief.poc_watch.totals.repos }}</span>
           </div>
           <p class="panel-summary">{{ brief.poc_watch.summary_fa }} خروجی فقط metadata است؛ لینک raw، کد exploit، clone/download و دستور اجرا نمایش داده نمی‌شود.</p>
@@ -167,13 +167,13 @@
           <div class="compact-list">
             {% for repo in brief.poc_watch.repos %}{% if loop.index <= 5 %}
             <article class="row-card risk-{{ repo.risk }}">
-              <div class="row-main"><b>{{ repo.cve_id }}</b><span>{{ repo.repo_safe }}</span></div>
+              <div class="row-main"><b>{{ repo.cve_id }}</b><span>{{ repo.age_fa }} · {{ repo.repo_safe }}</span></div>
               <p>{{ repo.note_fa }}</p>
               <div class="meter"><span style="--bar: {{ repo.bar_width }}%"></span></div>
-              <div class="meta-row"><small>{{ repo.repo_type }}</small><small>★ {{ repo.stars }}</small><small>⑂ {{ repo.forks }}</small><small>{{ repo.language }}</small><small>metadata only</small></div>
+              <div class="meta-row"><small>{{ repo.repo_type }}</small><small>★ {{ repo.stars }}</small><small>⑂ {{ repo.forks }}</small><small>{{ repo.language }}</small><small>latest-first</small><small>metadata only</small></div>
             </article>
             {% endif %}{% endfor %}
-            {% if brief.poc_watch.repos | length == 0 %}<article class="empty-row">برای CVEهای منتخب، PoC metadata قابل نمایش پیدا نشد یا cache/API محدود بود.</article>{% endif %}
+            {% if brief.poc_watch.repos | length == 0 %}<article class="empty-row">در جریان زمانی اخیر، PoC metadata قابل نمایش پیدا نشد یا cache/API محدود بود.</article>{% endif %}
           </div>
         </section>
 

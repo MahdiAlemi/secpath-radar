@@ -2,7 +2,7 @@
 
 SecPath Radar is a local-first Persian cybersecurity intelligence brief generator. It collects public RSS items, NVD CVEs, CISA KEV, and EPSS signals, ranks them locally, and optionally asks Gemini for a Persian editorial display layer.
 
-Current phase: **v0.4.27-poc-watch-metadata**
+Current phase: **v0.4.27.3-latest-poc-stream**
 
 ## What changed in v0.4.8
 
@@ -66,14 +66,16 @@ NVD, CISA KEV, EPSS, CISA Vulnrichment, Feodo Tracker, and SSLBL are used by the
 
 
 
-## v0.4.27 — CVE PoC Watch Metadata
+## v0.4.27.3 — Latest PoC Stream
 
-Adds a passive metadata-only watch for public GitHub repositories that mention selected dashboard CVEs. This is a defensive triage signal only. The UI does **not** render raw exploit links, clone/download commands, payloads, or exploit code.
+Changes PoC Watch from a CVE-first lookup into a time-based latest PoC stream. It now searches for newly published public GitHub repository metadata first, extracts CVE IDs from the PoC metadata, then groups the newest result per CVE. This is a defensive triage signal only. The UI does **not** render raw exploit links, clone/download commands, payloads, or exploit code.
 
-- Searches GitHub Repository Search API for selected CVE IDs.
+- Searches GitHub Repository Search API for recent `CVE + PoC/exploit/proof-of-concept/reproducer` repository metadata.
+- Uses repository `created_at` as the publication-time signal and sorts newest-first before grouping by CVE.
+- Extracts CVE IDs from repository name, description, and topics; it no longer starts from the dashboard CVE list.
+- Keeps one latest metadata card per CVE by default (`max_repos_per_cve: 1`).
 - Uses `GITHUB_TOKEN` if present, but works with unauthenticated/rate-limited public metadata when available.
 - Caches GitHub search responses under the intel cache and supports offline reuse.
-- Correlates each repository metadata hit with severity, KEV, EPSS momentum, and CISA priority from the local CVE engine.
 - Writes `poc_watch`, `stats.poc_watch`, `stats.poc_watch_high`, and `stats.poc_watch_cves`.
 - Excludes CVE database mirrors, advisory databases, nuclei template collections, scanners, and generic roundup/index repositories.
 
@@ -81,7 +83,7 @@ Quick checks:
 
 ```bash
 cargo run -- --full --refresh-cache
-jq '.version, .stats.poc_watch, .stats.poc_watch_high, .stats.poc_watch_cves, .poc_watch.totals, .poc_watch.repos[:5]' data/latest_brief.json
+jq '.version, .poc_watch.mode, .poc_watch.window_days, .stats.poc_watch, .stats.poc_watch_cves, .poc_watch.totals, .poc_watch.repos[:5] | .' data/latest_brief.json
 ```
 
 ## v0.4.26.2 — Independent Writeup Feeds

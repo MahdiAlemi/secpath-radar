@@ -87,9 +87,10 @@ intel:
     ics_advisories_feed_url: "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml"
   poc_watch:
     enabled: true
-    max_cves: 8
-    max_repos_per_cve: 3
+    recent_days: 30
+    max_repos_per_cve: 1
     max_results: 18
+    max_search_results_per_query: 30
     github_search_repositories_url: "https://api.github.com/search/repositories"
     github_token_env: "GITHUB_TOKEN"
 

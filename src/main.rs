@@ -554,12 +554,14 @@ impl Default for IcsOtConfig {
 struct PocWatchConfig {
     #[serde(default = "default_poc_watch_enabled")]
     enabled: bool,
-    #[serde(default = "default_poc_watch_max_cves")]
-    max_cves: usize,
+    #[serde(default = "default_poc_watch_recent_days")]
+    recent_days: i64,
     #[serde(default = "default_poc_watch_max_repos_per_cve")]
     max_repos_per_cve: usize,
     #[serde(default = "default_poc_watch_max_results")]
     max_results: usize,
+    #[serde(default = "default_poc_watch_max_search_results_per_query")]
+    max_search_results_per_query: usize,
     #[serde(default = "default_github_search_repositories_url")]
     github_search_repositories_url: String,
     #[serde(default = "default_github_token_env")]
@@ -570,9 +572,10 @@ impl Default for PocWatchConfig {
     fn default() -> Self {
         Self {
             enabled: default_poc_watch_enabled(),
-            max_cves: default_poc_watch_max_cves(),
+            recent_days: default_poc_watch_recent_days(),
             max_repos_per_cve: default_poc_watch_max_repos_per_cve(),
             max_results: default_poc_watch_max_results(),
+            max_search_results_per_query: default_poc_watch_max_search_results_per_query(),
             github_search_repositories_url: default_github_search_repositories_url(),
             github_token_env: default_github_token_env(),
         }
@@ -583,16 +586,20 @@ fn default_poc_watch_enabled() -> bool {
     true
 }
 
-fn default_poc_watch_max_cves() -> usize {
-    8
+fn default_poc_watch_recent_days() -> i64 {
+    30
 }
 
 fn default_poc_watch_max_repos_per_cve() -> usize {
-    3
+    1
 }
 
 fn default_poc_watch_max_results() -> usize {
     18
+}
+
+fn default_poc_watch_max_search_results_per_query() -> usize {
+    30
 }
 
 fn default_github_search_repositories_url() -> String {
@@ -1413,6 +1420,12 @@ fn fetch_writeup_feeds(
 fn source_error_summary(error: &str) -> String {
     let compact = clean_text(error);
     truncate_chars(&compact, 160)
+}
+
+fn is_offline_cache_miss_error(error_text: &str) -> bool {
+    error_text
+        .to_ascii_lowercase()
+        .contains("offline mode has no cached response")
 }
 
 fn fetch_source(
@@ -5028,21 +5041,6 @@ fn infer_ics_sector(text: &str) -> String {
     "ICS/OT".to_string()
 }
 
-fn extract_cve_ids(text: &str) -> Vec<String> {
-    let mut seen = HashSet::new();
-    let mut out = Vec::new();
-    for raw in text.split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '-')) {
-        let token = raw.to_ascii_uppercase();
-        if token.starts_with("CVE-") && token.len() >= 13 && seen.insert(token.clone()) {
-            out.push(token);
-        }
-        if out.len() >= 8 {
-            break;
-        }
-    }
-    out
-}
-
 fn extract_cvss_score(text: &str) -> f64 {
     let lower = text.to_lowercase();
     let Some(start) = lower.find("cvss") else {
@@ -5135,7 +5133,7 @@ fn empty_ics_ot_pulse(reason: &str) -> Value {
 
 fn fetch_poc_watch_or_fallback(
     config: &Config,
-    cves: &Value,
+    _cves: &Value,
     offline: bool,
     refresh_cache: bool,
 ) -> Value {
@@ -5143,130 +5141,131 @@ fn fetch_poc_watch_or_fallback(
         return empty_poc_watch("disabled");
     }
 
-    match fetch_poc_watch(config, cves, offline, refresh_cache) {
+    match fetch_poc_watch(config, offline, refresh_cache) {
         Ok(value) => value,
         Err(err) => {
-            eprintln!("⚠️  CVE PoC Watch skipped: {err:#}");
+            eprintln!("⚠️  Latest PoC Watch skipped: {err:#}");
             empty_poc_watch("fetch_error")
         }
     }
 }
 
-#[derive(Debug, Clone)]
-struct PocCveMeta {
-    cve_id: String,
-    severity: String,
-    epss: f64,
-    epss_momentum: String,
-    kev: bool,
-    cisa_priority: String,
-}
-
-fn fetch_poc_watch(
-    config: &Config,
-    cves: &Value,
-    offline: bool,
-    refresh_cache: bool,
-) -> Result<Value> {
+fn fetch_poc_watch(config: &Config, offline: bool, refresh_cache: bool) -> Result<Value> {
     let cfg = &config.intel.poc_watch;
-    let cve_meta = poc_cve_meta_from_brief(cves, cfg.max_cves);
-    if cve_meta.is_empty() {
-        return Ok(empty_poc_watch("no_cves"));
-    }
-
     let client = Client::builder()
         .user_agent(&config.fetch.user_agent)
         .timeout(Duration::from_secs(20))
         .build()
-        .context("failed to build HTTP client for CVE PoC Watch")?;
+        .context("failed to build HTTP client for Latest PoC Watch")?;
 
-    eprintln!("→ fetching CVE PoC Watch metadata");
+    let recent_days = cfg.recent_days.max(1);
+    let since = (Utc::now().date_naive() - ChronoDuration::days(recent_days))
+        .format("%Y-%m-%d")
+        .to_string();
+    let queries = latest_poc_search_queries(&since);
+
+    eprintln!("→ fetching Latest PoC Watch metadata");
 
     let mut candidates = Vec::new();
     let mut errors = Vec::new();
-    let mut queries = 0usize;
+    let mut cache_misses = 0_u64;
 
-    for meta in &cve_meta {
-        queries += 1;
-        let label = format!("GitHub PoC metadata {}", meta.cve_id);
+    for (index, query) in queries.iter().enumerate() {
+        let label = format!("Latest GitHub PoC metadata query {}", index + 1);
         match fetch_github_repository_search(
             &client,
             config,
             cfg,
-            &meta.cve_id,
+            query,
             &label,
             offline,
             refresh_cache,
         ) {
             Ok(value) => {
                 if let Some(items) = value.get("items").and_then(|v| v.as_array()) {
-                    let mut per_cve = Vec::new();
                     for repo in items {
-                        if let Some(mapped) = map_github_poc_candidate(meta, repo) {
-                            per_cve.push(mapped);
-                        }
+                        candidates.extend(map_github_latest_poc_candidates(repo));
                     }
-                    per_cve.sort_by(|a, b| {
-                        path_u64(b, &["score"])
-                            .cmp(&path_u64(a, &["score"]))
-                            .then_with(|| {
-                                value_str(b, "updated_at").cmp(value_str(a, "updated_at"))
-                            })
-                    });
-                    candidates.extend(per_cve.into_iter().take(cfg.max_repos_per_cve));
                 }
             }
             Err(err) => {
-                eprintln!("⚠️  skipped GitHub PoC metadata {}: {err:#}", meta.cve_id);
-                errors.push(json!({
-                    "cve_id": meta.cve_id,
-                    "error": source_error_summary(&err.to_string())
-                }));
+                let err_text = err.to_string();
+                if offline && is_offline_cache_miss_error(&err_text) {
+                    eprintln!(
+                        "  ↳ cache miss: Latest GitHub PoC metadata query {}",
+                        index + 1
+                    );
+                    cache_misses += 1;
+                } else {
+                    eprintln!(
+                        "⚠️  skipped Latest GitHub PoC metadata query {}: {err:#}",
+                        index + 1
+                    );
+                    errors.push(json!({
+                        "query": index + 1,
+                        "error": source_error_summary(&err_text)
+                    }));
+                }
             }
         }
         thread::sleep(Duration::from_millis(config.intel.sleep_ms_between_sources));
     }
 
-    let mut seen = HashSet::new();
+    let raw_candidates = candidates.len() as u64;
+    let mut seen_repo_cve = HashSet::new();
     candidates.retain(|item| {
         let key = format!(
             "{}::{}",
             item.get("cve_id").and_then(|v| v.as_str()).unwrap_or(""),
             item.get("repo").and_then(|v| v.as_str()).unwrap_or("")
         );
-        seen.insert(key)
+        seen_repo_cve.insert(key)
     });
 
     candidates.sort_by(|a, b| {
-        path_u64(b, &["score"])
-            .cmp(&path_u64(a, &["score"]))
-            .then_with(|| value_str(b, "updated_at").cmp(value_str(a, "updated_at")))
+        path_u64(b, &["published_ts"])
+            .cmp(&path_u64(a, &["published_ts"]))
+            .then_with(|| path_u64(b, &["score"]).cmp(&path_u64(a, &["score"])))
             .then_with(|| value_str(a, "repo").cmp(value_str(b, "repo")))
     });
-    candidates.truncate(cfg.max_results);
 
-    let repos = candidates.len() as u64;
-    let high = candidates
+    let mut cve_seen_counts: HashMap<String, usize> = HashMap::new();
+    let per_cve_limit = cfg.max_repos_per_cve.max(1);
+    let mut grouped = Vec::new();
+    for item in candidates {
+        let cve_id = item
+            .get("cve_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let count = cve_seen_counts.entry(cve_id).or_insert(0);
+        if *count < per_cve_limit {
+            grouped.push(item);
+            *count += 1;
+        }
+        if grouped.len() >= cfg.max_results {
+            break;
+        }
+    }
+
+    let repos = grouped.len() as u64;
+    let high = grouped
         .iter()
         .filter(|item| item.get("risk").and_then(|v| v.as_str()) == Some("high"))
         .count() as u64;
-    let cves_with_poc = candidates
+    let cves_with_poc = grouped
         .iter()
         .filter_map(|item| item.get("cve_id").and_then(|v| v.as_str()))
         .collect::<HashSet<_>>()
         .len() as u64;
-    let kev_related = candidates
+    let fresh = grouped
         .iter()
-        .filter(|item| item.get("kev").and_then(|v| v.as_bool()).unwrap_or(false))
-        .count() as u64;
-    let epss_rising_related = candidates
-        .iter()
-        .filter(|item| item.get("epss_momentum").and_then(|v| v.as_str()) == Some("rising"))
+        .filter(|item| path_u64(item, &["age_days"]) <= 7)
         .count() as u64;
 
     let mut cve_counts: HashMap<String, usize> = HashMap::new();
     let mut risk_counts: HashMap<String, usize> = HashMap::new();
-    for item in &candidates {
+    for item in &grouped {
         if let Some(cve_id) = item.get("cve_id").and_then(|v| v.as_str()) {
             *cve_counts.entry(cve_id.to_string()).or_insert(0) += 1;
         }
@@ -5275,53 +5274,64 @@ fn fetch_poc_watch(
         }
     }
 
-    let summary_fa = if repos == 0 {
-        format!("برای {} CVE منتخب، PoC public قابل اتکای metadata-only در GitHub پیدا نشد یا rate-limit/cache اجازه نداد.", cve_meta.len())
+    let summary_fa = if repos == 0 && offline && cache_misses == queries.len() as u64 {
+        format!("در حالت offline، cache قبلی برای جست‌وجوهای جدید PoC وجود نداشت؛ با یک اجرای online، جریان زمانی PoC پر می‌شود و بعداً offline از cache خوانده می‌شود.")
+    } else if repos == 0 {
+        format!("در بازه {} روز اخیر، PoC عمومی جدید و قابل نمایش به‌صورت metadata-only از جریان زمانی GitHub دیده نشد یا cache/API محدود بود.", recent_days)
     } else {
-        format!("{repos} نشانه metadata-only از PoC public برای {cves_with_poc} CVE منتخب پیدا شد؛ لینک raw، clone و کد exploit نمایش داده نمی‌شود.")
+        format!("{repos} PoC metadata جدید برای {cves_with_poc} CVE از جریان زمانی GitHub استخراج شد؛ مبنا زمان انتشار repository است، نه جست‌وجو روی CVEهای داشبورد.")
     };
 
     Ok(json!({
         "enabled": true,
-        "ok": errors.is_empty() || repos > 0,
+        "ok": errors.is_empty(),
         "provider": "GitHub Repository Search API",
-        "source": "GitHub repository metadata only",
+        "source": "GitHub latest repository metadata only",
+        "mode": "latest_poc_stream",
+        "window_days": recent_days,
         "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands; repository URLs are not rendered in UI",
         "summary_fa": summary_fa,
         "totals": {
-            "cves_checked": cve_meta.len(),
+            "cves_checked": 0,
             "cves_with_poc": cves_with_poc,
             "repos": repos,
             "high": high,
-            "kev_related": kev_related,
-            "epss_rising_related": epss_rising_related,
-            "queries": queries,
+            "fresh": fresh,
+            "raw_candidates": raw_candidates,
+            "kev_related": 0,
+            "epss_rising_related": 0,
+            "queries": queries.len(),
+            "cache_misses": cache_misses,
             "errors": errors.len()
         },
-        "repos": candidates,
+        "repos": grouped,
         "cve_chart": count_chart(cve_counts, 8),
         "risk_chart": count_chart(risk_counts, 4),
         "errors": errors
     }))
 }
 
+fn latest_poc_search_queries(since: &str) -> Vec<String> {
+    vec![
+        format!("CVE PoC in:name,description,readme created:>={since}"),
+        format!("CVE exploit in:name,description,readme created:>={since}"),
+        format!("CVE proof-of-concept in:name,description,readme created:>={since}"),
+        format!("CVE reproducer in:name,description,readme created:>={since}"),
+    ]
+}
+
 fn fetch_github_repository_search(
     client: &Client,
     config: &Config,
     cfg: &PocWatchConfig,
-    cve_id: &str,
+    query: &str,
     label: &str,
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Value> {
-    let query = format!("{cve_id} in:name,description,readme");
-    let per_page = cfg
-        .max_repos_per_cve
-        .saturating_mul(6)
-        .clamp(8, 30)
-        .to_string();
+    let per_page = cfg.max_search_results_per_query.clamp(8, 50).to_string();
     let query_params = [
-        ("q", query.as_str()),
+        ("q", query),
         ("sort", "updated"),
         ("order", "desc"),
         ("per_page", per_page.as_str()),
@@ -5391,44 +5401,6 @@ fn fetch_github_repository_search(
     }
 }
 
-fn poc_cve_meta_from_brief(cves: &Value, limit: usize) -> Vec<PocCveMeta> {
-    cves.as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|item| {
-            let cve_id = item
-                .get("cve_id")
-                .and_then(|v| v.as_str())?
-                .trim()
-                .to_string();
-            if !is_cve_id(&cve_id) {
-                return None;
-            }
-            Some(PocCveMeta {
-                cve_id,
-                severity: item
-                    .get("severity")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("UNKNOWN")
-                    .to_string(),
-                epss: item.get("epss").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                epss_momentum: item
-                    .get("epss_momentum")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("stable")
-                    .to_string(),
-                kev: item.get("kev").and_then(|v| v.as_bool()).unwrap_or(false),
-                cisa_priority: item
-                    .get("cisa_priority")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("unscored")
-                    .to_string(),
-            })
-        })
-        .take(limit)
-        .collect()
-}
-
 fn is_cve_id(value: &str) -> bool {
     let parts = value.split('-').collect::<Vec<_>>();
     parts.len() == 3
@@ -5439,27 +5411,41 @@ fn is_cve_id(value: &str) -> bool {
         && parts[2].chars().all(|ch| ch.is_ascii_digit())
 }
 
-fn map_github_poc_candidate(meta: &PocCveMeta, repo: &Value) -> Option<Value> {
-    let full_name = repo.get("full_name").and_then(|v| v.as_str())?.trim();
+fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
+    let full_name = match repo.get("full_name").and_then(|v| v.as_str()) {
+        Some(value) => value.trim(),
+        None => return Vec::new(),
+    };
     let description = repo
         .get("description")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .trim();
-    let repo_lower = full_name.to_ascii_lowercase();
-    let text = format!("{} {}", repo_lower, description.to_ascii_lowercase());
-    let cve_lower = meta.cve_id.to_ascii_lowercase();
+    let topics = repo
+        .get("topics")
+        .and_then(|v| v.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .unwrap_or_default();
+    let text = format!(
+        "{} {} {}",
+        full_name.to_ascii_lowercase(),
+        description.to_ascii_lowercase(),
+        topics.to_ascii_lowercase()
+    );
 
-    if !text.contains(&cve_lower) {
-        return None;
-    }
-    if github_poc_negative_match(&text) {
-        return None;
+    if github_poc_negative_match(&text) || !github_latest_poc_positive_signal(&text) {
+        return Vec::new();
     }
 
-    let poc_signal = github_poc_positive_signal(&text, &cve_lower);
-    if !poc_signal {
-        return None;
+    let cve_ids = extract_cve_ids(&text);
+    if cve_ids.is_empty() {
+        return Vec::new();
     }
 
     let stars = repo
@@ -5490,7 +5476,9 @@ fn map_github_poc_candidate(meta: &PocCveMeta, repo: &Value) -> Option<Value> {
         .and_then(|v| v.as_str())
         .unwrap_or("unknown")
         .to_string();
-    let score = github_poc_score(meta, stars, forks, &updated_at, &text);
+    let published_ts = parse_rfc3339_timestamp(&created_at).unwrap_or(0).max(0) as u64;
+    let updated_ts = parse_rfc3339_timestamp(&updated_at).unwrap_or(0).max(0) as u64;
+    let score = github_poc_score(stars, forks, &created_at, &updated_at, &text);
     let risk = if score >= 78 {
         "high"
     } else if score >= 50 {
@@ -5499,37 +5487,86 @@ fn map_github_poc_candidate(meta: &PocCveMeta, repo: &Value) -> Option<Value> {
         "watch"
     };
     let repo_type = github_poc_repo_type(&text);
-    let note_fa = github_poc_note_fa(meta, risk, repo_type);
+    let age_days = poc_age_days(&created_at);
+    let age_fa = poc_age_label_fa(age_days);
 
-    Some(json!({
-        "cve_id": meta.cve_id,
-        "repo": full_name,
-        "repo_safe": full_name,
-        "github_path": format!("github.com/{full_name}"),
-        "url_rendered": false,
-        "title": format!("{} public PoC metadata", meta.cve_id),
-        "title_fa": format!("نشانه PoC عمومی برای {}", meta.cve_id),
-        "description": concise_text(description, 180),
-        "description_fa": fallback_persian_summary(description, "این repository فقط به‌عنوان metadata برای وجود PoC عمومی ثبت شده است"),
-        "stars": stars,
-        "forks": forks,
-        "language": language,
-        "created_at": created_at,
-        "updated_at": updated_at,
-        "pushed_at": pushed_at,
-        "severity": meta.severity,
-        "epss": meta.epss,
-        "epss_momentum": meta.epss_momentum,
-        "kev": meta.kev,
-        "cisa_priority": meta.cisa_priority,
-        "repo_type": repo_type,
-        "risk": risk,
-        "score": score,
-        "bar_width": score,
-        "note_fa": note_fa,
-        "safe_mode": "metadata only; no code, no raw URL, no clone/download command",
-        "tags": github_poc_tags(meta, repo_type, risk)
-    }))
+    cve_ids
+        .into_iter()
+        .map(|cve_id| {
+            let note_fa = github_poc_note_fa(&cve_id, risk, repo_type, age_days);
+            let title = format!("{} latest public PoC metadata", cve_id);
+            let title_fa = format!("PoC عمومی تازه برای {}", cve_id);
+            json!({
+                "cve_id": cve_id,
+                "repo": full_name,
+                "repo_safe": full_name,
+                "github_path": format!("github.com/{full_name}"),
+                "url_rendered": false,
+                "title": title,
+                "title_fa": title_fa,
+                "description": concise_text(description, 180),
+                "description_fa": fallback_persian_summary(description, "این repository فقط به‌عنوان metadata برای وجود PoC عمومی جدید ثبت شده است"),
+                "stars": stars,
+                "forks": forks,
+                "language": language.clone(),
+                "created_at": created_at.clone(),
+                "published_at": created_at.clone(),
+                "published_ts": published_ts,
+                "updated_at": updated_at.clone(),
+                "updated_ts": updated_ts,
+                "pushed_at": pushed_at.clone(),
+                "age_days": age_days,
+                "age_fa": age_fa.clone(),
+                "repo_type": repo_type,
+                "risk": risk,
+                "score": score,
+                "bar_width": score,
+                "note_fa": note_fa,
+                "safe_mode": "metadata only; no code, no raw URL, no clone/download command",
+                "tags": github_poc_tags(repo_type, risk, age_days)
+            })
+        })
+        .collect()
+}
+
+fn extract_cve_ids(text: &str) -> Vec<String> {
+    let bytes = text.as_bytes();
+    let mut values = Vec::new();
+    let mut seen = HashSet::new();
+    let mut index = 0usize;
+
+    while index + 9 <= bytes.len() {
+        let has_cve_prefix = index + 4 <= bytes.len()
+            && bytes[index].eq_ignore_ascii_case(&b'c')
+            && bytes[index + 1].eq_ignore_ascii_case(&b'v')
+            && bytes[index + 2].eq_ignore_ascii_case(&b'e')
+            && bytes[index + 3] == b'-';
+        if has_cve_prefix {
+            let mut end = index + 4;
+            let year_start = end;
+            while end < bytes.len() && bytes[end].is_ascii_digit() && end - year_start < 4 {
+                end += 1;
+            }
+            if end - year_start == 4 && end < bytes.len() && bytes[end] == b'-' {
+                end += 1;
+                let id_start = end;
+                while end < bytes.len() && bytes[end].is_ascii_digit() {
+                    end += 1;
+                }
+                if end - id_start >= 4 {
+                    let cve_id = String::from_utf8_lossy(&bytes[index..end]).to_ascii_uppercase();
+                    if is_cve_id(&cve_id) && seen.insert(cve_id.clone()) {
+                        values.push(cve_id);
+                    }
+                    index = end;
+                    continue;
+                }
+            }
+        }
+        index += 1;
+    }
+
+    values
 }
 
 fn github_poc_negative_match(text: &str) -> bool {
@@ -5552,13 +5589,16 @@ fn github_poc_negative_match(text: &str) -> bool {
         "nuclei-templates",
         "template collection",
         "exploitdb mirror",
+        "packetstorm mirror",
+        "weekly roundup",
+        "monthly roundup",
     ]
     .iter()
     .any(|needle| text.contains(needle))
 }
 
-fn github_poc_positive_signal(text: &str, cve_lower: &str) -> bool {
-    let explicit = [
+fn github_latest_poc_positive_signal(text: &str) -> bool {
+    [
         "poc",
         "proof-of-concept",
         "proof of concept",
@@ -5573,9 +5613,7 @@ fn github_poc_positive_signal(text: &str, cve_lower: &str) -> bool {
         "trigger",
     ]
     .iter()
-    .any(|needle| text.contains(needle));
-
-    explicit || text.contains(&format!("/{cve_lower}")) || text.ends_with(cve_lower)
+    .any(|needle| text.contains(needle))
 }
 
 fn github_poc_repo_type(text: &str) -> &'static str {
@@ -5596,49 +5634,67 @@ fn github_poc_repo_type(text: &str) -> &'static str {
     }
 }
 
-fn github_poc_score(
-    meta: &PocCveMeta,
-    stars: u64,
-    forks: u64,
-    updated_at: &str,
-    text: &str,
-) -> u64 {
+fn github_poc_score(stars: u64, forks: u64, created_at: &str, updated_at: &str, text: &str) -> u64 {
     let mut score = 24_u64;
-    if meta.kev {
-        score += 22;
-    }
-    if meta.epss_momentum == "rising" {
-        score += 16;
-    }
-    if meta.severity == "CRITICAL" {
-        score += 14;
-    } else if meta.severity == "HIGH" {
-        score += 8;
-    }
     score += stars.min(80) / 4;
     score += forks.min(40) / 4;
     if text.contains("exploit") || text.contains("rce") {
-        score += 12;
+        score += 16;
     } else if text.contains("poc")
         || text.contains("proof-of-concept")
         || text.contains("proof of concept")
     {
-        score += 8;
+        score += 12;
     }
-    let updated_ts = parse_rfc3339_timestamp(updated_at).unwrap_or(0);
-    let age_days = if updated_ts > 0 {
-        ((Utc::now().timestamp() - updated_ts).max(0) / 86_400) as u64
-    } else {
-        365
-    };
-    if age_days <= 7 {
+    if text.contains("weaponized") {
+        score += 10;
+    }
+    if text.contains("reproducer") || text.contains("trigger") {
+        score += 6;
+    }
+
+    let age_days = poc_age_days(created_at);
+    if age_days <= 1 {
+        score += 24;
+    } else if age_days <= 3 {
+        score += 18;
+    } else if age_days <= 7 {
         score += 12;
     } else if age_days <= 30 {
-        score += 7;
-    } else if age_days <= 90 {
-        score += 3;
+        score += 6;
     }
+
+    let updated_ts = parse_rfc3339_timestamp(updated_at).unwrap_or(0);
+    let created_ts = parse_rfc3339_timestamp(created_at).unwrap_or(0);
+    if created_ts > 0 && updated_ts >= created_ts && updated_ts - created_ts <= 604_800 {
+        score += 4;
+    }
+
     score.clamp(12, 100)
+}
+
+fn poc_age_days(timestamp: &str) -> u64 {
+    let event_ts = parse_rfc3339_timestamp(timestamp).unwrap_or(0);
+    if event_ts <= 0 {
+        return 365;
+    }
+    ((Utc::now().timestamp() - event_ts).max(0) / 86_400) as u64
+}
+
+fn poc_age_label_fa(age_days: u64) -> String {
+    if age_days == 0 {
+        "امروز".to_string()
+    } else if age_days == 1 {
+        "دیروز".to_string()
+    } else if age_days < 7 {
+        format!("{} روز پیش", age_days)
+    } else if age_days < 30 {
+        format!("{} هفته پیش", (age_days as f64 / 7.0).ceil() as u64)
+    } else if age_days < 365 {
+        format!("{} ماه پیش", (age_days as f64 / 30.0).ceil() as u64)
+    } else {
+        "قدیمی".to_string()
+    }
 }
 
 fn parse_rfc3339_timestamp(value: &str) -> Option<i64> {
@@ -5647,35 +5703,24 @@ fn parse_rfc3339_timestamp(value: &str) -> Option<i64> {
         .map(|dt| dt.timestamp())
 }
 
-fn github_poc_note_fa(meta: &PocCveMeta, risk: &str, repo_type: &str) -> String {
-    if meta.kev {
-        format!("برای {} هم KEV و هم نشانه PoC عمومی دیده شده؛ فقط برای triage دفاعی و اولویت patch استفاده شود.", meta.cve_id)
-    } else if meta.epss_momentum == "rising" {
-        format!("برای {} هم EPSS رو به رشد و هم metadata PoC عمومی دیده شده؛ exposure و backlog patch را تطبیق بده.", meta.cve_id)
+fn github_poc_note_fa(cve_id: &str, risk: &str, repo_type: &str, age_days: u64) -> String {
+    if age_days <= 1 {
+        format!("{} از جریان جدیدترین PoCهای عمومی استخراج شد؛ داده فقط metadata است و کد یا دستور اجرا نمایش داده نمی‌شود.", cve_id)
     } else if risk == "high" || repo_type == "exploit-metadata" {
-        format!(
-            "برای {} نشانه public exploit/PoC دیده شده؛ کد یا دستور اجرا نمایش داده نمی‌شود.",
-            meta.cve_id
-        )
+        format!("برای {} نشانه PoC/exploit عمومی تازه دیده شده؛ فقط برای آگاهی دفاعی و اولویت‌بندی patch استفاده شود.", cve_id)
     } else {
-        format!("برای {} فقط metadata مربوط به PoC/public reference ثبت شده؛ قبل از تصمیم عملیاتی اعتبارسنجی دستی لازم است.", meta.cve_id)
+        format!("برای {} metadata مربوط به PoC عمومی جدید دیده شده؛ قبل از تصمیم عملیاتی اعتبارسنجی دستی لازم است.", cve_id)
     }
 }
 
-fn github_poc_tags(meta: &PocCveMeta, repo_type: &str, risk: &str) -> Vec<String> {
+fn github_poc_tags(repo_type: &str, risk: &str, age_days: u64) -> Vec<String> {
     let mut tags = vec![
-        "PoC metadata".to_string(),
+        "latest-first".to_string(),
         repo_type.to_string(),
         risk.to_string(),
     ];
-    if meta.kev {
-        tags.push("KEV".to_string());
-    }
-    if meta.epss_momentum == "rising" {
-        tags.push("EPSS rising".to_string());
-    }
-    if !meta.cisa_priority.is_empty() && meta.cisa_priority != "unscored" {
-        tags.push(format!("CISA {}", meta.cisa_priority));
+    if age_days <= 7 {
+        tags.push("fresh".to_string());
     }
     tags
 }
@@ -5686,16 +5731,21 @@ fn empty_poc_watch(reason: &str) -> Value {
         "ok": false,
         "provider": "GitHub Repository Search API",
         "source": reason,
+        "mode": "latest_poc_stream",
+        "window_days": 0,
         "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands",
-        "summary_fa": "CVE PoC Watch در این اجرا داده‌ای ندارد.",
+        "summary_fa": "Latest PoC Watch در این اجرا داده‌ای ندارد.",
         "totals": {
             "cves_checked": 0,
             "cves_with_poc": 0,
             "repos": 0,
             "high": 0,
+            "fresh": 0,
+            "raw_candidates": 0,
             "kev_related": 0,
             "epss_rising_related": 0,
             "queries": 0,
+            "cache_misses": 0,
             "errors": 0
         },
         "repos": [],
@@ -8077,7 +8127,7 @@ fn snapshot_level(score: u64) -> &'static str {
 }
 
 fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.27.2-independent-writeup-feeds");
+    brief["version"] = json!("v0.4.27.6-poc-offline-cache-compile-fix");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -8607,7 +8657,7 @@ fn build_triage_signals(brief: &Value) -> Value {
                 "level": if poc_watch_high > 0 { "high" } else if score >= 55 { "medium" } else { "watch" },
                 "anchor": "#poc-watch",
                 "bar_width": score,
-                "note_fa": "برای CVEهای منتخب، فقط وجود metadata عمومی PoC دیده می‌شود؛ کد و لینک raw نمایش داده نمی‌شود."
+                "note_fa": "جدیدترین PoCهای عمومی ابتدا از جریان زمانی metadata استخراج و سپس بر اساس CVE گروه‌بندی می‌شوند؛ کد و لینک raw نمایش داده نمی‌شود."
             }),
         ));
     }
@@ -9663,7 +9713,7 @@ fn build_brief_notes(brief: &Value) -> Vec<String> {
             .and_then(|v| v.as_bool())
             .unwrap_or(false)
         {
-            coverage.push_str(" CVE PoC Watch نیز از GitHub Search به‌صورت metadata-only و بدون نمایش کد exploit ساخته شده است.");
+            coverage.push_str(" Latest PoC Watch نیز از GitHub Search به‌صورت latest-first ساخته شده، CVE را از metadata استخراج می‌کند و کد exploit نمایش نمی‌دهد.");
         }
         if failed_sources > 0 {
             coverage.push_str(&format!(

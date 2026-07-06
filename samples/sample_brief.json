@@ -4,7 +4,7 @@
   "date_en": "2026-07-05",
   "risk_level": "Medium",
   "generated_at": "2026-07-05 19:30",
-  "version": "v0.4.27-poc-watch-metadata",
+  "version": "v0.4.27.3-latest-poc-stream",
   "stats": {
     "total_items": 4,
     "iran_items": 1,
@@ -39,9 +39,9 @@
     "ics_vendors": 0,
     "writeups": 2,
     "writeup_sources": 2,
-    "poc_watch": 2,
+    "poc_watch": 3,
     "poc_watch_high": 1,
-    "poc_watch_cves": 1
+    "poc_watch_cves": 3
   },
   "source_health": {
     "rss_sources": 18,
@@ -611,22 +611,155 @@
     "enabled": true,
     "ok": true,
     "provider": "GitHub Repository Search API",
-    "source": "GitHub repository metadata only",
-    "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands",
-    "summary_fa": "۲ نشانه metadata-only از PoC عمومی برای ۱ CVE منتخب پیدا شد؛ لینک raw، clone و کد exploit نمایش داده نمی‌شود.",
+    "source": "GitHub latest repository metadata only",
+    "mode": "latest_poc_stream",
+    "window_days": 30,
+    "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands; repository URLs are not rendered in UI",
+    "summary_fa": "۳ PoC metadata جدید برای ۳ CVE از جریان زمانی GitHub استخراج شد؛ مبنا زمان انتشار repository است، نه جست‌وجو روی CVEهای داشبورد.",
     "totals": {
-      "cves_checked": 3,
-      "cves_with_poc": 1,
-      "repos": 2,
+      "cves_checked": 0,
+      "cves_with_poc": 3,
+      "repos": 3,
       "high": 1,
+      "fresh": 2,
+      "raw_candidates": 7,
       "kev_related": 0,
       "epss_rising_related": 0,
-      "queries": 3,
+      "queries": 4,
       "errors": 0
     },
-    "repos": [],
-    "cve_chart": [],
-    "risk_chart": [],
+    "repos": [
+      {
+        "cve_id": "CVE-2026-18420",
+        "repo": "sample/recent-cve-2026-18420-poc",
+        "repo_safe": "sample/recent-cve-2026-18420-poc",
+        "github_path": "github.com/sample/recent-cve-2026-18420-poc",
+        "url_rendered": false,
+        "title": "CVE-2026-18420 latest public PoC metadata",
+        "title_fa": "PoC عمومی تازه برای CVE-2026-18420",
+        "description": "Public proof-of-concept metadata sample for dashboard rendering.",
+        "description_fa": "نمونه metadata برای نمایش PoC عمومی تازه در داشبورد.",
+        "stars": 31,
+        "forks": 6,
+        "language": "Python",
+        "created_at": "2026-07-05T08:10:00Z",
+        "published_at": "2026-07-05T08:10:00Z",
+        "published_ts": 1783248600,
+        "updated_at": "2026-07-05T10:00:00Z",
+        "updated_ts": 1783255200,
+        "pushed_at": "2026-07-05T09:50:00Z",
+        "age_days": 1,
+        "age_fa": "دیروز",
+        "repo_type": "poc",
+        "risk": "high",
+        "score": 84,
+        "bar_width": 84,
+        "note_fa": "CVE-2026-18420 از جریان جدیدترین PoCهای عمومی استخراج شد؛ داده فقط metadata است و کد یا دستور اجرا نمایش داده نمی‌شود.",
+        "safe_mode": "metadata only; no code, no raw URL, no clone/download command",
+        "tags": [
+          "latest-first",
+          "poc",
+          "high",
+          "fresh"
+        ]
+      },
+      {
+        "cve_id": "CVE-2026-17731",
+        "repo": "sample/cve-2026-17731-reproducer",
+        "repo_safe": "sample/cve-2026-17731-reproducer",
+        "github_path": "github.com/sample/cve-2026-17731-reproducer",
+        "url_rendered": false,
+        "title": "CVE-2026-17731 latest public PoC metadata",
+        "title_fa": "PoC عمومی تازه برای CVE-2026-17731",
+        "description": "Reproducer metadata sample for a recently published CVE.",
+        "description_fa": "نمونه metadata برای reproducer عمومی تازه.",
+        "stars": 12,
+        "forks": 2,
+        "language": "Go",
+        "created_at": "2026-07-04T16:20:00Z",
+        "published_at": "2026-07-04T16:20:00Z",
+        "published_ts": 1783191600,
+        "updated_at": "2026-07-04T18:00:00Z",
+        "updated_ts": 1783197600,
+        "pushed_at": "2026-07-04T17:40:00Z",
+        "age_days": 2,
+        "age_fa": "۲ روز پیش",
+        "repo_type": "reproducer",
+        "risk": "medium",
+        "score": 62,
+        "bar_width": 62,
+        "note_fa": "برای CVE-2026-17731 metadata مربوط به PoC عمومی جدید دیده شده؛ قبل از تصمیم عملیاتی اعتبارسنجی دستی لازم است.",
+        "safe_mode": "metadata only; no code, no raw URL, no clone/download command",
+        "tags": [
+          "latest-first",
+          "reproducer",
+          "medium",
+          "fresh"
+        ]
+      },
+      {
+        "cve_id": "CVE-2026-16002",
+        "repo": "sample/cve-2026-16002-public-reference",
+        "repo_safe": "sample/cve-2026-16002-public-reference",
+        "github_path": "github.com/sample/cve-2026-16002-public-reference",
+        "url_rendered": false,
+        "title": "CVE-2026-16002 latest public PoC metadata",
+        "title_fa": "PoC عمومی تازه برای CVE-2026-16002",
+        "description": "Public exploit metadata sample for one-glance UI.",
+        "description_fa": "نمونه metadata برای رصد عمومی PoC.",
+        "stars": 7,
+        "forks": 1,
+        "language": "Ruby",
+        "created_at": "2026-06-28T11:00:00Z",
+        "published_at": "2026-06-28T11:00:00Z",
+        "published_ts": 1782654000,
+        "updated_at": "2026-06-29T11:00:00Z",
+        "updated_ts": 1782740400,
+        "pushed_at": "2026-06-29T10:30:00Z",
+        "age_days": 8,
+        "age_fa": "۲ هفته پیش",
+        "repo_type": "exploit-metadata",
+        "risk": "medium",
+        "score": 58,
+        "bar_width": 58,
+        "note_fa": "برای CVE-2026-16002 نشانه PoC/exploit عمومی تازه دیده شده؛ فقط برای آگاهی دفاعی و اولویت‌بندی patch استفاده شود.",
+        "safe_mode": "metadata only; no code, no raw URL, no clone/download command",
+        "tags": [
+          "latest-first",
+          "exploit-metadata",
+          "medium"
+        ]
+      }
+    ],
+    "cve_chart": [
+      {
+        "name": "CVE-2026-18420",
+        "count": 1,
+        "bar_width": 100
+      },
+      {
+        "name": "CVE-2026-17731",
+        "count": 1,
+        "bar_width": 100
+      },
+      {
+        "name": "CVE-2026-16002",
+        "count": 1,
+        "bar_width": 100
+      }
+    ],
+    "risk_chart": [
+      {
+        "name": "medium",
+        "count": 2,
+        "bar_width": 100
+      },
+      {
+        "name": "high",
+        "count": 1,
+        "bar_width": 50
+      }
+    ],
     "errors": []
   }
 }
