@@ -455,7 +455,7 @@ Hard rules:
 - summary_fa: 1 short Persian sentence, max 170 characters.
 - why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
 - ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
-- title_fa: concise Persian headline, max 70 characters.
+- title_fa: a faithful, complete Persian translation of the original "title". Translate the entire title without summarizing, shortening, generalizing or dropping any part; keep product, malware, campaign and vendor names in their original Latin script; max 150 characters.
 - If "priority_alert" exists in the input, also return "priority_alert" with title_fa, summary_fa, why_it_matters, ops_note.
 - Return valid JSON only, matching the response schema. Never stop mid-string."#;
 
@@ -823,11 +823,7 @@ pub(crate) fn get_env_or_dotenv(key: &str) -> Option<String> {
             continue;
         };
         if k.trim() == key {
-            let value = v
-                .trim()
-                .trim_matches('"')
-                .trim_matches('\u{27}')
-                .to_string();
+            let value = v.trim().trim_matches('"').trim_matches('\u{27}').to_string();
             if !value.is_empty() {
                 return Some(value);
             }
@@ -859,15 +855,9 @@ mod tests {
             "url": "https://example.com/a",
             "summary": "text"
         });
-        assert_ne!(
-            first,
-            item_cache_key("gemini-2.5-flash", "global_news", &changed)
-        );
+        assert_ne!(first, item_cache_key("gemini-2.5-flash", "global_news", &changed));
         assert_ne!(first, item_cache_key("gemini-x", "global_news", &item));
-        assert_ne!(
-            first,
-            item_cache_key("gemini-2.5-flash", "iran_radar", &item)
-        );
+        assert_ne!(first, item_cache_key("gemini-2.5-flash", "iran_radar", &item));
     }
 
     #[test]
@@ -912,7 +902,10 @@ mod tests {
             }),
         );
         assert!(merge_batch_item(&mut brief, "global_news", 0, &editorial));
-        assert_eq!(brief["global_news"][0]["title_fa"], "تیتر فارسی");
+        assert_eq!(
+            brief["global_news"][0]["title_fa"],
+            "تیتر فارسی"
+        );
         assert_eq!(brief["global_news"][0]["url"], "https://a.example");
         assert!(merge_batch_item(&mut brief, "missing_section", 0, &editorial) == false);
         assert!(!merge_batch_item(&mut brief, "global_news", 9, &editorial));

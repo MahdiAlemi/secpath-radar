@@ -257,18 +257,13 @@ pub(crate) fn is_writeup_item(item: &FeedItem) -> bool {
     explicit_analysis_marker || (research_source_allows_depth && technical_depth_signal)
 }
 
-pub(crate) fn writeup_title_fa(kind: &str, title: &str) -> String {
-    let focus = persian_focus_label(title);
-    let text = match kind {
-        "CVE Analysis" => format!("تحلیل فنی CVE درباره {focus}"),
-        "Malware Writeup" => format!("تحلیل فنی بدافزار درباره {focus}"),
-        "Phishing Analysis" => format!("تحلیل فنی فیشینگ درباره {focus}"),
-        "Incident Analysis" => format!("تحلیل فنی رخداد درباره {focus}"),
-        "Detection Engineering" => format!("یادداشت مهندسی تشخیص درباره {focus}"),
-        "Cloud/SaaS Research" => format!("تحلیل فنی Cloud/SaaS درباره {focus}"),
-        _ => format!("یادداشت پژوهشی درباره {focus}"),
-    };
-    truncate_chars(&text, 72)
+pub(crate) fn writeup_title_fa(_kind: &str, title: &str) -> String {
+    // Keep the original research title; the kind is already shown as a tag.
+    let cleaned = title.trim();
+    if cleaned.is_empty() {
+        return "یادداشت پژوهشی تازه".to_string();
+    }
+    truncate_chars(cleaned, 160)
 }
 
 pub(crate) fn writeup_kind(item: &FeedItem) -> &'static str {

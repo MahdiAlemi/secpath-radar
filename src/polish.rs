@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 pub(crate) fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v1.0.0");
+    brief["version"] = json!("v0.4.34-day-machine");
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -480,12 +480,7 @@ pub(crate) fn polish_priority(brief: &mut Value) {
     }
 }
 
-pub(crate) fn polish_array_items(
-    brief: &mut Value,
-    key: &str,
-    title_max: usize,
-    summary_max: usize,
-) {
+pub(crate) fn polish_array_items(brief: &mut Value, key: &str, title_max: usize, summary_max: usize) {
     let Some(items) = brief.get_mut(key).and_then(|v| v.as_array_mut()) else {
         return;
     };
@@ -523,7 +518,7 @@ pub(crate) fn polish_writeups_pulse(brief: &mut Value) {
             *summary = non_empty_summary(summary, 260);
         }
         if let Some(Value::String(title_fa)) = obj.get_mut("title_fa") {
-            *title_fa = truncate_chars(title_fa, 76);
+            *title_fa = truncate_chars(title_fa, 160);
         }
         if let Some(Value::String(summary_fa)) = obj.get_mut("summary_fa") {
             *summary_fa = truncate_chars(summary_fa, 210);
@@ -719,11 +714,7 @@ pub(crate) fn enrich_cve_fields(brief: &mut Value) {
     }
 }
 
-pub(crate) fn insert_string_if_missing(
-    obj: &mut serde_json::Map<String, Value>,
-    key: &str,
-    value: &str,
-) {
+pub(crate) fn insert_string_if_missing(obj: &mut serde_json::Map<String, Value>, key: &str, value: &str) {
     let has_good_value = obj
         .get(key)
         .and_then(|existing| existing.as_str())
@@ -735,62 +726,13 @@ pub(crate) fn insert_string_if_missing(
 }
 
 pub(crate) fn fallback_persian_title(title: &str) -> String {
-    let cleaned = concise_title(title, 90);
+    // Non-AI runs must NOT rewrite headlines: keep the original title text as-is.
+    // A faithful Persian translation is added only by the AI editorial layer.
+    let cleaned = concise_title(title, 160);
     if cleaned.trim().is_empty() {
         return "سیگنال امنیتی قابل بررسی".to_string();
     }
-    if contains_persian(&cleaned) {
-        return truncate_chars(&cleaned, 72);
-    }
-
-    let lower = cleaned.to_lowercase();
-    let focus = persian_focus_label(&cleaned);
-    let headline = if lower.contains("actively exploited")
-        || lower.contains("exploited in the wild")
-        || lower.contains("mass exploitation")
-    {
-        format!("هشدار بهره‌برداری فعال درباره {focus}")
-    } else if lower.contains("zero-day") || lower.contains("0-day") {
-        format!("هشدار آسیب‌پذیری روز-صفر در {focus}")
-    } else if lower.contains("cve-")
-        || lower.contains("vulnerability")
-        || lower.contains("vulnerabilities")
-        || lower.contains("flaw")
-        || lower.contains("bug")
-    {
-        format!("آسیب‌پذیری مهم در {focus}")
-    } else if lower.contains("patch")
-        || lower.contains("security update")
-        || lower.contains("fixed")
-        || lower.contains("fixes")
-    {
-        format!("به‌روزرسانی امنیتی برای {focus}")
-    } else if lower.contains("ransomware") {
-        format!("گزارش فعالیت باج‌افزاری مرتبط با {focus}")
-    } else if lower.contains("malware")
-        || lower.contains("trojan")
-        || lower.contains("botnet")
-        || lower.contains("backdoor")
-    {
-        format!("ردیابی بدافزار مرتبط با {focus}")
-    } else if lower.contains("phishing") || lower.contains("credential") {
-        format!("هشدار فیشینگ و سرقت اعتبار درباره {focus}")
-    } else if lower.contains("breach")
-        || lower.contains("data leak")
-        || lower.contains("stolen")
-        || lower.contains("incident")
-    {
-        format!("گزارش رخداد امنیتی درباره {focus}")
-    } else if lower.contains("ai")
-        || lower.contains("llm")
-        || lower.contains("artificial intelligence")
-    {
-        format!("ریسک امنیتی هوش مصنوعی در {focus}")
-    } else {
-        format!("خبر امنیتی تازه درباره {focus}")
-    };
-
-    truncate_chars(&headline, 72)
+    truncate_chars(&cleaned, 160)
 }
 
 pub(crate) fn fallback_persian_summary(summary: &str, fallback_prefix: &str) -> String {

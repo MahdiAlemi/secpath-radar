@@ -232,7 +232,7 @@
     <div class="cluster-head"><span class="eyebrow">News &amp; Research</span><h2>خبر و تحلیل</h2></div>
     <div class="grid grid-3">
 
-      <section id="breaking-news" class="panel">
+      <section id="breaking-news" class="panel{% if brief.breaking_news %} panel-breaking{% endif %}">
         <div class="panel-head"><div><span class="eyebrow">Breaking</span><h2>خبر فوری</h2></div><span class="chip">{{ brief.breaking_news|length }}</span></div>
         {% if brief.breaking_news %}
         {% for item in brief.breaking_news %}{% if loop.index <= 12 %}{{ news_card(item) }}{% endif %}{% endfor %}
