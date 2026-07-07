@@ -31,7 +31,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 96px; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Vazirmatn", "Segoe UI", Tahoma, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Vazirmatn", "Noto Sans Arabic", "Segoe UI", Tahoma, "Helvetica Neue", Arial, sans-serif;
   font-size: 15px;
   line-height: 1.7;
   font-variant-numeric: tabular-nums;
@@ -315,3 +315,21 @@ body.lang-en .t-en { display: inline; }
 .panel-breaking .panel-head .eyebrow { color: var(--red); }
 .panel-breaking .panel-head .chip { color: var(--red); border-color: rgba(233, 115, 102, 0.4); background: var(--red-soft); }
 .panel-breaking .panel-head h2::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-inline-start: 8px; background: var(--red); box-shadow: 0 0 7px rgba(233, 115, 102, 0.7); animation: livepulse 2.4s ease-in-out infinite; }
+
+/* ---- QA3 visual upgrade: fonts, sparklines, severity strip, freshness ---- */
+@font-face { font-family: "Noto Sans Arabic"; src: url("../fonts/NotoSansArabic-Regular.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Noto Sans Arabic"; src: url("../fonts/NotoSansArabic-Medium.woff") format("woff"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Noto Sans Arabic"; src: url("../fonts/NotoSansArabic-Bold.woff") format("woff"); font-weight: 700; font-style: normal; font-display: swap; }
+.bar-row .spark { flex: 1 1 auto; height: 20px; min-width: 60px; }
+.spark polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.bar-row.delta-up .spark { color: var(--red); }
+.bar-row.delta-down .spark { color: var(--green); }
+.bar-row.delta-flat .spark { color: var(--muted, #98a2b3); }
+.sev-strip { display: flex; height: 6px; margin: 10px 0 2px; background: rgba(127, 127, 127, 0.18); overflow: hidden; }
+.sev-seg { display: block; height: 100%; }
+.sev-seg.sev-critical { background: var(--red); }
+.sev-seg.sev-high { background: var(--red); opacity: 0.55; }
+.sev-seg.sev-medium { background: var(--amber); }
+.sev-seg.sev-low { background: var(--green); }
+.item.is-older { opacity: 0.62; }
+.item.is-older:hover, .item.is-older:focus-within { opacity: 1; }

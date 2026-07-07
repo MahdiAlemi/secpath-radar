@@ -3,7 +3,8 @@
 use crate::prelude::*;
 
 pub(crate) fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v0.4.34-day-machine");
+    brief["version"] = json!("v0.4.35-visual-polish");
+    apply_sev_strip(brief);
 
     if brief.get("source_health").is_none() {
         brief["source_health"] = json!({
@@ -635,6 +636,10 @@ pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str, iran_section: boo
             json!(published_time_local),
         );
         obj.insert("freshness_label".to_string(), json!(freshness_label));
+        obj.insert(
+            "is_today".to_string(),
+            json!(freshness_label.starts_with("امروز")),
+        );
 
         insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
         insert_string_if_missing(
@@ -1105,4 +1110,36 @@ pub(crate) fn non_empty_summary(input: &str, max_chars: usize) -> String {
     } else {
         truncate_chars(&cleaned, max_chars)
     }
+}
+
+pub(crate) fn apply_sev_strip(brief: &mut Value) {
+    let empty: Vec<Value> = Vec::new();
+    let cves = brief.get("cves").and_then(|v| v.as_array()).unwrap_or(&empty).clone();
+    let total = cves.len();
+    if total == 0 {
+        brief["sev_strip"] = json!([]);
+        return;
+    }
+    let mut segments: Vec<Value> = Vec::new();
+    for sev in ["critical", "high", "medium", "low"] {
+        let count = cves
+            .iter()
+            .filter(|cve| {
+                cve.get("severity")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.eq_ignore_ascii_case(sev))
+                    .unwrap_or(false)
+            })
+            .count();
+        if count == 0 {
+            continue;
+        }
+        let pct = (count as f64) * 100.0 / (total as f64);
+        segments.push(json!({
+            "sev": sev,
+            "count": count,
+            "pct": format!("{:.1}", pct)
+        }));
+    }
+    brief["sev_strip"] = json!(segments);
 }

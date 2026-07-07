@@ -18,7 +18,7 @@
 </div>
 {% endmacro %}
 {% macro news_card(item) %}
-<article class="item risk-{{ riskcls(item.risk_score) }}">
+<article class="item risk-{{ riskcls(item.risk_score) }}{% if item.is_today == false %} is-older{% endif %}">
   <div class="item-head">
     <h3><a href="{{ item.url }}" rel="noopener noreferrer"><span class="t-fa">{{ item.title_fa }}</span><span class="t-en">{{ item.title or item.title_fa }}</span></a></h3>
     <span class="score">{{ item.risk_score }}</span>
@@ -142,7 +142,7 @@
         {% if brief.trend_pulse.ok %}
         <p class="lede">{{ brief.trend_pulse.summary_fa }}</p>
         {% for row in brief.trend_pulse.rows %}{% if loop.index <= 10 %}
-        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label_fa }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
+        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label_fa }}</span><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ row.spark }}" vector-effect="non-scaling-stroke"/></svg><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
         {% endif %}{% endfor %}
         <div class="meta"><span>{{ brief.trend_pulse.span_fa }}</span><span>local snapshots</span></div>
         {% else %}
@@ -158,6 +158,9 @@
 
       <section id="cves" class="panel panel-wide">
         <div class="panel-head"><div><span class="eyebrow">CVE</span><h2>اولویت وصله</h2></div><span class="chip">{{ brief.stats.critical_cves }} بحرانی · {{ brief.stats.cves }} کل</span></div>
+        {% if brief.sev_strip %}
+        <div class="sev-strip" role="img" aria-label="ترکیب شدت CVEها">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
+        {% endif %}
         {% if brief.cves %}
         {% for cve in brief.cves %}{% if loop.index <= 30 %}
         <article class="item sev-{{ cve.severity|lower }}">

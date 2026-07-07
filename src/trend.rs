@@ -93,6 +93,7 @@ pub(crate) fn attach_trend_pulse(brief: &mut Value, snapshots: &[Value]) {
             "delta": delta,
             "direction": direction,
             "level": history_delta_level(metric.key, delta),
+            "spark": spark_points(&series),
             "bar_width": relative_width(delta.unsigned_abs(), metric.baseline)
         }));
     }
@@ -181,4 +182,25 @@ mod tests {
             .expect("cve row");
         assert_eq!(cve_row["direction"], json!("down"));
     }
+}
+
+pub(crate) fn spark_points(series: &[i64]) -> String {
+    let n = series.len();
+    if n < 2 {
+        return String::new();
+    }
+    let min = series.iter().copied().min().unwrap_or(0);
+    let max = series.iter().copied().max().unwrap_or(0);
+    let span = (max - min).max(1) as f64;
+    let step = 100.0 / (n as f64 - 1.0);
+    series
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            let x = step * index as f64;
+            let y = 25.0 - ((*value - min) as f64 / span) * 22.0;
+            format!("{:.1},{:.1}", x, y)
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
