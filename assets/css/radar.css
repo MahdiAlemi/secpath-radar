@@ -333,3 +333,61 @@ body.lang-en .t-en { display: inline; }
 .sev-seg.sev-low { background: var(--green); }
 .item.is-older { opacity: 0.62; }
 .item.is-older:hover, .item.is-older:focus-within { opacity: 1; }
+
+/* ---- QA4 SOC dense mode: at-a-glance wall ---- */
+body.is-compact { font-size: 13px; --gap: 10px; }
+body.is-compact .shell { max-width: min(100% - 24px, 1880px); }
+body.is-compact .grid-3 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1500px) { body.is-compact .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1180px) { body.is-compact .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { body.is-compact .grid-3 { grid-template-columns: 1fr; } }
+body.is-compact .grid-inner.grid-2 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body.is-compact .panel { padding: 8px 12px; gap: 6px; max-height: 340px; }
+body.is-compact .panel-head h2 { font-size: 13.5px; }
+body.is-compact .eyebrow { display: none; }
+body.is-compact .lede { display: none; }
+body.is-compact .chip { font-size: 11px; padding: 1px 8px; }
+body.is-compact .item h3 { font-size: 13px; line-height: 1.5; }
+body.is-compact .item p { max-height: 3em; line-height: 1.5; overflow: hidden; }
+body.is-compact .meta { font-size: 11px; }
+body.is-compact .tag { font-size: 11px; }
+body.is-compact .cluster-head h2 { font-size: 14px; }
+body.is-compact .kpi { padding: 6px 10px; }
+body.is-compact .kpi b { font-size: 17px; }
+body.is-compact .kpi small { display: none; }
+body.is-compact .triage-card p { display: none; }
+body.is-compact .spark { height: 16px; }
+body.is-compact .sev-strip { margin: 6px 0 0; }
+
+/* ---- QA5 portal rows: varzesh3-style one-line headlines in dense mode ---- */
+body.is-compact .panel { gap: 0; max-height: 420px; }
+body.is-compact .panel-head { margin-bottom: 4px; }
+body.is-compact .item { flex-direction: row; align-items: baseline; gap: 10px; padding: 5px 0; }
+body.is-compact .item:hover { background: var(--raised); }
+body.is-compact .item-head { flex: 1 1 auto; min-width: 0; align-items: baseline; }
+body.is-compact .item h3 { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 500; line-height: 1.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.is-compact .item p { display: none; }
+body.is-compact .item .score { font-size: 11px; }
+body.is-compact .sev-badge { font-size: 10px; padding: 0 6px; }
+body.is-compact .meta { flex: 0 0 auto; margin: 0; gap: 8px; white-space: nowrap; }
+body.is-compact .meta span:nth-child(n+2) { display: none; }
+body.is-compact .meta .tag { display: none; }
+body.is-compact .meta .tag-new { display: inline-block; }
+body.is-compact .item.sev-critical, body.is-compact .item.risk-critical, body.is-compact .item.risk-high { padding-inline-start: 8px; }
+
+/* ---- QA7 unified mosaic: all panels merged in one wall, boxes kept ---- */
+body.is-compact .cluster-head { display: none; }
+body.is-compact .panel.is-empty { display: none; }
+body.is-compact main.shell { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: start; }
+body.is-compact main.shell > * { grid-column: 1 / -1; min-width: 0; }
+body.is-compact .cluster { display: contents; }
+body.is-compact .cluster > .grid { display: contents; }
+body.is-compact .cluster > .triage-row { grid-column: 1 / -1; }
+body.is-compact main.shell .panel { grid-column: auto; height: 380px; max-height: none; overflow-y: auto; scrollbar-width: thin; }
+body.is-compact main.shell .panel-wide { grid-column: span 2; }
+@media (max-width: 1500px) { body.is-compact main.shell { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1180px) { body.is-compact main.shell { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  body.is-compact main.shell { grid-template-columns: 1fr; }
+  body.is-compact main.shell .panel, body.is-compact main.shell .panel-wide { grid-column: 1 / -1; height: auto; max-height: 380px; }
+}
