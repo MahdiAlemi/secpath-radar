@@ -13,6 +13,7 @@
   function toggleDensity(chip) {
     var on = body.classList.toggle("is-compact");
     if (chip) setChipState(chip, on);
+    save("radar-dense", on ? "on" : "off");
   }
 
   function toggleCollapseAll(chip) {
@@ -58,6 +59,7 @@
     }
     if (ev.key === "Escape") {
       body.classList.remove("is-compact");
+      save("radar-dense", "off");
       document.querySelectorAll(".panel.is-collapsed").forEach(function (p) {
         p.classList.remove("is-collapsed");
       });
@@ -136,6 +138,17 @@
     if (chip) chip.classList.toggle("is-on", light);
   }
   applyTheme(load("radar-theme") === "light");
+
+  // --- Dense (SOC) mode: default on desktop, persisted locally (radar-dense) ---
+  (function () {
+    var pref = load("radar-dense");
+    var on = pref ? pref === "on" : window.innerWidth >= 1280;
+    if (on) {
+      body.classList.add("is-compact");
+      var chip = document.querySelector('[data-ui-action="density"]');
+      if (chip) setChipState(chip, true);
+    }
+  })();
   bind(chipFor("theme"), function () {
     var light = !body.classList.contains("theme-light");
     applyTheme(light);
