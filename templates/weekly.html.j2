@@ -6,12 +6,13 @@
   <title>{{ brief.site_title }} — جمع‌بندی هفتگی</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="assets/css/radar.css" />
+  <script src="assets/js/radar.js" defer></script>
 </head>
 <body>
 {% macro riskcls(score) %}{{ "high" if score >= 8 else ("medium" if score >= 5 else "low") }}{% endmacro %}
 
 <header class="topbar">
-  <div class="brand"><span class="brand-mark">▦</span><strong>SecPath Radar</strong><span class="brand-sub">جمع‌بندی هفتگی</span></div>
+  <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">جمع‌بندی هفتگی</span></div>
   <div class="topbar-meta">
     <span>{{ brief.span_fa }}</span>
     <span>{{ brief.generated_at }}</span>
@@ -19,6 +20,8 @@
   </div>
   <div class="topbar-actions">
     <a class="ui-chip" href="index.html">داشبورد روزانه</a>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">روشن/تیره</span>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="lang">EN</span>
   </div>
 </header>
 

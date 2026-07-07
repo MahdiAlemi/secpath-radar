@@ -1,12 +1,5 @@
 /* SecPath Radar — production dark theme, RTL, no border-radius */
 
-@font-face {
-  font-family: "Vazirmatn";
-  src: url("../fonts/Vazirmatn[wght].woff2") format("woff2-variations");
-  font-weight: 100 900;
-  font-display: swap;
-}
-
 :root {
   --bg: #141518;
   --surface: #1c1e22;
@@ -310,3 +303,9 @@ body.lang-en .t-en { display: inline; }
 [data-chart-name]:hover .bar-label { color: var(--accent); }
 [data-chart-name].is-active .bar-label { color: var(--accent); font-weight: 600; }
 .bar-detail { font-size: 12px; color: var(--text-2); padding: 2px 2px 8px; border-bottom: 1px dashed var(--border); margin-bottom: 6px; }
+
+/* ---- QA1: print must not clip scrollable panels ---- */
+@media print {
+  .panel { max-height: none; overflow: visible; }
+  .panel-head { position: static; }
+}

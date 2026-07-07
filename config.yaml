@@ -1,6 +1,7 @@
 site:
   title: "SecPath Radar"
   tagline: "رادار روزانه امنیت سایبری، CVEها و تهدیدهای مهم"
+  github: "https://github.com/mahdialemi/secpath-radar"
   domain: "radar.secpath.space"
   github: "https://github.com/mahdiialemii/secpath-radar"
 

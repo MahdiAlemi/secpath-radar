@@ -77,7 +77,7 @@
       })
       .filter(Boolean);
 
-    var activeId = targets.length ? targets[0].id : null;
+    var activeId = null;
     var visible = {};
 
     var observer = new IntersectionObserver(
@@ -221,11 +221,20 @@
     "غیرفعال": "Disabled",
     "درباره": "About",
     "درباره پروژه": "About the project",
-    "منابع داده": "Data sources",
     "گردآوری خودکار از خبرخوان‌های امنیتی معتبر، NVD، CISA KEV، EPSS و تله‌متری عمومی تهدید؛ همگی read-only و بدون اسکن فعال.": "Automatically aggregated from trusted security feeds, NVD, CISA KEV, EPSS and public threat telemetry - all read-only, with no active scanning.",
     "SecPath Radar یک داشبورد استاتیک و فقط‌خواندنی برای رصد روزانه فضای تهدید سایبری است؛ بدون جمع‌آوری داده از بازدیدکننده.": "SecPath Radar is a static, read-only dashboard for daily monitoring of the cyber threat landscape; no visitor data is collected.",
     "طراحی و توسعه: Mahdi Alemi": "Designed & developed by Mahdi Alemi",
     "SecPath Radar · رصد غیرفعال امنیت سایبری": "SecPath Radar \u00b7 passive cyber threat monitoring",
+    "CVE در روز": "CVEs per day",
+    "بدون داده": "No data",
+    "برگزیده‌های هفته": "Highlights of the Week",
+    "خبرهای مهم هفته": "Top News This Week",
+    "خلاصه هفته": "Week Summary",
+    "داشبورد روزانه": "Daily Dashboard",
+    "فعالیت روزانه": "Daily Activity",
+    "منتخب": "Curated",
+    "مهم‌ترین آسیب‌پذیری‌ها": "Top Vulnerabilities",
+    "هفته در یک نگاه": "Week at a Glance",
   };
   var LANG_SELECTORS = "h2, .anchor-nav a, .kpi > span, .brand-sub, .ui-chip, .footer span, .note, .ops, .tag, .chip, .empty-note, .stat-row span, .meta span";
 
