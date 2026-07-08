@@ -84,7 +84,7 @@
 
   <section class="kpi-strip" aria-label="Quick-decision metrics">
     <div class="kpi kpi-risk risk-{{ brief.risk_level|lower }}"><span>Risk Score</span><b>{{ brief.executive_snapshot.score }}</b><small>{{ brief.risk_level }}</small></div>
-    <div class="kpi"><span>Critical CVEs</span><b>{{ brief.stats.critical_cves }}</b><small>of {{ brief.stats.cves }} CVE</small></div>
+    <div class="kpi"><span>CVEs Today</span><b>{{ brief.stats.cves }}</b><small>{{ brief.stats.critical_cves }} Critical &middot; {{ brief.stats.kev }} KEV</small></div>
     <div class="kpi"><span>Exploitation</span><b>{{ brief.stats.kev }}</b><small>KEV &middot; {{ brief.stats.epss_rising }} EPSS&uarr; &middot; {{ brief.stats.poc_watch }} PoC</small></div>
     <div class="kpi"><span>Today's News</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} Breaking &middot; {{ brief.stats.writeups }} Research</small></div>
     <div class="kpi"><span>Active Threats</span><b>{{ brief.stats.iocs }}</b><small>IOC &middot; {{ brief.stats.botnet_c2 }} C2 &middot; {{ brief.stats.phishing_urls }} Phishing</small></div>
@@ -103,22 +103,22 @@
       {% endif %}
     </section>
 
-    <section class="panel panel-top-card panel-cve-top">
+    <section class="panel panel-top-card panel-cve-top{% if not brief.cves %} is-empty{% endif %}">
       <div class="panel-head">
         <div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div>
         <div class="panel-head-actions">
-          {% if brief.cves|length > 10 %}<span class="chip">Top 10 of {{ brief.cves|length }}</span>{% else %}<span class="chip">{{ brief.cves|length }} prioritized</span>{% endif %}
-          <span class="chip chip-muted">{{ brief.stats.critical_cves }} critical total</span>
+          <span class="chip">{{ brief.cves|length }} CVEs today</span>
+          <span class="chip chip-muted">{{ brief.stats.critical_cves }} critical</span>
         </div>
       </div>
       <div class="top-card-body">
         {% if brief.sev_strip %}
-        <div class="sev-strip" role="img" aria-label="CVE severity distribution">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
+        <div class="sev-strip" role="img" aria-label="Today CVE severity distribution">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
         {% endif %}
         {% if brief.cves %}
-        <div class="cve-priority-note">Showing the highest-risk 10 for quick triage; the header count includes the full daily CVE set.</div>
-        <div class="cve-priority-list" aria-label="Top 10 patch priorities from the full daily CVE set">
-          {% for cve in brief.cves %}{% if loop.index <= 10 %}
+        <div class="cve-priority-note">All CVEs published on {{ brief.date_en }}, sorted by risk. No older-day CVEs are backfilled into this panel.</div>
+        <div class="cve-priority-list" aria-label="All CVEs published today">
+          {% for cve in brief.cves %}
           <div class="cve-priority-row sev-{{ cve.severity|lower }}">
             <div class="cve-priority-rank">{{ loop.index }}</div>
             <div class="cve-priority-main">
@@ -140,8 +140,10 @@
               <span>{{ cve.severity }}</span>
             </div>
           </div>
-          {% endif %}{% endfor %}
+          {% endfor %}
         </div>
+        {% else %}
+        <p class="empty-note">No CVEs were published for {{ brief.date_en }}.</p>
         {% endif %}
       </div>
     </section>

@@ -641,12 +641,6 @@ pub(crate) struct FiltersConfig {
 #[derive(Debug, Deserialize)]
 pub(crate) struct LimitsConfig {
     pub(crate) global_news: usize,
-    #[serde(default = "default_cve_limit")]
-    pub(crate) cves: usize,
-}
-
-pub(crate) fn default_cve_limit() -> usize {
-    8
 }
 
 #[derive(Debug, Deserialize)]
@@ -664,8 +658,6 @@ pub(crate) struct SourceFailure {
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct CveConfig {
-    #[serde(default = "default_max_cves")]
-    pub(crate) max_cves: usize,
     #[serde(default = "default_lookback_days")]
     pub(crate) lookback_days: i64,
     #[serde(default = "default_sleep_ms")]
@@ -699,7 +691,6 @@ pub(crate) struct CveConfig {
 impl Default for CveConfig {
     fn default() -> Self {
         Self {
-            max_cves: default_max_cves(),
             lookback_days: default_lookback_days(),
             sleep_ms_between_sources: default_sleep_ms(),
             nvd_url: default_nvd_url(),
@@ -716,10 +707,6 @@ impl Default for CveConfig {
             max_fallback_records: default_max_fallback_records(),
         }
     }
-}
-
-pub(crate) fn default_max_cves() -> usize {
-    12
 }
 
 pub(crate) fn default_lookback_days() -> i64 {

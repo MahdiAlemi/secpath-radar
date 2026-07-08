@@ -89,11 +89,19 @@ pub(crate) fn build_brief(
         .and_then(|value| value.as_u64())
         .unwrap_or(0);
 
-    // Keep the CVE engine's own freshness/risk selection intact.
-    // Do not hard-filter to the local calendar day here: NVD/CSAF feeds often lag by
-    // one or more days, and a strict same-day retain can empty the vulnerability panel.
-    cves.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
-    cves.truncate(config.limits.cves);
+    // The vulnerability panel is intentionally strict: show only CVEs published on the
+    // dashboard date. Do not backfill older CVEs here; an empty current-day set should
+    // render as an explicit empty state.
+    let fetched_cve_count = cves.len();
+    retain_cves_published_on_day(&mut cves, &date_en);
+    let other_day_cve_count = fetched_cve_count.saturating_sub(cves.len());
+    cves.sort_by(|a, b| {
+        b.risk_score.cmp(&a.risk_score).then_with(|| {
+            b.cvss
+                .partial_cmp(&a.cvss)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+    });
 
     let news_priority = breaking_news
         .iter()
@@ -161,6 +169,8 @@ pub(crate) fn build_brief(
             "vulnrichment_checked": vulnrichment_checked,
             "vulnrichment_hits": vulnrichment_hits,
             "vulnrichment_missing": vulnrichment_missing,
+            "cves_fetched_before_day_filter": fetched_cve_count,
+            "cves_filtered_other_days": other_day_cve_count,
             "botnet_c2": 0,
             "malicious_tls": 0,
             "greynoise_noise": 0,
@@ -189,6 +199,13 @@ pub(crate) fn build_brief(
             "intel_cache_dir": config.intel.cache_dir.clone()
         },
         "priority_alert": priority,
+        "cve_window": {
+            "mode": "published-day-only",
+            "date": date_en.clone(),
+            "fetched_before_day_filter": fetched_cve_count,
+            "filtered_other_days": other_day_cve_count,
+            "empty_message": format!("No CVEs were published for {date_en}.")
+        },
         "news_window": {
             "mode": news_window_mode,
             "date": effective_news_date,

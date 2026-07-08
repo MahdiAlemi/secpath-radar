@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 pub(crate) const DAY_STATE_DIR: &str = "data/day_state";
 pub(crate) const DAY_MAX_NEWS: usize = 60;
-pub(crate) const DAY_MAX_CVES: usize = 30;
+pub(crate) const DAY_MAX_CVES: usize = 2000;
 
 pub(crate) fn tehran_offset() -> chrono::FixedOffset {
     chrono::FixedOffset::east_opt(3 * 3600 + 30 * 60).expect("tehran offset")
@@ -87,6 +87,18 @@ pub(crate) fn merge_day_list(
     Value::Array(merged)
 }
 
+fn prune_state_cves_to_day(state: &mut Value, date: &str) {
+    let Some(cves) = state.get_mut("cves").and_then(|v| v.as_array_mut()) else {
+        return;
+    };
+    cves.retain(|cve| {
+        cve.get("published")
+            .and_then(|v| v.as_str())
+            .and_then(|published| published.get(0..10))
+            == Some(date)
+    });
+}
+
 fn refresh_day_stats(brief: &mut Value) {
     let global = brief["global_news"]
         .as_array()
@@ -149,8 +161,9 @@ pub(crate) fn apply_day_accumulation(brief: &mut Value) {
         .and_then(|text| serde_json::from_str(&text).ok())
         .unwrap_or_else(|| json!({}));
     if state.get("date").and_then(|v| v.as_str()) != Some(date.as_str()) {
-        state = json!({ "date": date });
+        state = json!({ "date": date.clone() });
     }
+    prune_state_cves_to_day(&mut state, &date);
     let plans: [(&str, &[&str], usize); 3] = [
         ("breaking_news", &["url", "title"], DAY_MAX_NEWS),
         ("global_news", &["url", "title"], DAY_MAX_NEWS),

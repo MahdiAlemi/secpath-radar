@@ -16,7 +16,9 @@ pub(crate) fn fetch_cves(
     let start = rounded_end - ChronoDuration::days(cve_config.lookback_days.max(1));
     let start_s = start.to_rfc3339_opts(SecondsFormat::Millis, true);
     let end_s = rounded_end.to_rfc3339_opts(SecondsFormat::Millis, true);
-    let results_per_page = (cve_config.max_cves * 4).max(20).min(2000).to_string();
+    // Pull the full NVD page so the dashboard can show every CVE published on the current day.
+    // Ranking/display limits are handled later; fetching must not silently drop same-day CVEs.
+    let results_per_page = "2000".to_string();
 
     let kev_map = match fetch_kev_map(&client, config, cve_config, offline, refresh_cache) {
         Ok(map) => map,
@@ -40,6 +42,7 @@ pub(crate) fn fetch_cves(
         refresh_cache,
     );
 
+    let dashboard_day = tehran_now().date_naive().format("%Y-%m-%d").to_string();
     let mut cves = match nvd_result {
         Ok(list) if !list.is_empty() => list,
         result => {
@@ -61,6 +64,21 @@ pub(crate) fn fetch_cves(
             }
         }
     };
+
+    let fetched_cves = cves.len();
+    retain_cves_published_on_day(&mut cves, &dashboard_day);
+    if cves.is_empty() {
+        eprintln!(
+            "ℹ️  CVE engine: no CVEs published on {dashboard_day}; filtered {fetched_cves} other-day records"
+        );
+        return Ok(cves);
+    }
+    eprintln!(
+        "  ↳ CVE publish-day filter: {} of {} records match {}",
+        cves.len(),
+        fetched_cves,
+        dashboard_day
+    );
 
     if cve_config.include_epss && !cves.is_empty() {
         thread::sleep(Duration::from_millis(cve_config.sleep_ms_between_sources));
@@ -122,10 +140,16 @@ pub(crate) fn fetch_cves(
                 .unwrap_or(std::cmp::Ordering::Equal)
         })
     });
-    cves.truncate(cve_config.max_cves);
-
-    eprintln!("✅ CVE engine: {} CVEs selected", cves.len());
+    eprintln!("✅ CVE engine: {} same-day CVEs selected", cves.len());
     Ok(cves)
+}
+
+pub(crate) fn cve_published_on_day(cve: &CveItem, day: &str) -> bool {
+    cve.published.get(0..10) == Some(day)
+}
+
+pub(crate) fn retain_cves_published_on_day(cves: &mut Vec<CveItem>, day: &str) {
+    cves.retain(|cve| cve_published_on_day(cve, day));
 }
 
 pub(crate) fn fetch_kev_map(
