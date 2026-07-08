@@ -11,6 +11,8 @@ pub(crate) struct Config {
     #[serde(default)]
     pub(crate) intel: IntelConfig,
     pub(crate) filters: FiltersConfig,
+    // Kept for backward-compatible config.yaml parsing; current day-only rendering no longer reads global limits.
+    #[allow(dead_code)]
     pub(crate) limits: LimitsConfig,
     pub(crate) sources: Vec<SourceConfig>,
     #[serde(default)]
@@ -640,6 +642,8 @@ pub(crate) struct FiltersConfig {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct LimitsConfig {
+    // Kept for backward-compatible config.yaml parsing; news panels are now date-scoped.
+    #[allow(dead_code)]
     pub(crate) global_news: usize,
 }
 
