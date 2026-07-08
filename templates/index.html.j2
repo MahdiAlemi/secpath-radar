@@ -73,6 +73,7 @@
 
 <nav class="anchor-nav" aria-label="Jump between clusters">
   <a href="#breaking-news" class="is-active">News</a>
+  <a href="#poc-watch">PoCs</a>
   <a href="#top-signals">Overview</a>
   <a href="#cves">Vulnerabilities</a>
   <a href="#news">News</a>
@@ -101,6 +102,52 @@
       {% else %}
       <p class="empty-note">No breaking news recorded in today's window.</p>
       {% endif %}
+    </section>
+
+    <section id="poc-watch" class="panel panel-top-card panel-poc-top{% if not brief.poc_watch.repos %} is-empty{% endif %}">
+      <div class="panel-head">
+        <div><span class="eyebrow">PUBLIC POC</span><h2>Fresh Public PoCs</h2></div>
+        <div class="panel-head-actions">
+          <span class="chip chip-poc">{{ brief.poc_watch.totals.repos }} repos today</span>
+          <span class="chip chip-muted">{{ brief.poc_watch.totals.cves_with_poc }} CVEs</span>
+        </div>
+      </div>
+      <div class="top-card-body">
+        {% if brief.poc_watch.repos %}
+        <p class="poc-top-note">Public repository metadata published on {{ brief.poc_watch.date }} only. Links open the repository; no raw code, clone, or run commands are shown.</p>
+        <div class="poc-top-list" aria-label="Fresh public PoC repository links">
+          {% for repo in brief.poc_watch.repos %}
+          <article class="poc-card risk-{{ repo.risk }}">
+            <div class="poc-kind">{{ repo.repo_type_label }}</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="{{ repo.repo_url }}" rel="noopener noreferrer" target="_blank">{{ repo.repo_name }}</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">{{ repo.language }}</span>
+              </div>
+              <div class="poc-author">
+                <span>@{{ repo.author }}</span>
+                <span>{{ repo.cve_id }}</span>
+              </div>
+              {% if repo.description %}<p class="poc-desc">{{ repo.description }}</p>{% endif %}
+              <div class="poc-meta">
+                <span>{{ repo.age_days }}d old</span>
+                <span>★ {{ repo.stars }}</span>
+                <span>fork {{ repo.forks }}</span>
+                <span>{{ repo.published_date }}</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>{{ repo.score }}</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-note">No public PoC repositories were published for {{ brief.poc_watch.date }}.</p>
+        {% endif %}
+      </div>
     </section>
 
     <section class="panel panel-top-card panel-cve-top{% if not brief.cves %} is-empty{% endif %}">
@@ -259,17 +306,6 @@
         <div class="meta"><span>{{ brief.nuclei_coverage.provider }}</span><span>metadata only</span></div>
       </section>
 
-      <section id="poc-watch" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">PoC Watch</span><h2>Fresh Public PoCs</h2></div><span class="chip">{{ brief.poc_watch.totals.repos }} repo &middot; {{ brief.poc_watch.totals.cves_with_poc }} CVE</span></div>
-        <p class="lede">{{ brief.poc_watch.summary }}</p>
-        {% for repo in brief.poc_watch.repos %}{% if loop.index <= 8 %}
-        <div class="row risk-{{ repo.risk }}">
-          <div class="row-head"><b>{{ repo.cve_id }}</b><span>{{ repo.language }} &middot; &#9733;{{ repo.stars }} &middot; {{ repo.age }}</span></div>
-          <p class="note">{{ repo.note }}</p>
-        </div>
-        {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.poc_watch.provider }}</span><span>no code, metadata only</span></div>
-      </section>
 
       {% if brief.supply_chain_radar.ok %}
       <section id="supply-chain-radar" class="panel">

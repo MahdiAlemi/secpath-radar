@@ -30,10 +30,8 @@ pub(crate) fn fetch_poc_watch(
     let client = build_client(config)?;
 
     let recent_days = cfg.recent_days.max(1);
-    let since = (Utc::now().date_naive() - ChronoDuration::days(recent_days))
-        .format("%Y-%m-%d")
-        .to_string();
-    let queries = latest_poc_search_queries(&since);
+    let target_date = tehran_now().date_naive().format("%Y-%m-%d").to_string();
+    let queries = latest_poc_search_queries(&target_date);
 
     eprintln!("→ fetching Latest PoC Watch metadata");
 
@@ -83,6 +81,11 @@ pub(crate) fn fetch_poc_watch(
     }
 
     let raw_candidates = candidates.len() as u64;
+    let candidates_before_day_filter = candidates.len();
+    retain_pocs_published_on_day(&mut candidates, &target_date);
+    let filtered_other_days = candidates_before_day_filter.saturating_sub(candidates.len()) as u64;
+    let today_candidates = candidates.len() as u64;
+
     let mut seen_repo_cve = HashSet::new();
     candidates.retain(|item| {
         let key = format!(
@@ -146,11 +149,11 @@ pub(crate) fn fetch_poc_watch(
     }
 
     let summary = if repos == 0 && offline && cache_misses == queries.len() as u64 {
-        format!("In offline mode, no previous cache was available for new PoC queries; with an online run, the PoC timeline will be populated and then cached for offline use.")
+        format!("In offline mode, no previous cache was available for today's PoC queries; with an online run, the current-day PoC timeline will be populated and then cached for offline use.")
     } else if repos == 0 {
-        format!("In the last {} days, no new publicly visible PoC metadata was found in the GitHub timeline or the cache/API was limited.", recent_days)
+        format!("No public PoC repository metadata was published for {target_date}.")
     } else {
-        format!("{repos} new PoC metadata entries for {cves_with_poc} CVEs were extracted from the GitHub timeline; the basis is repository publish time, not CVE dashboard searches.")
+        format!("{repos} public PoC metadata entries for {cves_with_poc} CVEs were published on {target_date}; the basis is repository publish time, not CVE dashboard searches.")
     };
 
     Ok(json!({
@@ -158,9 +161,12 @@ pub(crate) fn fetch_poc_watch(
         "ok": errors.is_empty(),
         "provider": "GitHub Repository Search API",
         "source": "GitHub latest repository metadata only",
-        "mode": "latest_poc_stream",
+        "mode": "current_day_poc_stream",
+        "window_mode": "published-day-only",
+        "date": target_date.clone(),
         "window_days": recent_days,
-        "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands; repository URLs are not rendered in UI",
+        "empty_message": format!("No public PoC repositories were published for {target_date}."),
+        "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands; repository links are rendered for triage",
         "summary": summary,
         "totals": {
             "cves_checked": 0,
@@ -169,6 +175,8 @@ pub(crate) fn fetch_poc_watch(
             "high": high,
             "fresh": fresh,
             "raw_candidates": raw_candidates,
+            "today_candidates": today_candidates,
+            "filtered_other_days": filtered_other_days,
             "kev_related": 0,
             "epss_rising_related": 0,
             "queries": queries.len(),
@@ -182,12 +190,12 @@ pub(crate) fn fetch_poc_watch(
     }))
 }
 
-pub(crate) fn latest_poc_search_queries(since: &str) -> Vec<String> {
+pub(crate) fn latest_poc_search_queries(day: &str) -> Vec<String> {
     vec![
-        format!("CVE PoC in:name,description,readme created:>={since}"),
-        format!("CVE exploit in:name,description,readme created:>={since}"),
-        format!("CVE proof-of-concept in:name,description,readme created:>={since}"),
-        format!("CVE reproducer in:name,description,readme created:>={since}"),
+        format!("CVE PoC in:name,description,readme created:{day}"),
+        format!("CVE exploit in:name,description,readme created:{day}"),
+        format!("CVE proof-of-concept in:name,description,readme created:{day}"),
+        format!("CVE reproducer in:name,description,readme created:{day}"),
     ]
 }
 
@@ -358,7 +366,17 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
         "watch"
     };
     let repo_type = github_poc_repo_type(&text);
+    let repo_type_label = github_poc_repo_type_label(repo_type);
     let age_days = poc_age_days(&created_at);
+    let (author, repo_name) = full_name
+        .split_once('/')
+        .map(|(owner, name)| (owner.to_string(), name.to_string()))
+        .unwrap_or_else(|| (full_name.to_string(), full_name.to_string()));
+    let repo_url = repo
+        .get("html_url")
+        .and_then(|v| v.as_str())
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| format!("https://github.com/{full_name}"));
     cve_ids
         .into_iter()
         .map(|cve_id| {
@@ -367,8 +385,11 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
                 "cve_id": cve_id,
                 "repo": full_name,
                 "repo_safe": full_name,
+                "author": author.clone(),
+                "repo_name": repo_name.clone(),
+                "repo_url": repo_url.clone(),
                 "github_path": format!("github.com/{full_name}"),
-                "url_rendered": false,
+                "url_rendered": true,
                 "title": title,
                 "description": concise_text(description, 180),
                 "stars": stars,
@@ -376,12 +397,14 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
                 "language": language.clone(),
                 "created_at": created_at.clone(),
                 "published_at": created_at.clone(),
+                "published_date": iso_date_prefix(&created_at).unwrap_or("").to_string(),
                 "published_ts": published_ts,
                 "updated_at": updated_at.clone(),
                 "updated_ts": updated_ts,
                 "pushed_at": pushed_at.clone(),
                 "age_days": age_days,
                 "repo_type": repo_type,
+                "repo_type_label": repo_type_label,
                 "risk": risk,
                 "score": score,
                 "bar_width": score,
@@ -390,6 +413,39 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
             })
         })
         .collect()
+}
+
+pub(crate) fn retain_pocs_published_on_day(items: &mut Vec<Value>, target_date: &str) {
+    items.retain(|item| {
+        item.get("published_at")
+            .and_then(|value| value.as_str())
+            .and_then(iso_date_prefix)
+            .map(|published_date| published_date == target_date)
+            .unwrap_or(false)
+    });
+}
+
+pub(crate) fn iso_date_prefix(value: &str) -> Option<&str> {
+    if value.len() < 10 {
+        return None;
+    }
+    let prefix = &value[..10];
+    let bytes = prefix.as_bytes();
+    let is_yyyy_mm_dd = bytes[0].is_ascii_digit()
+        && bytes[1].is_ascii_digit()
+        && bytes[2].is_ascii_digit()
+        && bytes[3].is_ascii_digit()
+        && bytes[4] == b'-'
+        && bytes[5].is_ascii_digit()
+        && bytes[6].is_ascii_digit()
+        && bytes[7] == b'-'
+        && bytes[8].is_ascii_digit()
+        && bytes[9].is_ascii_digit();
+    if is_yyyy_mm_dd {
+        Some(prefix)
+    } else {
+        None
+    }
 }
 
 pub(crate) fn extract_cve_ids(text: &str) -> Vec<String> {
@@ -497,6 +553,15 @@ pub(crate) fn github_poc_repo_type(text: &str) -> &'static str {
     }
 }
 
+pub(crate) fn github_poc_repo_type_label(repo_type: &str) -> &'static str {
+    match repo_type {
+        "poc" => "PoC",
+        "exploit-metadata" => "EXP",
+        "reproducer" => "REPRO",
+        _ => "REF",
+    }
+}
+
 pub(crate) fn github_poc_score(
     stars: u64,
     forks: u64,
@@ -574,9 +639,12 @@ pub(crate) fn empty_poc_watch(reason: &str) -> Value {
         "ok": false,
         "provider": "GitHub Repository Search API",
         "source": reason,
-        "mode": "latest_poc_stream",
+        "mode": "current_day_poc_stream",
+        "window_mode": "published-day-only",
+        "date": tehran_now().date_naive().format("%Y-%m-%d").to_string(),
         "window_days": 0,
-        "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands",
+        "empty_message": "No public PoC repositories were published for today's dashboard date.",
+        "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands; repository links are rendered for triage",
         "summary": "PoC Watch has no data for this run.",
         "totals": {
             "cves_checked": 0,
@@ -585,6 +653,8 @@ pub(crate) fn empty_poc_watch(reason: &str) -> Value {
             "high": 0,
             "fresh": 0,
             "raw_candidates": 0,
+            "today_candidates": 0,
+            "filtered_other_days": 0,
             "kev_related": 0,
             "epss_rising_related": 0,
             "queries": 0,
@@ -621,5 +691,27 @@ mod tests {
         );
         assert!(extract_cve_ids("no identifiers here").is_empty());
         assert!(extract_cve_ids("CVE-2026-12").is_empty());
+    }
+
+    #[test]
+    fn retain_pocs_published_on_day_drops_other_dates() {
+        let mut repos = vec![
+            json!({"repo": "a/one", "published_at": "2026-07-08T02:10:00Z"}),
+            json!({"repo": "b/two", "published_at": "2026-07-07T23:59:59Z"}),
+            json!({"repo": "c/three", "published_at": ""}),
+        ];
+        retain_pocs_published_on_day(&mut repos, "2026-07-08");
+        assert_eq!(repos.len(), 1);
+        assert_eq!(repos[0]["repo"], "a/one");
+    }
+
+    #[test]
+    fn latest_poc_search_queries_are_exact_day_only() {
+        let queries = latest_poc_search_queries("2026-07-08");
+        assert_eq!(queries.len(), 4);
+        assert!(queries
+            .iter()
+            .all(|query| query.contains("created:2026-07-08")));
+        assert!(queries.iter().all(|query| !query.contains("created:>=")));
     }
 }
