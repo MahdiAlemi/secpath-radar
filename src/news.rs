@@ -7,11 +7,7 @@ pub(crate) fn fetch_and_score(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<(Vec<FeedItem>, Vec<SourceFailure>)> {
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(18))
-        .build()
-        .context("failed to build HTTP client")?;
+    let client = build_client(config)?;
 
     let mut seen = HashSet::new();
     let mut all = Vec::new();
@@ -59,11 +55,7 @@ pub(crate) fn fetch_writeup_feeds(
         return Ok((Vec::new(), Vec::new()));
     }
 
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(18))
-        .build()
-        .context("failed to build HTTP client for writeup feeds")?;
+    let client = build_client(config)?;
 
     let mut seen = HashSet::new();
     let mut all = Vec::new();

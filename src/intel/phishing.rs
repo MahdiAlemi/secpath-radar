@@ -25,11 +25,7 @@ pub(crate) fn fetch_phishing_pulse(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Value> {
-    let client = Client::builder()
-        .timeout(Duration::from_secs(22))
-        .user_agent(&config.fetch.user_agent)
-        .build()
-        .context("failed to build HTTP client for Phishing Pulse")?;
+    let client = build_client(config)?;
 
     let cfg = &config.intel.phishing;
     eprintln!("→ fetching Phishing Pulse");

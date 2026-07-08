@@ -47,11 +47,7 @@ pub(crate) fn fetch_greynoise_context(
         }
     }
 
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(18))
-        .build()
-        .context("failed to build HTTP client for GreyNoise Context")?;
+    let client = build_client(config)?;
 
     let candidates =
         greynoise_candidates_from_signals(infrastructure_radar, botnet_c2_pulse, cfg.max_lookups);

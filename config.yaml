@@ -6,10 +6,11 @@ site:
 
 
 fetch:
-  max_items_per_source: 8
-  max_total_items: 130
-  sleep_ms_between_sources: 450
-  user_agent: "SecPathRadar/0.4.28 (+https://radar.secpath.space)"
+  max_items_per_source: 20
+  max_total_items: 500
+  sleep_ms_between_sources: 200
+  user_agent: "SecPathRadar/1.0.1 (+https://radar.secpath.space)"
+  proxy: "socks5://127.0.0.1:1080"
 
 cve:
   max_cves: 14
@@ -174,8 +175,8 @@ filters:
     - conference
 
 limits:
-  global_news: 18
-  cves: 10
+  global_news: 50
+  cves: 14
 
 
 writeup_sources:
@@ -262,3 +263,23 @@ sources:
     url: "https://securityaffairs.com/feed"
   - name: "The Register Security"
     url: "https://www.theregister.com/security/headlines.atom"
+  - name: "SentinelOne Blog"
+    url: "https://www.sentinelone.com/blog/feed/"
+  - name: "ESET WeLiveSecurity"
+    url: "https://www.welivesecurity.com/en/rss/feed/"
+  - name: "Malwarebytes Labs"
+    url: "https://blog.malwarebytes.com/feed/"
+  - name: "Schneier on Security"
+    url: "https://schneier.com/feed/atom/"
+  - name: "Google TAG"
+    url: "https://blog.google/threat-analysis-group/rss/"
+  - name: "CERT-FR"
+    url: "https://www.cert.ssi.gouv.fr/feed/"
+  - name: "Risky Business"
+    url: "https://risky.biz/rss.xml"
+  - name: "Cisco Security Blog"
+    url: "https://blogs.cisco.com/security/feed"
+  - name: "Mandiant Blog"
+    url: "https://www.mandiant.com/resources/blog/rss.xml"
+  - name: "Proofpoint Threat Insight"
+    url: "https://www.proofpoint.com/us/threat-insight-blog.xml"

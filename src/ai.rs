@@ -110,11 +110,7 @@ pub(crate) fn enhance_brief_with_gemini(
         config.gemini.model
     );
 
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(60))
-        .build()
-        .context("failed to build HTTP client for Gemini")?;
+    let client = build_client(config)?;
 
     let mut calls_used: u8 = 0;
     let mut items_generated: u64 = 0;

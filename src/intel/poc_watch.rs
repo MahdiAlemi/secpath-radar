@@ -27,11 +27,7 @@ pub(crate) fn fetch_poc_watch(
     refresh_cache: bool,
 ) -> Result<Value> {
     let cfg = &config.intel.poc_watch;
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(20))
-        .build()
-        .context("failed to build HTTP client for Latest PoC Watch")?;
+    let client = build_client(config)?;
 
     let recent_days = cfg.recent_days.max(1);
     let since = (Utc::now().date_naive() - ChronoDuration::days(recent_days))

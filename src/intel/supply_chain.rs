@@ -28,11 +28,7 @@ pub(crate) fn fetch_supply_chain_radar(
     refresh_cache: bool,
 ) -> Result<Value> {
     eprintln!("→ fetching Supply Chain radar");
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(45))
-        .build()
-        .context("failed to build HTTP client for Supply Chain radar")?;
+    let client = build_client(config)?;
 
     let sc = &config.intel.supply_chain;
     let per_ecosystem = (sc.max_advisories / sc.ecosystems.len().max(1)).clamp(3, 8);

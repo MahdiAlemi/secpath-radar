@@ -7,11 +7,7 @@ pub(crate) fn fetch_cves(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Vec<CveItem>> {
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(28))
-        .build()
-        .context("failed to build HTTP client for CVE engine")?;
+    let client = build_client(config)?;
 
     let cve_config = &config.cve;
     let now = Utc::now();

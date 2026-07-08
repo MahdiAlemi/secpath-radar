@@ -32,11 +32,7 @@ pub(crate) fn fetch_infrastructure_radar(
     let infra = &config.intel.infrastructure;
     eprintln!("→ fetching Suspicious Infrastructure radar");
 
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(18))
-        .build()
-        .context("failed to build HTTP client for Suspicious Infrastructure Radar")?;
+    let client = build_client(config)?;
 
     let candidates = infrastructure_candidates_from_sources(
         &client,

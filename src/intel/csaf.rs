@@ -39,11 +39,7 @@ pub(crate) fn fetch_csaf_pulse(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Value> {
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(26))
-        .build()
-        .context("failed to build HTTP client for CSAF Advisory Pulse")?;
+    let client = build_client(config)?;
 
     let cfg = &config.intel.csaf;
     eprintln!("→ fetching CSAF Advisory Pulse");

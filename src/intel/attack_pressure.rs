@@ -27,11 +27,7 @@ pub(crate) fn fetch_attack_pressure(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Value> {
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(18))
-        .build()
-        .context("failed to build HTTP client for Attack Pressure Radar")?;
+    let client = build_client(config)?;
 
     let ap = &config.intel.attack_pressure;
     eprintln!("→ fetching DShield Attack Pressure feeds");

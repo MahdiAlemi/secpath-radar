@@ -35,6 +35,8 @@ pub(crate) struct FetchConfig {
     pub(crate) max_total_items: usize,
     pub(crate) sleep_ms_between_sources: u64,
     pub(crate) user_agent: String,
+    #[serde(default)]
+    pub(crate) proxy: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -925,4 +927,20 @@ pub(crate) fn default_csaf_changes_csv_url() -> String {
 
 pub(crate) fn default_csaf_base_url() -> String {
     "https://security.access.redhat.com/data/csaf/v2/advisories".to_string()
+}
+
+pub(crate) fn build_client(config: &Config) -> Result<Client> {
+    let mut builder = Client::builder()
+        .user_agent(&config.fetch.user_agent)
+        .timeout(Duration::from_secs(18));
+
+    if let Some(ref proxy_url) = config.fetch.proxy {
+        if !proxy_url.is_empty() {
+            let proxy = reqwest::Proxy::all(proxy_url)
+                .context("failed to parse proxy URL")?;
+            builder = builder.proxy(proxy);
+        }
+    }
+
+    builder.build().context("failed to build HTTP client")
 }

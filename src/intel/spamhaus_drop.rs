@@ -39,11 +39,7 @@ pub(crate) fn fetch_drop_pulse(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Value> {
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(24))
-        .build()
-        .context("failed to build HTTP client for DROP Pulse")?;
+    let client = build_client(config)?;
 
     let cfg = &config.intel.spamhaus_drop;
     eprintln!("→ fetching Spamhaus DROP Pulse");

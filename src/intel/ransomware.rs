@@ -28,11 +28,7 @@ pub(crate) fn fetch_ransomware_pulse(
     refresh_cache: bool,
 ) -> Result<Value> {
     eprintln!("→ fetching Ransomware Pulse");
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(45))
-        .build()
-        .context("failed to build HTTP client for Ransomware Pulse")?;
+    let client = build_client(config)?;
 
     let rw = &config.intel.ransomware;
     let mut urls = Vec::new();

@@ -27,11 +27,7 @@ pub(crate) fn fetch_botnet_c2_pulse(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Value> {
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(24))
-        .build()
-        .context("failed to build HTTP client for Botnet C2 Pulse")?;
+    let client = build_client(config)?;
 
     let cfg = &config.intel.botnet_c2;
     eprintln!("→ fetching Botnet C2 Pulse");

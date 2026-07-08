@@ -30,11 +30,7 @@ pub(crate) fn fetch_nuclei_coverage(
     refresh_cache: bool,
 ) -> Result<Value> {
     let cfg = &config.intel.nuclei_coverage;
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(35))
-        .build()
-        .context("failed to build HTTP client for Nuclei Template Coverage")?;
+    let client = build_client(config)?;
 
     eprintln!("→ fetching Nuclei Template Coverage index");
     let label = "ProjectDiscovery nuclei-templates tree";

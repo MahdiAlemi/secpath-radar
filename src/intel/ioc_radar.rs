@@ -27,11 +27,7 @@ pub(crate) fn fetch_ioc_radar(
     offline: bool,
     refresh_cache: bool,
 ) -> Result<Value> {
-    let client = Client::builder()
-        .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(24))
-        .build()
-        .context("failed to build HTTP client for IOC Radar")?;
+    let client = build_client(config)?;
 
     let ioc = &config.intel.ioc_radar;
     eprintln!("→ fetching IOC Radar feeds");
