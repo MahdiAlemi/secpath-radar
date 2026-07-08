@@ -1,23 +1,28 @@
+# Rust build output
 /target/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Generated radar output/state
 /site/*
-!/site/CNAME
-data/latest_brief.json
+/data/latest_brief.json
+/data/cache/
+/data/day_state/
+/snapshots/
+
+# Patch/archive artifacts
 *.rej
 *.orig
 *.patch
-.env
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+secpath-radar.tar
+secpath-radar.tar.gz
+
+# OS/editor noise
 .DS_Store
-data/cache/
-snapshots/
-secpath-radar.tar
-secpath-radar.tar.gz
-*.tar
-*.tar.gz
-secpath-radar.tar
-secpath-radar.tar.gz
-*.tar
-*.tar.gz
-site/feed.xml
-site/api/
-site/weekly.html
-data/day_state/

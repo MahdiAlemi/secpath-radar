@@ -42,6 +42,9 @@ pub(crate) struct CveItem {
     pub(crate) recommended_action: String,
     pub(crate) risk_score: i64,
     pub(crate) tags: Vec<String>,
+    pub(crate) vendor: String,
+    pub(crate) product: String,
+    pub(crate) cwe_type: String,
 }
 
 #[derive(Debug, Clone)]

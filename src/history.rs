@@ -79,7 +79,8 @@ pub(crate) fn attach_history_snapshot(brief: &mut Value, previous: Option<&Value
     let summary = if previous.is_none() {
         "No previous snapshot available for comparison yet; daily changes will appear from the next run.".to_string()
     } else if changed == 0 {
-        "Compared to the previous run, no significant changes in key indicators were observed.".to_string()
+        "Compared to the previous run, no significant changes in key indicators were observed."
+            .to_string()
     } else {
         format!(
             "Compared to the previous run, {changed} indicators changed; {increased} increased and {decreased} decreased."
@@ -287,4 +288,3 @@ pub(crate) fn history_delta_level(key: &str, delta: i64) -> &'static str {
         _ => "low",
     }
 }
-

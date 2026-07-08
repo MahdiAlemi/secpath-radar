@@ -357,6 +357,9 @@ pub(crate) fn parse_cvelist_record(
         recommended_action: String::new(),
         risk_score: 1,
         tags: Vec::new(),
+        vendor: String::new(),
+        product: String::new(),
+        cwe_type: String::new(),
     };
 
     finalize_cve_score(&mut item);
@@ -718,6 +721,8 @@ pub(crate) fn parse_nvd_cves(
         let summary = extract_description(cve);
         let title = derive_cve_title(cve_id, &summary);
         let (severity, cvss, cvss_version) = extract_cvss(cve);
+        let (vendor, product) = extract_cpe_vendor_product(cve);
+        let cwe_type = extract_cwe_type(cve);
         let kev_entry = kev_map.get(cve_id);
         let kev = kev_entry.is_some();
         let published = cve
@@ -754,6 +759,9 @@ pub(crate) fn parse_nvd_cves(
             recommended_action: String::new(),
             risk_score: 1,
             tags: Vec::new(),
+            vendor,
+            product,
+            cwe_type,
         };
 
         finalize_cve_score(&mut item);
@@ -844,6 +852,90 @@ pub(crate) fn derive_cve_title(cve_id: &str, summary: &str) -> String {
     }
 }
 
+pub(crate) fn extract_cpe_vendor_product(cve: &Value) -> (String, String) {
+    let Some(configurations) = cve.get("configurations").and_then(|v| v.as_array()) else {
+        return (String::new(), String::new());
+    };
+    for config in configurations {
+        let Some(nodes) = config.get("nodes").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for node in nodes {
+            let Some(matches) = node.get("cpeMatch").and_then(|v| v.as_array()) else {
+                continue;
+            };
+            for m in matches {
+                let Some(cpe) = m.get("criteria").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let parts: Vec<&str> = cpe.split(':').collect();
+                if parts.len() >= 5 {
+                    let vendor = parts[3].to_string();
+                    let product = parts[4].to_string();
+                    if vendor != "*" && !vendor.is_empty() && product != "*" && !product.is_empty()
+                    {
+                        return (vendor, product);
+                    }
+                }
+            }
+        }
+    }
+    (String::new(), String::new())
+}
+
+pub(crate) fn extract_cwe_type(cve: &Value) -> String {
+    let Some(weaknesses) = cve.get("weaknesses").and_then(|v| v.as_array()) else {
+        return String::new();
+    };
+    let cwe_map: std::collections::HashMap<&str, &str> = [
+        ("CWE-79", "XSS"),
+        ("CWE-89", "SQLi"),
+        ("CWE-787", "OOB Write"),
+        ("CWE-416", "Use After Free"),
+        ("CWE-22", "Path Traversal"),
+        ("CWE-287", "Auth Bypass"),
+        ("CWE-862", "Missing Auth"),
+        ("CWE-798", "Hardcoded Creds"),
+        ("CWE-502", "Deserialization"),
+        ("CWE-20", "Input Validation"),
+        ("CWE-190", "Integer Overflow"),
+        ("CWE-125", "OOB Read"),
+        ("CWE-476", "Null Pointer"),
+        ("CWE-863", "Incorrect Auth"),
+        ("CWE-918", "SSRF"),
+        ("CWE-611", "XXE"),
+        ("CWE-776", "Infinite Loop"),
+        ("CWE-400", "Resource Exhaustion"),
+        ("CWE-200", "Info Exposure"),
+        ("CWE-306", "Missing Auth for Critical"),
+        ("CWE-352", "CSRF"),
+        ("CWE-434", "Unrestricted Upload"),
+        ("CWE-601", "Open Redirect"),
+        ("CWE-917", "Expression Injection"),
+    ]
+    .iter()
+    .copied()
+    .collect();
+
+    for weakness in weaknesses {
+        let Some(descs) = weakness.get("description").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for desc in descs {
+            let Some(cwe_id) = desc.get("value").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            if let Some(label) = cwe_map.get(cwe_id) {
+                return label.to_string();
+            }
+            if cwe_id.starts_with("CWE-") {
+                return cwe_id.to_string();
+            }
+        }
+    }
+    String::new()
+}
+
 pub(crate) fn finalize_cve_score(cve: &mut CveItem) {
     let mut score = cve.cvss.round() as i64;
     let mut tags = Vec::new();
@@ -910,7 +1002,8 @@ pub(crate) fn finalize_cve_score(cve: &mut CveItem) {
 
 pub(crate) fn recommended_action_for_cve(cve: &CveItem) -> String {
     if cve.kev && cve.kev_ransomware {
-        "Listed in KEV with ransomware usage history; apply patch with highest priority.".to_string()
+        "Listed in KEV with ransomware usage history; apply patch with highest priority."
+            .to_string()
     } else if cve.kev {
         "Listed in KEV; immediately check exposure and apply patch/mitigation.".to_string()
     } else if cve.cisa_priority == "immediate-watch" {
@@ -920,7 +1013,8 @@ pub(crate) fn recommended_action_for_cve(cve: &CveItem) -> String {
     } else if cve.severity == "CRITICAL" || cve.cvss >= 9.0 {
         "Match against asset inventory and prioritize patching or mitigation.".to_string()
     } else if cve.epss >= 0.70 {
-        "Due to high exploit probability, quickly review related public-facing services.".to_string()
+        "Due to high exploit probability, quickly review related public-facing services."
+            .to_string()
     } else {
         "Assess impact on your environment and track in the normal patching cycle.".to_string()
     }

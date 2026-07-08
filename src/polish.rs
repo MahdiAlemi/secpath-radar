@@ -475,7 +475,12 @@ pub(crate) fn polish_priority(brief: &mut Value) {
     }
 }
 
-pub(crate) fn polish_array_items(brief: &mut Value, key: &str, title_max: usize, summary_max: usize) {
+pub(crate) fn polish_array_items(
+    brief: &mut Value,
+    key: &str,
+    title_max: usize,
+    summary_max: usize,
+) {
     let Some(items) = brief.get_mut(key).and_then(|v| v.as_array_mut()) else {
         return;
     };
@@ -683,7 +688,11 @@ pub(crate) fn enrich_cve_fields(brief: &mut Value) {
     }
 }
 
-pub(crate) fn insert_string_if_missing(obj: &mut serde_json::Map<String, Value>, key: &str, value: &str) {
+pub(crate) fn insert_string_if_missing(
+    obj: &mut serde_json::Map<String, Value>,
+    key: &str,
+    value: &str,
+) {
     let has_good_value = obj
         .get(key)
         .and_then(|existing| existing.as_str())
@@ -728,27 +737,20 @@ pub(crate) fn build_brief_notes(brief: &Value) -> Vec<String> {
         .unwrap_or(0);
 
     if ai_enabled && ai_ok && ai_cache {
-        notes.push(
-            "AI editorial layer applied from cache; raw source data preserved.".to_string(),
-        );
+        notes.push("AI editorial layer applied from cache; raw source data preserved.".to_string());
     } else if ai_enabled && ai_ok {
-        notes.push(
-            "AI editorial layer applied and cached for next run.".to_string(),
-        );
+        notes.push("AI editorial layer applied and cached for next run.".to_string());
     } else if ai_enabled {
         notes.push(
             "AI editorial layer incomplete; output built with local fallback rules.".to_string(),
         );
     } else {
-        notes.push(
-            "Built without AI; uses local editorial rules only.".to_string(),
-        );
+        notes.push("Built without AI; uses local editorial rules only.".to_string());
     }
 
     if sources > 0 {
-        let mut coverage = format!(
-            "Coverage from {sources} RSS feeds plus NVD, CISA KEV, and EPSS."
-        );
+        let mut coverage =
+            format!("Coverage from {sources} RSS feeds plus NVD, CISA KEV, and EPSS.");
         if failed_sources > 0 {
             coverage.push_str(&format!(
                 " {failed_sources} RSS source(s) skipped this run."
@@ -793,7 +795,11 @@ pub(crate) fn non_empty_summary(input: &str, max_chars: usize) -> String {
 
 pub(crate) fn apply_sev_strip(brief: &mut Value) {
     let empty: Vec<Value> = Vec::new();
-    let cves = brief.get("cves").and_then(|v| v.as_array()).unwrap_or(&empty).clone();
+    let cves = brief
+        .get("cves")
+        .and_then(|v| v.as_array())
+        .unwrap_or(&empty)
+        .clone();
     let total = cves.len();
     if total == 0 {
         brief["sev_strip"] = json!([]);

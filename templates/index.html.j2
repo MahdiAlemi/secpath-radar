@@ -13,7 +13,7 @@
 {% macro bars(rows, limit) %}
 <div class="bars">
   {% for r in rows %}{% if loop.index <= limit %}
-  <div class="bar-row" role="button" tabindex="0" data-chart-name="{{ r.name }}" data-chart-count="{{ r.count }}"><span class="bar-label">{{ r.name }}</span><span class="bar-track"><b style="width: {{ r.bar_width }}%"></b></span><span class="bar-count">{{ r.count }}</span></div>
+  <div class="bar-row"><span class="bar-label">{{ r.name }}</span><span class="bar-track"><b style="width: {{ r.bar_width }}%"></b></span><span class="bar-count">{{ r.count }}</span></div>
   {% endif %}{% endfor %}
 </div>
 {% endmacro %}
@@ -68,7 +68,6 @@
   <div class="topbar-actions">
     {% if brief.site_github %}<a class="ui-chip" href="{{ brief.site_github }}" rel="noopener noreferrer">GitHub</a>{% endif %}
     <a class="ui-chip" href="weekly.html">Weekly Digest</a>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">Light/Dark</span>
   </div>
 </header>
 
@@ -94,7 +93,7 @@
 
   <section class="top-layout" aria-label="Dashboard overview">
     <section id="breaking-news" class="panel panel-breaking panel-breaking-col">
-      <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><div class="breaking-head-actions"><button class="ai-btn" type="button" title="AI summary — coming soon" aria-label="AI summary coming soon">AI</button><span class="chip chip-risk">{{ brief.breaking_news|length }}</span></div></div>
+      <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><span class="chip chip-risk">{{ brief.breaking_news|length }}</span></div>
       {% if brief.breaking_news %}
       <div class="breaking-scroll">
         {% for item in brief.breaking_news %}{{ breaking_card(item) }}{% endfor %}
@@ -115,12 +114,16 @@
         <div class="cve-row sev-{{ cve.severity|lower }}">
           <div class="cve-row-head">
             <a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a>
-            <span class="sev-badge sev-{{ cve.severity|lower }}">{{ cve.severity }}</span>
+            <span class="cve-score sev-{{ cve.severity|lower }}">{{ cve.cvss }} {{ cve.severity }}</span>
+          </div>
+          <div class="cve-row-product">
+            {% if cve.vendor and cve.product %}{{ cve.vendor }} {{ cve.product }}{% else %}{{ cve.title }}{% endif %}
+            <span class="cve-date">{{ cve.published[:10] }}</span>
           </div>
           <div class="cve-row-meta">
-            <span>CVSS {{ cve.cvss }}</span>
             <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} &uarr;{% endif %}</span>
             {% if cve.kev %}<span class="tag tag-risk">KEV</span>{% endif %}
+            {% if cve.cwe_type %}<span class="tag">{{ cve.cwe_type }}</span>{% endif %}
           </div>
         </div>
         {% endif %}{% endfor %}

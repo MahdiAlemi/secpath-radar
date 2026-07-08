@@ -34,7 +34,8 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem]) -> Value {
     let kind_chart = count_chart(kind_counts, 6);
 
     let summary = if visible == 0 {
-        "No new analytical writeups from available sources were seen in the current news window.".to_string()
+        "No new analytical writeups from available sources were seen in the current news window."
+            .to_string()
     } else if hidden > 0 {
         format!("{visible} analytical writeups shown and {hidden} lower-priority items hidden for conciseness; latest analyses are at the top.")
     } else {

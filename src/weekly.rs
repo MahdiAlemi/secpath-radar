@@ -159,7 +159,8 @@ pub(crate) fn build_weekly_brief(archives: &[Value]) -> Value {
         format!("From {first_date} to {last_date}")
     };
     let summary = if days == 0 {
-        "No daily archives recorded yet; weekly summaries will be built from the next run.".to_string()
+        "No daily archives recorded yet; weekly summaries will be built from the next run."
+            .to_string()
     } else {
         format!("Over the last {days} days, {total_cves} vulnerabilities and {total_news} selected news items were tracked; {kev_count} of the selected CVEs are in the Known Exploited Vulnerabilities (KEV) list.")
     };

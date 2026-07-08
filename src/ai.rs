@@ -805,7 +805,11 @@ pub(crate) fn get_env_or_dotenv(key: &str) -> Option<String> {
             continue;
         };
         if k.trim() == key {
-            let value = v.trim().trim_matches('"').trim_matches('\u{27}').to_string();
+            let value = v
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\u{27}')
+                .to_string();
             if !value.is_empty() {
                 return Some(value);
             }
@@ -837,7 +841,10 @@ mod tests {
             "url": "https://example.com/a",
             "summary": "text"
         });
-        assert_ne!(first, item_cache_key("gemini-2.5-flash", "global_news", &changed));
+        assert_ne!(
+            first,
+            item_cache_key("gemini-2.5-flash", "global_news", &changed)
+        );
         assert_ne!(first, item_cache_key("gemini-x", "global_news", &item));
     }
 
@@ -857,10 +864,7 @@ mod tests {
         assert!(clean.get("ref").is_none());
         assert!(clean.get("unexpected").is_none());
 
-        let cve = sanitize_editorial(
-            "cve",
-            &json!({"recommended_action": "Apply patch"}),
-        );
+        let cve = sanitize_editorial("cve", &json!({"recommended_action": "Apply patch"}));
         assert_eq!(cve["recommended_action"], "Apply patch");
     }
 
@@ -880,10 +884,8 @@ mod tests {
             }),
         );
         assert!(merge_batch_item(&mut brief, "global_news", 0, &editorial));
-        assert_eq!(
-            brief["global_news"][0]["title"],
-            "New Title"
-        );
+        assert_eq!(brief["global_news"][0]["title"], "Original");
+        assert_eq!(brief["global_news"][0]["ops_note"], "Review needed");
         assert_eq!(brief["global_news"][0]["url"], "https://a.example");
         assert!(merge_batch_item(&mut brief, "missing_section", 0, &editorial) == false);
         assert!(!merge_batch_item(&mut brief, "global_news", 9, &editorial));

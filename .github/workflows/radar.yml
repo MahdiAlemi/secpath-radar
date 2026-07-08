@@ -1,11 +1,6 @@
-name: SecPath Radar
+name: SecPath Radar CI
 
 on:
-  schedule:
-    # every 3 hours (UTC) - rules-only run
-    - cron: "0 */3 * * *"
-    # once a day at 03:30 UTC (~07:00 Tehran) - run with Gemini AI polish
-    - cron: "30 3 * * *"
   workflow_dispatch:
     inputs:
       ai:
@@ -13,32 +8,21 @@ on:
         type: boolean
         default: false
 
+# Local/project rule: do not deploy or publish from CI unless explicitly re-enabled.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: secpath-radar
+  group: secpath-radar-ci
   cancel-in-progress: false
 
 jobs:
-  radar:
+  render-check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Restore state from radar-output branch
-        run: |
-          git fetch origin radar-output --depth 1 || true
-          if git rev-parse --verify origin/radar-output >/dev/null 2>&1; then
-            git worktree add _out origin/radar-output
-            mkdir -p data
-            [ -d _out/state/cache ]     && cp -r _out/state/cache data/cache         || true
-            [ -d _out/state/day_state ] && cp -r _out/state/day_state data/day_state || true
-            [ -d _out/state/snapshots ] && cp -r _out/state/snapshots snapshots      || true
-            git worktree remove --force _out
-          fi
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -46,36 +30,22 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Test
+        run: cargo test --all
+
       - name: Decide run mode
         id: mode
         run: |
-          if [ "${{ github.event.schedule }}" = "30 3 * * *" ] || [ "${{ inputs.ai }}" = "true" ]; then
+          if [ "${{ inputs.ai }}" = "true" ]; then
             echo "flags=--full --ai" >> "$GITHUB_OUTPUT"
           else
             echo "flags=--full" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build and render radar
+      - name: Render static radar without publishing
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: cargo run --release -- ${{ steps.mode.outputs.flags }}
-
-      - name: Publish site and state to radar-output branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          rm -rf _pub && mkdir -p _pub/state
-          cp -r site/. _pub/
-          echo "radar.secpath.space" > _pub/CNAME
-          touch _pub/.nojekyll
-          [ -d data/cache ]              && cp -r data/cache _pub/state/cache          || true
-          [ -d data/day_state ]          && cp -r data/day_state _pub/state/day_state  || true
-          [ -d snapshots ]               && cp -r snapshots _pub/state/snapshots       || true
-          [ -f data/latest_brief.json ]  && cp data/latest_brief.json _pub/state/      || true
-          cd _pub
-          git init -b radar-output
-          git config user.name "secpath-radar-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "radar output $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" radar-output

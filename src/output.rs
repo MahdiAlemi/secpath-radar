@@ -77,7 +77,9 @@ pub(crate) fn build_feed_xml(brief: &Value, channel_title: &str) -> String {
     xml.push_str("<rss version=\"2.0\">\n<channel>\n");
     xml.push_str(&format!("<title>{}</title>\n", xml_escape(channel_title)));
     xml.push_str(&format!("<link>{SITE_LINK}/</link>\n"));
-    xml.push_str("<description>Static monitoring of cyber threats, CVEs, and security news</description>\n");
+    xml.push_str(
+        "<description>Static monitoring of cyber threats, CVEs, and security news</description>\n",
+    );
     xml.push_str("<language>en</language>\n");
     xml.push_str(&format!(
         "<lastBuildDate>{}</lastBuildDate>\n",

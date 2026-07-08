@@ -102,7 +102,8 @@ pub(crate) fn build_attack_matrix(brief: &mut Value) {
     }
     let techniques = rows.len();
     let summary = if rows.is_empty() {
-        "No significant attack pattern was extracted from monitored content in this run.".to_string()
+        "No significant attack pattern was extracted from monitored content in this run."
+            .to_string()
     } else {
         let top_name = rows[0]["name"].as_str().unwrap_or("-").to_string();
         format!("This run mapped content to {techniques} MITRE ATT&CK techniques; top pattern: {top_name}.")

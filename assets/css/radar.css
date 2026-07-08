@@ -109,7 +109,7 @@ a:hover { color: var(--accent); }
 /* ---------- Top layout: breaking | empty | cve | weekly ---------- */
 .top-layout {
   display: grid;
-  grid-template-columns: 1fr 0.3fr 1.2fr 1.2fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   grid-template-rows: max-content;
   gap: var(--gap);
   align-items: start;
@@ -155,15 +155,23 @@ a:hover { color: var(--accent); }
 .delta-down .tg-spark polyline { stroke: var(--red); }
 .delta-flat .tg-spark polyline { stroke: var(--text-3); }
 
-/* ---------- CVE top panel (compact) ---------- */
+/* ---------- CVE top panel (detailed) ---------- */
 .panel-cve-top .wr-section { padding: 10px 12px; }
-.cve-row { padding: 4px 0; border-bottom: 1px solid var(--border); }
+.cve-row { padding: 6px 0; border-bottom: 1px solid var(--border); }
 .cve-row:last-child { border-bottom: 0; }
 .cve-row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px; }
-.cve-row-head a { font-size: 11px; font-weight: 700; color: var(--text); }
+.cve-row-head a { font-size: 12px; font-weight: 700; color: var(--text); }
 .cve-row-head a:hover { color: var(--accent); }
-.cve-row-meta { display: flex; gap: 6px; font-size: 10px; color: var(--text-3); }
-.cve-row-meta .tag-risk { color: var(--red); }
+.cve-score { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+.cve-score.sev-critical { background: rgba(233,115,102,0.15); color: var(--red); }
+.cve-score.sev-high { background: rgba(234,194,107,0.15); color: var(--amber); }
+.cve-score.sev-medium { background: rgba(255,255,255,0.08); color: var(--text-2); }
+.cve-score.sev-low { background: rgba(255,255,255,0.05); color: var(--text-3); }
+.cve-row-product { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-2); margin-bottom: 2px; }
+.cve-date { font-size: 10px; color: var(--text-3); white-space: nowrap; margin-left: 8px; }
+.cve-row-meta { display: flex; gap: 6px; font-size: 10px; color: var(--text-3); flex-wrap: wrap; }
+.cve-row-meta .tag { font-size: 9px; padding: 0 4px; }
+.cve-row-meta .tag-risk { color: var(--red); border-color: rgba(233,115,102,0.4); }
 .sev-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
 .sev-badge.sev-critical { background: rgba(233,115,102,0.15); color: var(--red); }
 .sev-badge.sev-high { background: rgba(234,194,107,0.15); color: var(--amber); }

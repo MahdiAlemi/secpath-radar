@@ -89,6 +89,9 @@ pub(crate) fn build_brief(
         .and_then(|value| value.as_u64())
         .unwrap_or(0);
 
+    // Keep the CVE engine's own freshness/risk selection intact.
+    // Do not hard-filter to the local calendar day here: NVD/CSAF feeds often lag by
+    // one or more days, and a strict same-day retain can empty the vulnerability panel.
     cves.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
     cves.truncate(config.limits.cves);
 

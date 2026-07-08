@@ -253,10 +253,7 @@ pub(crate) fn build_top_signals(brief: &Value) -> Value {
     }
     if let Some(row) = brief.pointer("/attack_matrix/rows/0") {
         let technique = row.get("technique").and_then(|v| v.as_str()).unwrap_or("");
-        let label = row
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("ATT&CK");
+        let label = row.get("name").and_then(|v| v.as_str()).unwrap_or("ATT&CK");
         let hits = row.get("hits").and_then(|v| v.as_u64()).unwrap_or(0);
         let metric = if technique.is_empty() {
             format!("{hits} hits")

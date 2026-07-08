@@ -936,8 +936,7 @@ pub(crate) fn build_client(config: &Config) -> Result<Client> {
 
     if let Some(ref proxy_url) = config.fetch.proxy {
         if !proxy_url.is_empty() {
-            let proxy = reqwest::Proxy::all(proxy_url)
-                .context("failed to parse proxy URL")?;
+            let proxy = reqwest::Proxy::all(proxy_url).context("failed to parse proxy URL")?;
             builder = builder.proxy(proxy);
         }
     }
