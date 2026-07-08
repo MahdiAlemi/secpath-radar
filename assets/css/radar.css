@@ -182,7 +182,7 @@ a:hover { color: var(--accent); }
   padding: 5px 0 3px;
   border-bottom: 1px solid var(--border);
 }
-.cve-priority-list { display: flex; flex-direction: column; gap: 0; max-height: 310px; overflow-y: auto; scrollbar-width: thin; }
+.cve-priority-list { display: flex; flex-direction: column; gap: 0; max-height: 430px; overflow-y: auto; scrollbar-width: thin; }
 .cve-priority-row {
   position: relative;
   display: grid;
