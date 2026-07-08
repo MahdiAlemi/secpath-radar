@@ -13,11 +13,7 @@ pub(crate) fn build_brief(
     let generated_at = now.format("%Y-%m-%d %H:%M").to_string();
 
     let requested_news_day = now.date_naive();
-    let mut effective_news_day = requested_news_day;
-    let mut news_window_mode = "local-day";
-    let news_display_floor = (config.limits.global_news + 5)
-        .max(12)
-        .min(items.len().max(1));
+    let news_window_mode = "local-day-only";
     let mut daily_items: Vec<_> = items
         .iter()
         .filter(|item| feed_item_is_local_day(item, requested_news_day))
@@ -25,32 +21,6 @@ pub(crate) fn build_brief(
         .collect();
     sort_news_latest_first(&mut daily_items);
     let current_day_news_total = daily_items.len();
-
-    if daily_items.len() < news_display_floor {
-        let mut seen_keys: HashSet<String> = daily_items.iter().map(news_dedupe_key).collect();
-        let mut backfill: Vec<_> = items
-            .iter()
-            .filter(|item| !seen_keys.contains(&news_dedupe_key(item)))
-            .cloned()
-            .collect();
-        sort_news_latest_first(&mut backfill);
-        let needed = news_display_floor.saturating_sub(daily_items.len());
-        for item in backfill.into_iter().take(needed) {
-            seen_keys.insert(news_dedupe_key(&item));
-            daily_items.push(item);
-        }
-        if current_day_news_total == 0 {
-            news_window_mode = "latest-feed-backfill";
-            if let Some(latest_feed_day) = latest_feed_item_local_day(&daily_items)
-                .or_else(|| latest_feed_item_local_day(&items))
-            {
-                effective_news_day = latest_feed_day;
-            }
-        } else if daily_items.len() > current_day_news_total {
-            news_window_mode = "local-day-with-latest-backfill";
-        }
-        sort_news_latest_first(&mut daily_items);
-    }
 
     let mut breaking_news: Vec<_> = daily_items
         .iter()
@@ -67,15 +37,11 @@ pub(crate) fn build_brief(
         .cloned()
         .collect();
     sort_news_latest_first(&mut global);
+    let today_news = daily_items.clone();
     let daily_news_total = daily_items.len();
-    let backfill_news_total = daily_news_total.saturating_sub(current_day_news_total);
+    let backfill_news_total = 0usize;
     let daily_news_hidden = items.len().saturating_sub(daily_news_total);
-    let effective_news_date = format!(
-        "{}-{:02}-{:02}",
-        effective_news_day.year(),
-        effective_news_day.month(),
-        effective_news_day.day()
-    );
+    let effective_news_date = date_en.clone();
     let news_lanes = build_news_lanes(&global);
     let writeups_pulse = build_writeups_pulse(&writeup_items);
     let writeups_total = writeups_pulse
@@ -221,6 +187,7 @@ pub(crate) fn build_brief(
         },
         "breaking_news": breaking_news,
         "global_news": global,
+        "today_news": today_news,
         "news_lanes": news_lanes,
         "writeups_pulse": writeups_pulse,
         "cves": cves
@@ -243,14 +210,6 @@ pub(crate) fn feed_item_is_local_day(item: &FeedItem, day: NaiveDate) -> bool {
     parse_feed_item_local_time(item)
         .map(|dt| dt.date_naive() == day)
         .unwrap_or(false)
-}
-
-pub(crate) fn latest_feed_item_local_day(items: &[FeedItem]) -> Option<NaiveDate> {
-    items
-        .iter()
-        .filter_map(parse_feed_item_local_time)
-        .max()
-        .map(|dt| dt.date_naive())
 }
 
 pub(crate) fn feed_item_timestamp(item: &FeedItem) -> i64 {

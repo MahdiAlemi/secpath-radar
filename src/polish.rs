@@ -444,6 +444,7 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
     polish_priority(brief);
     polish_array_items(brief, "breaking_news", 88, 240);
     polish_array_items(brief, "global_news", 88, 240);
+    polish_array_items(brief, "today_news", 88, 240);
     polish_writeups_pulse(brief);
     polish_cves(brief);
     add_editorial_display_fields(brief);
@@ -545,6 +546,7 @@ pub(crate) fn add_editorial_display_fields(brief: &mut Value) {
     enrich_priority_fields(brief);
     enrich_news_fields(brief, "breaking_news");
     enrich_news_fields(brief, "global_news");
+    enrich_news_fields(brief, "today_news");
     enrich_cve_fields(brief);
 }
 

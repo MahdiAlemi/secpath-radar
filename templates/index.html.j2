@@ -48,6 +48,25 @@
   </div>
 </article>
 {% endmacro %}
+
+{% macro news_stream_card(item, index) %}
+<article class="news-top-card">
+  <div class="news-top-index">{{ index }}</div>
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="{{ item.url }}" rel="noopener noreferrer" target="_blank">{{ item.title }}</a>
+      {% if item.is_new %}<span class="tag tag-new">New</span>{% endif %}
+    </div>
+    {% if item.summary %}<p class="news-excerpt">{{ item.summary }}</p>{% endif %}
+    <div class="meta news-top-meta">
+      <span class="news-source">{{ item.source }}</span>
+      <span>{{ item.published_time_local }} Tehran · {{ item.published_time_utc }}</span>
+      {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
+    </div>
+  </div>
+</article>
+{% endmacro %}
+
 {% macro empty_pulse(id, title_en, provider, text) %}
 <section id="{{ id }}" class="panel is-empty">
   <div class="panel-head">
@@ -76,7 +95,7 @@
   <a href="#poc-watch">PoCs</a>
   <a href="#top-signals">Overview</a>
   <a href="#cves">Vulnerabilities</a>
-  <a href="#news">News</a>
+  <a href="#global-news">All News</a>
   <a href="#writeups">Writeups</a>
   <a href="#sources">Sources</a>
 </nav>
@@ -104,98 +123,7 @@
       {% endif %}
     </section>
 
-    <section id="poc-watch" class="panel panel-top-card panel-poc-top{% if not brief.poc_watch.repos %} is-empty{% endif %}">
-      <div class="panel-head">
-        <div><span class="eyebrow">PUBLIC POC</span><h2>Fresh Public PoCs</h2></div>
-        <div class="panel-head-actions">
-          <span class="chip chip-poc">{{ brief.poc_watch.totals.repos }} repos today</span>
-          <span class="chip chip-muted">{{ brief.poc_watch.totals.cves_with_poc }} CVEs</span>
-        </div>
-      </div>
-      <div class="top-card-body">
-        {% if brief.poc_watch.repos %}
-        <p class="poc-top-note">Public repository metadata published on {{ brief.poc_watch.date }} only. Links open the repository; no raw code, clone, or run commands are shown.</p>
-        <div class="poc-top-list" aria-label="Fresh public PoC repository links">
-          {% for repo in brief.poc_watch.repos %}
-          <article class="poc-card risk-{{ repo.risk }}">
-            <div class="poc-kind">{{ repo.repo_type_label }}</div>
-            <div class="poc-main">
-              <div class="poc-titleline">
-                <a href="{{ repo.repo_url }}" rel="noopener noreferrer" target="_blank">{{ repo.repo_name }}</a>
-                <span class="tag tag-poc">PoC</span>
-                <span class="tag">{{ repo.language }}</span>
-              </div>
-              <div class="poc-author">
-                <span>@{{ repo.author }}</span>
-                <span>{{ repo.cve_id }}</span>
-              </div>
-              {% if repo.description %}<p class="poc-desc">{{ repo.description }}</p>{% endif %}
-              <div class="poc-meta">
-                <span>{{ repo.age_days }}d old</span>
-                <span>★ {{ repo.stars }}</span>
-                <span>fork {{ repo.forks }}</span>
-                <span>{{ repo.published_date }}</span>
-              </div>
-            </div>
-            <div class="poc-score">
-              <strong>{{ repo.score }}</strong>
-              <span>signal</span>
-            </div>
-          </article>
-          {% endfor %}
-        </div>
-        {% else %}
-        <p class="empty-note">No public PoC repositories were published for {{ brief.poc_watch.date }}.</p>
-        {% endif %}
-      </div>
-    </section>
-
-    <section class="panel panel-top-card panel-cve-top{% if not brief.cves %} is-empty{% endif %}">
-      <div class="panel-head">
-        <div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div>
-        <div class="panel-head-actions">
-          <span class="chip">{{ brief.cves|length }} CVEs today</span>
-          <span class="chip chip-muted">{{ brief.stats.critical_cves }} critical</span>
-        </div>
-      </div>
-      <div class="top-card-body">
-        {% if brief.sev_strip %}
-        <div class="sev-strip" role="img" aria-label="Today CVE severity distribution">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
-        {% endif %}
-        {% if brief.cves %}
-        <div class="cve-priority-note">All CVEs published on {{ brief.date_en }}, sorted by risk. No older-day CVEs are backfilled into this panel.</div>
-        <div class="cve-priority-list" aria-label="All CVEs published today">
-          {% for cve in brief.cves %}
-          <div class="cve-priority-row sev-{{ cve.severity|lower }}">
-            <div class="cve-priority-rank">{{ loop.index }}</div>
-            <div class="cve-priority-main">
-              <div class="cve-priority-topline">
-                <a class="cve-id" href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a>
-                {% if cve.is_new %}<span class="tag tag-new">NEW</span>{% endif %}
-                {% if cve.kev %}<span class="tag tag-risk">KEV</span>{% endif %}
-              </div>
-              <div class="cve-priority-product">{% if cve.vendor and cve.product %}{{ cve.vendor }} {{ cve.product }}{% else %}{{ cve.title }}{% endif %}</div>
-              <div class="cve-priority-meta">
-                <span>Risk {{ cve.risk_score }}/10</span>
-                <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} &uarr;{% endif %}</span>
-                {% if cve.cwe_type %}<span>{{ cve.cwe_type }}</span>{% endif %}
-                <span>{{ cve.published[:10] }}</span>
-              </div>
-            </div>
-            <div class="cve-priority-score sev-{{ cve.severity|lower }}">
-              <strong>{{ cve.cvss }}</strong>
-              <span>{{ cve.severity }}</span>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <p class="empty-note">No CVEs were published for {{ brief.date_en }}.</p>
-        {% endif %}
-      </div>
-    </section>
-
-    <section class="panel panel-top-card panel-weekly-right">
+    <section class="panel panel-top-card panel-weekly-right panel-weekly-top">
       <div class="panel-head"><div><span class="eyebrow">WEEKLY</span><h2>Week at a Glance</h2></div><span class="chip">{{ brief.weekly.totals.days }}d</span></div>
       <div class="wr-section wr-section-primary">
         <div class="wr-stats">
@@ -246,6 +174,118 @@
         {% endif %}
       </div>
     </section>
+
+    <div class="top-stack top-stack-vuln">
+      <section class="panel panel-top-card panel-cve-top{% if not brief.cves %} is-empty{% endif %}">
+      <div class="panel-head">
+        <div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div>
+        <div class="panel-head-actions">
+          <span class="chip">{{ brief.cves|length }} CVEs today</span>
+          <span class="chip chip-muted">{{ brief.stats.critical_cves }} critical</span>
+        </div>
+      </div>
+      <div class="top-card-body">
+        {% if brief.sev_strip %}
+        <div class="sev-strip" role="img" aria-label="Today CVE severity distribution">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
+        {% endif %}
+        {% if brief.cves %}
+        <div class="cve-priority-note">All CVEs published on {{ brief.date_en }}, sorted by risk. No older-day CVEs are backfilled into this panel.</div>
+        <div class="cve-priority-list" aria-label="All CVEs published today">
+          {% for cve in brief.cves %}
+          <div class="cve-priority-row sev-{{ cve.severity|lower }}">
+            <div class="cve-priority-rank">{{ loop.index }}</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a>
+                {% if cve.is_new %}<span class="tag tag-new">NEW</span>{% endif %}
+                {% if cve.kev %}<span class="tag tag-risk">KEV</span>{% endif %}
+              </div>
+              <div class="cve-priority-product">{% if cve.vendor and cve.product %}{{ cve.vendor }} {{ cve.product }}{% else %}{{ cve.title }}{% endif %}</div>
+              <div class="cve-priority-meta">
+                <span>Risk {{ cve.risk_score }}/10</span>
+                <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} &uarr;{% endif %}</span>
+                {% if cve.cwe_type %}<span>{{ cve.cwe_type }}</span>{% endif %}
+                <span>{{ cve.published[:10] }}</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-{{ cve.severity|lower }}">
+              <strong>{{ cve.cvss }}</strong>
+              <span>{{ cve.severity }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-note">No CVEs were published for {{ brief.date_en }}.</p>
+        {% endif %}
+      </div>
+    </section>
+
+      <section id="poc-watch" class="panel panel-top-card panel-poc-top{% if not brief.poc_watch.repos %} is-empty{% endif %}">
+      <div class="panel-head">
+        <div><span class="eyebrow">PUBLIC POC</span><h2>Fresh Public PoCs</h2></div>
+        <div class="panel-head-actions">
+          <span class="chip chip-poc">{{ brief.poc_watch.totals.repos }} repos today</span>
+          <span class="chip chip-muted">{{ brief.poc_watch.totals.cves_with_poc }} CVEs</span>
+        </div>
+      </div>
+      <div class="top-card-body">
+        {% if brief.poc_watch.repos %}
+        <p class="poc-top-note">Public repository metadata published on {{ brief.poc_watch.date }} only. Links open the repository; no raw code, clone, or run commands are shown.</p>
+        <div class="poc-top-list" aria-label="Fresh public PoC repository links">
+          {% for repo in brief.poc_watch.repos %}
+          <article class="poc-card risk-{{ repo.risk }}">
+            <div class="poc-kind">{{ repo.repo_type_label }}</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="{{ repo.repo_url }}" rel="noopener noreferrer" target="_blank">{{ repo.repo_name }}</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">{{ repo.language }}</span>
+              </div>
+              <div class="poc-author">
+                <span>@{{ repo.author }}</span>
+                <span>{{ repo.cve_id }}</span>
+              </div>
+              {% if repo.description %}<p class="poc-desc">{{ repo.description }}</p>{% endif %}
+              <div class="poc-meta">
+                <span>{{ repo.age_days }}d old</span>
+                <span>★ {{ repo.stars }}</span>
+                <span>fork {{ repo.forks }}</span>
+                <span>{{ repo.published_date }}</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>{{ repo.score }}</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-note">No public PoC repositories were published for {{ brief.poc_watch.date }}.</p>
+        {% endif %}
+      </div>
+    </section>
+    </div>
+
+    <section id="global-news" class="panel panel-top-card panel-news-top{% if not brief.today_news %} is-empty{% endif %}">
+        <div class="panel-head">
+          <div><span class="eyebrow">TODAY</span><h2>All News Today</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip chip-news">{{ brief.today_news|length }} today</span>
+            <span class="chip chip-news-date">{{ brief.date_en }}</span>
+          </div>
+        </div>
+        <div class="top-card-body">
+          {% if brief.today_news %}
+          <div class="news-top-list" aria-label="News published today only">
+            {% for item in brief.today_news %}{{ news_stream_card(item, loop.index) }}{% endfor %}
+          </div>
+          {% else %}
+          <p class="empty-note">No news items were published for {{ brief.date_en }}.</p>
+          {% endif %}
+        </div>
+      </section>
   </section>
 
   <section id="top-signals" class="cluster" aria-label="Top signals">
@@ -262,19 +302,7 @@
   </section>
 
   <section class="cluster cluster-news" aria-label="News &amp; Research">
-    <div class="cluster-head"><span class="eyebrow">News &amp; Research</span><h2>News &amp; Research</h2></div>
-
-      <section id="global-news" class="panel panel-news-global">
-        <div class="panel-head"><div><span class="eyebrow">TODAY</span><h2>All News Today</h2></div><span class="chip">{{ brief.global_news|length }}</span></div>
-        {% if brief.global_news %}
-        <div class="news-grid">
-          {% for item in brief.global_news %}{{ news_card(item) }}{% endfor %}
-        </div>
-        {% else %}
-        <p class="empty-note">No news displayed in today's window.</p>
-        {% endif %}
-      </section>
-
+    <div class="cluster-head"><span class="eyebrow">Research</span><h2>Research &amp; Writeups</h2></div>
       <section id="writeups-pulse" class="panel panel-wide">
         <div class="panel-head"><div><span class="eyebrow">Research</span><h2>Research</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} from {{ brief.writeups_pulse.totals.sources }} sources</span></div>
         <p class="lede">{{ brief.writeups_pulse.summary }}</p>
