@@ -31,7 +31,21 @@
     {% if item.is_new %}<span class="tag tag-new">New</span>{% endif %}
     {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
   </div>
-  <p class="note">{{ item.why_it_matters }}</p>
+</article>
+{% endmacro %}
+{% macro breaking_card(item) %}
+<article class="item risk-{{ riskcls(item.risk_score) }}">
+  <div class="item-head">
+    <a href="{{ item.url }}" rel="noopener noreferrer" target="_blank">{{ item.title }}</a>
+  </div>
+  {% if item.summary %}<p class="news-excerpt">{{ item.summary }}</p>{% endif %}
+  <div class="meta">
+    <span class="breaking-source">{{ item.source }}</span>
+    {% for tag in item.tags %}{% if loop.index <= 3 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
+  </div>
+  <div class="meta">
+    <span>{{ item.published_time_local }} Tehran · {{ item.published_time_utc }} · {{ item.published_date_local }}</span>
+  </div>
 </article>
 {% endmacro %}
 {% macro empty_pulse(id, title_en, provider, text) %}
@@ -54,7 +68,6 @@
   <div class="topbar-actions">
     {% if brief.site_github %}<a class="ui-chip" href="{{ brief.site_github }}" rel="noopener noreferrer">GitHub</a>{% endif %}
     <a class="ui-chip" href="weekly.html">Weekly Digest</a>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">Collapse All</span>
     <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">Light/Dark</span>
   </div>
 </header>
@@ -63,7 +76,8 @@
   <a href="#breaking-news" class="is-active">News</a>
   <a href="#top-signals">Overview</a>
   <a href="#cves">Vulnerabilities</a>
-  <a href="#ioc-radar">Threat Telemetry</a>
+  <a href="#news">News</a>
+  <a href="#writeups">Writeups</a>
   <a href="#sources">Sources</a>
 </nav>
 
@@ -78,17 +92,86 @@
     <div class="kpi"><span>Nuclei Coverage</span><b>{{ brief.stats.nuclei_coverage_pct }}%</b><small>{{ brief.stats.nuclei_covered_cves }} CVE with template</small></div>
   </section>
 
+  <section class="top-layout" aria-label="Dashboard overview">
+    <section id="breaking-news" class="panel panel-breaking panel-breaking-col">
+      <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><div class="breaking-head-actions"><button class="ai-btn" type="button" title="AI summary — coming soon" aria-label="AI summary coming soon">AI</button><span class="chip chip-risk">{{ brief.breaking_news|length }}</span></div></div>
+      {% if brief.breaking_news %}
+      <div class="breaking-scroll">
+        {% for item in brief.breaking_news %}{{ breaking_card(item) }}{% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-note">No breaking news recorded in today's window.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel-weekly-right">
+      <div class="wr-section">
+        <div class="wr-head"><h3>Week at a Glance</h3><span class="chip">{{ brief.weekly.totals.days }}d</span></div>
+        <div class="wr-stats">
+          <div class="wr-stat"><b>{{ brief.weekly.totals.cves }}</b><span>CVEs</span></div>
+          <div class="wr-stat"><b>{{ brief.weekly.totals.news }}</b><span>News</span></div>
+          <div class="wr-stat"><b>{{ brief.weekly.totals.kev }}</b><span>KEV</span></div>
+        </div>
+        <p class="wr-text">{{ brief.weekly.summary }}</p>
+      </div>
+
+      <div class="wr-section">
+        <div class="wr-head"><h3>Daily Breakdown</h3></div>
+        {% for row in brief.weekly.daily_rows %}
+        <div class="wr-row"><span class="wr-row-label">{{ row.label }}</span><span class="wr-row-val">{{ row.cves }}C &middot; {{ row.news }}N</span></div>
+        {% endfor %}
+      </div>
+
+      <div class="wr-section">
+        <div class="wr-head"><h3>Today</h3></div>
+        <div class="wr-stats">
+          <div class="wr-stat"><b class="c-red">{{ brief.stats.breaking_news }}</b><span>Breaking</span></div>
+          <div class="wr-stat"><b class="c-amber">{{ brief.stats.epss_rising }}</b><span>EPSS&uarr;</span></div>
+          <div class="wr-stat"><b>{{ brief.stats.poc_watch }}</b><span>PoC</span></div>
+        </div>
+      </div>
+
+      <div class="wr-section">
+        <div class="wr-head"><h3>60-Second</h3><span class="chip">{{ brief.executive_snapshot.score }}/100</span></div>
+        {% for card in brief.executive_snapshot.risk_cards %}
+        <div class="wr-row"><span class="wr-row-label">{{ card.title }}</span><span class="wr-row-val">{{ card.metric }}</span></div>
+        {% endfor %}
+      </div>
+
+      <div class="wr-section">
+        <div class="wr-head"><h3>Trend</h3><span class="chip">{{ brief.trend_pulse.totals.runs }}r</span></div>
+        {% if brief.trend_pulse.ok %}
+        <div class="trend-grid">
+          {% for row in brief.trend_pulse.rows %}{% if loop.index <= 10 %}
+          <div class="tg-row delta-{{ row.direction }}">
+            <span class="tg-label">{{ row.label }}</span>
+            <svg class="tg-spark" viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="{{ row.spark }}" vector-effect="non-scaling-stroke"/></svg>
+            <span class="tg-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span>
+          </div>
+          {% endif %}{% endfor %}
+        </div>
+        {% else %}
+        <p class="wr-text">{{ brief.trend_pulse.summary }}</p>
+        {% endif %}
+      </div>
+    </section>
+  </section>
+
+  <section id="top-signals" class="cluster" aria-label="Top signals">
+    <div class="cluster-head"><span class="eyebrow">Top Signals</span><h2>Top Signals Today</h2></div>
+    <div class="triage-row">
+      {% for s in brief.top_signals %}{% if loop.index <= 5 %}
+      <a class="triage-card risk-{{ s.level }}" href="{{ s.anchor }}">
+        <div class="triage-top"><b>{{ s.title }}</b><span>{{ s.metric }}</span></div>
+        <p>{{ s.note }}</p>
+        <span class="bar-track"><b style="width: {{ s.bar_width }}%"></b></span>
+      </a>
+      {% endif %}{% endfor %}
+    </div>
+  </section>
+
   <section class="cluster cluster-news" aria-label="News &amp; Research">
     <div class="cluster-head"><span class="eyebrow">News &amp; Research</span><h2>News &amp; Research</h2></div>
-
-      <section id="breaking-news" class="panel{% if brief.breaking_news %} panel-breaking{% endif %}">
-        <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><span class="chip chip-risk">{{ brief.breaking_news|length }}</span></div>
-        {% if brief.breaking_news %}
-        {% for item in brief.breaking_news %}{{ news_card(item) }}{% endfor %}
-        {% else %}
-        <p class="empty-note">No breaking news recorded in today's window.</p>
-        {% endif %}
-      </section>
 
       <section id="global-news" class="panel panel-news-global">
         <div class="panel-head"><div><span class="eyebrow">TODAY</span><h2>All News Today</h2></div><span class="chip">{{ brief.global_news|length }}</span></div>
@@ -114,79 +197,6 @@
           {% endif %}{% endfor %}
         </div>
       </section>
-  </section>
-
-  <section id="top-signals" class="cluster" aria-label="Top signals">
-    <div class="cluster-head"><span class="eyebrow">Top Signals</span><h2>Top Signals Today</h2></div>
-    <div class="triage-row">
-      {% for s in brief.top_signals %}{% if loop.index <= 5 %}
-      <a class="triage-card risk-{{ s.level }}" href="{{ s.anchor }}">
-        <div class="triage-top"><b>{{ s.title }}</b><span>{{ s.metric }}</span></div>
-        <p>{{ s.note }}</p>
-        <span class="bar-track"><b style="width: {{ s.bar_width }}%"></b></span>
-      </a>
-      {% endif %}{% endfor %}
-    </div>
-  </section>
-
-  <section class="cluster" aria-label="Executive overview">
-    <div class="grid grid-3">
-
-      <section id="executive-snapshot" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Executive</span><h2>60-Second Summary</h2></div><span class="chip">{{ brief.executive_snapshot.score }} / 100</span></div>
-        <p class="lede">{{ brief.executive_snapshot.summary }}</p>
-        <p class="note">{{ brief.executive_snapshot.score_formula }}</p>
-        <span class="bar-track meter risk-{{ brief.risk_level|lower }}"><b style="width: {{ brief.executive_snapshot.bar_width }}%"></b></span>
-        {% for card in brief.executive_snapshot.risk_cards %}
-        <div class="row risk-{{ card.level }}">
-          <div class="row-head"><b>{{ card.title }}</b><span>{{ card.metric }}</span></div>
-          <p class="note">{{ card.note }}</p>
-        </div>
-        {% endfor %}
-      </section>
-
-      <section id="priority" class="panel panel-priority">
-        <div class="panel-head"><div><span class="eyebrow">Priority</span><h2>Today's Priority Signal</h2></div><span class="chip chip-risk">Risk {{ brief.priority_alert.risk_score }}</span></div>
-        <h3 class="priority-title"><a href="{{ brief.priority_alert.url }}" rel="noopener noreferrer">{{ brief.priority_alert.title }}</a></h3>
-        <p>{{ brief.priority_alert.summary }}</p>
-        <p class="note">{{ brief.priority_alert.why_it_matters }}</p>
-        <div class="meta">
-          <span>{{ brief.priority_alert.source }}</span>
-          {% for tag in brief.priority_alert.tags %}{% if loop.index <= 3 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
-        </div>
-        <div class="ops">{{ brief.priority_alert.ops_note }}</div>
-      </section>
-
-      <section id="history-snapshot" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Delta</span><h2>Changes Since Last Run</h2></div><span class="chip">{{ brief.history_snapshot.totals.changed }} changes</span></div>
-        <p class="lede">{{ brief.history_snapshot.summary }}</p>
-        <div class="stat-row">
-          <div><span>Tracked</span><b>{{ brief.history_snapshot.totals.tracked }}</b></div>
-          <div><span>Increased</span><b class="up">{{ brief.history_snapshot.totals.increased }}</b></div>
-          <div><span>Decreased</span><b class="down">{{ brief.history_snapshot.totals.decreased }}</b></div>
-        </div>
-        {% if brief.history_snapshot.totals.changed > 0 %}
-        {% for row in brief.history_snapshot.top_changes %}{% if loop.index <= 10 %}
-        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
-        {% endif %}{% endfor %}
-        {% else %}
-        <p class="empty-note">No significant changes recorded.</p>
-        {% endif %}
-        <div class="meta"><span>Previous: {{ brief.history_snapshot.previous_version }}</span><span>local only</span></div>
-      </section>
-      <section id="trend-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Trend</span><h2>Recent Run Trend</h2></div><span class="chip">{{ brief.trend_pulse.totals.runs }} runs</span></div>
-        {% if brief.trend_pulse.ok %}
-        <p class="lede">{{ brief.trend_pulse.summary }}</p>
-        {% for row in brief.trend_pulse.rows %}{% if loop.index <= 10 %}
-        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label }}</span><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ row.spark }}" vector-effect="non-scaling-stroke"/></svg><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
-        {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.trend_pulse.span }}</span><span>local snapshots</span></div>
-        {% else %}
-        <p class="empty-note">{{ brief.trend_pulse.summary }}</p>
-        {% endif %}
-      </section>
-    </div>
   </section>
 
   <section class="cluster" aria-label="Vulnerability &amp; Exploitation">

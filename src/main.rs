@@ -264,6 +264,10 @@ fn main() -> Result<()> {
 
     build_trend_pulse(&mut brief);
 
+    let archives = read_archive_series(ARCHIVE_DIR, WEEKLY_MAX_DAYS);
+    let weekly = build_weekly_brief(&archives);
+    brief["weekly"] = weekly;
+
     fs::create_dir_all("data").context("failed to create data directory")?;
     fs::write(
         "data/latest_brief.json",

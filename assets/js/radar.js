@@ -5,58 +5,6 @@
 
   var body = document.body;
 
-  // --- Local display chips (collapse-all) ---
-  function setChipState(chip, on) {
-    chip.classList.toggle("is-on", on);
-  }
-
-  function toggleCollapseAll(chip) {
-    var panels = document.querySelectorAll(".panel");
-    var anyOpen = Array.prototype.some.call(panels, function (p) {
-      return !p.classList.contains("is-collapsed");
-    });
-    panels.forEach(function (p) {
-      p.classList.toggle("is-collapsed", anyOpen);
-    });
-    if (chip) setChipState(chip, anyOpen);
-  }
-
-  document.querySelectorAll("[data-ui-action]").forEach(function (chip) {
-    var action = chip.getAttribute("data-ui-action");
-    function run() {
-      if (action === "collapse") toggleCollapseAll(chip);
-    }
-    chip.addEventListener("click", run);
-    chip.addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter" || ev.key === " ") {
-        ev.preventDefault();
-        run();
-      }
-    });
-  });
-
-  // --- Per-panel collapse on header click ---
-  document.querySelectorAll(".panel-head").forEach(function (head) {
-    head.addEventListener("click", function (ev) {
-      if (ev.target.closest("a")) return;
-      var panel = head.closest(".panel");
-      if (panel) panel.classList.toggle("is-collapsed");
-    });
-  });
-
-  // --- Keyboard shortcuts (local only) ---
-  document.addEventListener("keydown", function (ev) {
-    if (ev.target !== document.body) return;
-    if (ev.key === "Escape") {
-      document.querySelectorAll(".panel.is-collapsed").forEach(function (p) {
-        p.classList.remove("is-collapsed");
-      });
-      document.querySelectorAll(".ui-chip.is-on").forEach(function (c) {
-        c.classList.remove("is-on");
-      });
-    }
-  });
-
   // --- Scroll spy for anchor nav ---
   var nav = document.querySelector(".anchor-nav");
   if (nav && "IntersectionObserver" in window) {
