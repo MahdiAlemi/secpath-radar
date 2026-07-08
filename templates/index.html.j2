@@ -103,37 +103,45 @@
       {% endif %}
     </section>
 
-    <section class="panel-cve-top">
-      <div class="wr-section">
-        <div class="wr-head"><h3>Patch Priority</h3><span class="chip">{{ brief.stats.critical_cves }} critical</span></div>
+    <section class="panel panel-top-card panel-cve-top">
+      <div class="panel-head"><div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div><span class="chip">{{ brief.stats.critical_cves }} critical</span></div>
+      <div class="top-card-body">
         {% if brief.sev_strip %}
         <div class="sev-strip" role="img" aria-label="CVE severity distribution">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
         {% endif %}
         {% if brief.cves %}
-        {% for cve in brief.cves %}{% if loop.index <= 10 %}
-        <div class="cve-row sev-{{ cve.severity|lower }}">
-          <div class="cve-row-head">
-            <a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a>
-            <span class="cve-score sev-{{ cve.severity|lower }}">{{ cve.cvss }} {{ cve.severity }}</span>
+        <div class="cve-priority-list" aria-label="Top patch priorities">
+          {% for cve in brief.cves %}{% if loop.index <= 10 %}
+          <div class="cve-priority-row sev-{{ cve.severity|lower }}">
+            <div class="cve-priority-rank">{{ loop.index }}</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a>
+                {% if cve.is_new %}<span class="tag tag-new">NEW</span>{% endif %}
+                {% if cve.kev %}<span class="tag tag-risk">KEV</span>{% endif %}
+              </div>
+              <div class="cve-priority-product">{% if cve.vendor and cve.product %}{{ cve.vendor }} {{ cve.product }}{% else %}{{ cve.title }}{% endif %}</div>
+              <div class="cve-priority-meta">
+                <span>Risk {{ cve.risk_score }}/10</span>
+                <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} &uarr;{% endif %}</span>
+                {% if cve.cwe_type %}<span>{{ cve.cwe_type }}</span>{% endif %}
+                <span>{{ cve.published[:10] }}</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-{{ cve.severity|lower }}">
+              <strong>{{ cve.cvss }}</strong>
+              <span>{{ cve.severity }}</span>
+            </div>
           </div>
-          <div class="cve-row-product">
-            {% if cve.vendor and cve.product %}{{ cve.vendor }} {{ cve.product }}{% else %}{{ cve.title }}{% endif %}
-            <span class="cve-date">{{ cve.published[:10] }}</span>
-          </div>
-          <div class="cve-row-meta">
-            <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} &uarr;{% endif %}</span>
-            {% if cve.kev %}<span class="tag tag-risk">KEV</span>{% endif %}
-            {% if cve.cwe_type %}<span class="tag">{{ cve.cwe_type }}</span>{% endif %}
-          </div>
+          {% endif %}{% endfor %}
         </div>
-        {% endif %}{% endfor %}
         {% endif %}
       </div>
     </section>
 
-    <section class="panel-weekly-right">
-      <div class="wr-section">
-        <div class="wr-head"><h3>Week at a Glance</h3><span class="chip">{{ brief.weekly.totals.days }}d</span></div>
+    <section class="panel panel-top-card panel-weekly-right">
+      <div class="panel-head"><div><span class="eyebrow">WEEKLY</span><h2>Week at a Glance</h2></div><span class="chip">{{ brief.weekly.totals.days }}d</span></div>
+      <div class="wr-section wr-section-primary">
         <div class="wr-stats">
           <div class="wr-stat"><b>{{ brief.weekly.totals.cves }}</b><span>CVEs</span></div>
           <div class="wr-stat"><b>{{ brief.weekly.totals.news }}</b><span>News</span></div>
