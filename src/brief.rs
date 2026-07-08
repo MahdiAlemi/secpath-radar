@@ -15,7 +15,7 @@ pub(crate) fn build_brief(
     let requested_news_day = now.date_naive();
     let mut effective_news_day = requested_news_day;
     let mut news_window_mode = "local-day";
-    let news_display_floor = (config.limits.global_news + config.limits.iran_radar + 5)
+    let news_display_floor = (config.limits.global_news + 5)
         .max(12)
         .min(items.len().max(1));
     let mut daily_items: Vec<_> = items
@@ -61,17 +61,11 @@ pub(crate) fn build_brief(
     breaking_news.truncate(5);
     let breaking_keys: HashSet<String> = breaking_news.iter().map(news_dedupe_key).collect();
 
-    let mut iran: Vec<_> = daily_items
-        .iter()
-        .filter(|item| item.iran_related && !breaking_keys.contains(&news_dedupe_key(item)))
-        .cloned()
-        .collect();
     let mut global: Vec<_> = daily_items
         .iter()
-        .filter(|item| !item.iran_related && !breaking_keys.contains(&news_dedupe_key(item)))
+        .filter(|item| !breaking_keys.contains(&news_dedupe_key(item)))
         .cloned()
         .collect();
-    sort_news_latest_first(&mut iran);
     sort_news_latest_first(&mut global);
     let daily_news_total = daily_items.len();
     let backfill_news_total = daily_news_total.saturating_sub(current_day_news_total);
@@ -82,19 +76,6 @@ pub(crate) fn build_brief(
         effective_news_day.month(),
         effective_news_day.day()
     );
-    let news_window_note_fa = match news_window_mode {
-        "latest-feed-backfill" => format!(
-            "برای تاریخ محلی {} خبر زمان‌دار کافی در cache نبود؛ تازه‌ترین آیتم‌های موجود از cache نمایش داده شدند، با اولویت تاریخ جدیدتر.",
-            date_en
-        ),
-        "local-day-with-latest-backfill" => format!(
-            "{} خبر برای امروز پیدا شد؛ برای جلوگیری از خالی‌شدن پنل، {} آیتم تازه‌تر/مهم از cache هم اضافه شد. خبرهای جدیدتر همچنان بالاتر هستند.",
-            current_day_news_total, backfill_news_total
-        ),
-        _ if daily_news_total == 0 => "در پنجره امروز هنوز خبر قابل نمایش در cache فعلی دیده نشده است.".to_string(),
-        _ => "خبرهای پنجره روز محلی نمایش داده می‌شوند؛ جدیدترین خبرها بالاتر قرار می‌گیرند.".to_string(),
-    };
-    iran.truncate(config.limits.iran_radar);
     global.truncate(config.limits.global_news);
     let news_lanes = build_news_lanes(&global);
     let writeups_pulse = build_writeups_pulse(&writeup_items);
@@ -114,7 +95,6 @@ pub(crate) fn build_brief(
 
     let news_priority = breaking_news
         .iter()
-        .chain(iran.iter())
         .chain(global.iter())
         .max_by_key(|item| item.risk_score);
     let cve_priority = cves.iter().max_by_key(|c| c.risk_score);
@@ -152,13 +132,11 @@ pub(crate) fn build_brief(
     Ok(json!({
         "site_title": config.site.title,
         "site_github": config.site.github.clone(),
-        "date_fa": "امروز",
         "date_en": date_en.clone(),
         "risk_level": risk_level,
         "generated_at": generated_at,
         "stats": {
             "total_items": items.len() + cve_count,
-            "iran_items": iran.len(),
             "global_news": global.len(),
             "breaking_news": breaking_news.len(),
             "daily_news": daily_news_total,
@@ -220,11 +198,9 @@ pub(crate) fn build_brief(
             "daily_news": daily_news_total,
             "current_day_news": current_day_news_total,
             "backfill_news": backfill_news_total,
-            "hidden_old_or_undated": daily_news_hidden,
-            "note_fa": news_window_note_fa
+            "hidden_old_or_undated": daily_news_hidden
         },
         "breaking_news": breaking_news,
-        "iran_radar": iran,
         "global_news": global,
         "news_lanes": news_lanes,
         "writeups_pulse": writeups_pulse,
@@ -331,13 +307,13 @@ pub(crate) fn is_breaking_news_item(item: &FeedItem) -> bool {
 
 pub(crate) fn news_time_display_fields(published: &str) -> (String, String, String) {
     let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(published) else {
-        return ("".to_string(), "".to_string(), "زمان نامشخص".to_string());
+        return ("".to_string(), "".to_string(), "unknown time".to_string());
     };
     let local = parsed.with_timezone(&tehran_offset());
     let date = local.format("%Y-%m-%d").to_string();
     let time = local.format("%H:%M").to_string();
     let label = if local.date_naive() == tehran_now().date_naive() {
-        format!("امروز {time}")
+        format!("Today {time}")
     } else {
         format!("{date} {time}")
     };
@@ -416,8 +392,8 @@ pub(crate) fn priority_from_cve(cve: &CveItem) -> Value {
 
 pub(crate) fn empty_priority() -> Value {
     json!({
-        "title": "فعلاً آیتمی دریافت نشد",
-        "summary": "RSSها یا اینترنت در دسترس نبودند. خروجی سایت ساخته شد، اما داده واقعی دریافت نشد.",
+        "title": "No items available yet",
+        "summary": "RSS feeds or internet were not available. Site output was generated, but no real data was received.",
         "source": "SecPath Radar Local",
         "url": "#",
         "risk_score": 1,

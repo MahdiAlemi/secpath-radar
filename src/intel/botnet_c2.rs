@@ -100,10 +100,10 @@ pub(crate) fn fetch_botnet_c2_pulse(
         "Low"
     };
 
-    let summary_fa = match level {
-        "High" => "چند C2 و fingerprint بدخواه تازه از Feodo و SSLBL دیده شده؛ این بخش فقط metadata دفاعی و defanged نمایش می‌دهد.",
-        "Medium" => "چند سیگنال botnet C2 و TLS بدخواه دریافت شد؛ برای correlation با IOC و زیرساخت مشکوک مناسب است.",
-        _ => "حجم سیگنال‌های botnet C2 و TLS در این اجرا پایین است.",
+    let summary = match level {
+        "High" => "Several new malicious C2 and fingerprints seen from Feodo and SSLBL; this section displays only defensive, defanged metadata.",
+        "Medium" => "Multiple botnet C2 and malicious TLS signals received; useful for IOC and suspicious infrastructure correlation.",
+        _ => "Volume of botnet C2 and TLS signals is low in this run.",
     };
 
     Ok(json!({
@@ -115,7 +115,7 @@ pub(crate) fn fetch_botnet_c2_pulse(
             "https://sslbl.abuse.ch/blacklist/"
         ],
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
         "metadata_only": true,
         "totals": {
@@ -180,7 +180,6 @@ pub(crate) fn parse_feodo_c2_csv(text: &str) -> Vec<BotnetC2Indicator> {
             risk: "watch".to_string(),
             score: 0,
             bar_width: 0,
-            note_fa: String::new(),
         });
     }
     out
@@ -220,7 +219,6 @@ pub(crate) fn parse_sslbl_ja3_csv(text: &str) -> Vec<TlsThreatIndicator> {
             risk: "watch".to_string(),
             score: 0,
             bar_width: 0,
-            note_fa: String::new(),
         });
     }
     out
@@ -258,7 +256,6 @@ pub(crate) fn parse_sslbl_cert_csv(text: &str) -> Vec<TlsThreatIndicator> {
             risk: "watch".to_string(),
             score: 0,
             bar_width: 0,
-            note_fa: String::new(),
         });
     }
     out
@@ -290,10 +287,6 @@ pub(crate) fn finalize_botnet_c2(items: &mut [BotnetC2Indicator]) {
             "watch"
         }
         .to_string();
-        item.note_fa = format!(
-            "{} به‌عنوان C2 botnet در Feodo دیده شده؛ فقط برای correlation دفاعی و مسدودسازی داخلی استفاده شود.",
-            item.malware
-        );
     }
     items.sort_by(|a, b| {
         b.score
@@ -325,10 +318,6 @@ pub(crate) fn finalize_tls_threats(items: &mut [TlsThreatIndicator]) {
             "watch"
         }
         .to_string();
-        item.note_fa = format!(
-            "{} از SSLBL دریافت شده و فقط به‌صورت fingerprint metadata نمایش داده می‌شود.",
-            item.indicator_type
-        );
     }
     items.sort_by(|a, b| {
         b.score
@@ -403,7 +392,7 @@ pub(crate) fn empty_botnet_c2_pulse(status: &str) -> Value {
         "ok": false,
         "provider": "Feodo Tracker + SSLBL",
         "level": "Unknown",
-        "summary_fa": "داده Botnet C2 Pulse در این اجرا در دسترس نبود.",
+        "summary": "Botnet C2 Pulse data was not available this run.",
         "last_updated": "",
         "metadata_only": true,
         "totals": {

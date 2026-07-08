@@ -138,10 +138,10 @@ pub(crate) fn fetch_supply_chain_radar(
         "Low"
     };
 
-    let summary_fa = if total == 0 {
-        "در این اجرا advisory قابل نمایش برای supply chain دریافت نشد.".to_string()
+    let summary = if total == 0 {
+        "No displayable supply chain advisories received in this run.".to_string()
     } else {
-        format!("{total} advisory تازه/اخیر از اکوسیستم‌های open-source دیده شد؛ {high} مورد high و {critical} مورد critical است.")
+        format!("{total} new/recent advisories from open-source ecosystems; {high} high and {critical} critical.")
     };
 
     Ok(json!({
@@ -149,7 +149,7 @@ pub(crate) fn fetch_supply_chain_radar(
         "ok": total > 0,
         "provider": "GitHub Global Advisories + OSV references",
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "refresh_hours": config.intel.refresh_hours,
         "totals": {
@@ -306,7 +306,6 @@ pub(crate) fn map_github_advisory(
         "risk": risk,
         "rank_score": rank_score,
         "bar_width": 0,
-        "note_fa": supply_chain_note(&severity, fix_available, &package),
     }))
 }
 
@@ -339,17 +338,6 @@ pub(crate) fn supply_chain_risk(severity: &str, cvss: f64, epss: f64) -> &'stati
     }
 }
 
-pub(crate) fn supply_chain_note(severity: &str, fix_available: bool, package: &str) -> String {
-    if severity == "critical" || severity == "high" {
-        if fix_available {
-            return format!("برای package {package} نسخه patched وجود دارد؛ در SBOM و dependency inventory تطبیق شود.");
-        }
-        return format!("برای package {package} advisory پرریسک دیده شده؛ وضعیت patched version را در advisory رسمی بررسی کن.");
-    }
-    "برای آگاهی از ریسک supply chain نگه داشته شود؛ این رادار dependency scan انجام نمی‌دهد."
-        .to_string()
-}
-
 pub(crate) fn annotate_supply_bars(advisories: &mut [Value]) {
     let max_score = advisories
         .iter()
@@ -370,7 +358,7 @@ pub(crate) fn empty_supply_chain_radar(status: &str) -> Value {
         "ok": false,
         "provider": "GitHub Global Advisories + OSV references",
         "level": "Unknown",
-        "summary_fa": "داده Supply Chain Radar در این اجرا در دسترس نبود.",
+        "summary": "Supply Chain Radar data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
         "totals": {"advisories": 0, "critical": 0, "high": 0, "fixed": 0, "ecosystems": 0},

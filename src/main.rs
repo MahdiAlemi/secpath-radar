@@ -15,7 +15,6 @@ mod news;
 mod output;
 mod polish;
 mod prelude;
-mod ranking;
 mod render;
 mod snapshot;
 mod today;
@@ -256,7 +255,6 @@ fn main() -> Result<()> {
     apply_local_polish(&mut brief);
     build_vendor_watchlist(&mut brief);
     build_attack_matrix(&mut brief);
-    apply_iran_relevance_sort(&mut brief);
     brief["top_signals"] = build_top_signals(&brief);
     attach_history_snapshot(&mut brief, previous_brief.as_ref());
     brief["triage_signals"] = build_triage_signals(&brief);

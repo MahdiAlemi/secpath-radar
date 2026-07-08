@@ -68,12 +68,12 @@ pub(crate) fn fetch_phishing_pulse(
     } else {
         "Watch"
     };
-    let summary_fa = if indicators.is_empty() {
-        "در این اجرا URL فیشینگ تازه‌ای از feed عمومی دریافت نشد.".to_string()
+    let summary = if indicators.is_empty() {
+        "No new phishing URLs received from public feed in this run.".to_string()
     } else if high > 0 {
-        format!("{} URL فیشینگ فعال از OpenPhish دریافت شد؛ {} مورد پرریسک lexical/host دیده می‌شود. همه URLها defanged هستند.", indicators.len(), high)
+        format!("{} active phishing URLs received from OpenPhish; {} high lexical/host risk. All URLs are defanged.", indicators.len(), high)
     } else {
-        format!("{} URL فیشینگ فعال از OpenPhish دریافت شد؛ خروجی فقط برای آگاهی و correlation دفاعی است.", indicators.len())
+        format!("{} active phishing URLs received from OpenPhish; output is for awareness and defensive correlation only.", indicators.len())
     };
 
     Ok(json!({
@@ -81,7 +81,7 @@ pub(crate) fn fetch_phishing_pulse(
         "ok": true,
         "provider": "OpenPhish Community Feed",
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "metadata_only": true,
         "defanged": true,
@@ -143,7 +143,6 @@ pub(crate) fn parse_openphish_feed(text: &str, limit: usize) -> Vec<PhishingUrlI
             risk: risk.to_string(),
             score,
             bar_width: score.clamp(12, 100),
-            note_fa: "URL فیشینگ به‌صورت defanged نمایش داده شده؛ آن را باز نکن و فقط برای correlation دفاعی استفاده کن.".to_string(),
         });
         if out.len() >= limit.max(1) {
             break;
@@ -323,7 +322,7 @@ pub(crate) fn empty_phishing_pulse(status: &str) -> Value {
         "ok": false,
         "provider": "OpenPhish Community Feed",
         "level": "Unknown",
-        "summary_fa": "داده Phishing Pulse در این اجرا در دسترس نبود.",
+        "summary": "Phishing Pulse data was not available this run.",
         "last_updated": "",
         "metadata_only": true,
         "defanged": true,

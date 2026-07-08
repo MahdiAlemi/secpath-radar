@@ -148,7 +148,7 @@ pub(crate) fn fetch_source(
             .title
             .as_ref()
             .map(|t| clean_text(&t.content))
-            .unwrap_or_else(|| "بدون عنوان".to_string());
+            .unwrap_or_else(|| "Untitled".to_string());
 
         let url = entry
             .links
@@ -184,8 +184,6 @@ pub(crate) fn fetch_source(
             risk_score: 1,
             category: "general".to_string(),
             tags: Vec::new(),
-            iran_related: false,
-            iran_context: "global".to_string(),
         };
 
         classify_and_score(&mut item, config);
@@ -229,27 +227,6 @@ pub(crate) fn classify_and_score(item: &mut FeedItem, config: &Config) {
     if haystack.contains("actively exploited") || haystack.contains("exploited in the wild") {
         score += 3;
         push_tag(&mut tags, "Active Exploit".to_string());
-    }
-
-    let iran_hit = config
-        .filters
-        .iran_keywords
-        .iter()
-        .any(|kw| haystack.contains(&kw.to_lowercase()));
-
-    if iran_hit {
-        item.iran_related = true;
-        item.iran_context = if haystack.contains("apt34")
-            || haystack.contains("oilrig")
-            || haystack.contains("charming kitten")
-            || haystack.contains("muddywater")
-        {
-            "threat_actor".to_string()
-        } else {
-            "mentioned".to_string()
-        };
-        score += 2;
-        push_tag(&mut tags, "Iran".to_string());
     }
 
     item.category = classify_news_category(&haystack).to_string();

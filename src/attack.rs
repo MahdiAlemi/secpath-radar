@@ -3,7 +3,7 @@ use crate::prelude::*;
 pub(crate) const ATTACK_TECHNIQUES: &[(&str, &str, &[&str])] = &[
     (
         "T1190",
-        "بهره‌برداری از سرویس عمومی",
+        "Public Service Exploitation",
         &[
             "exploit",
             "remote code execution",
@@ -14,42 +14,42 @@ pub(crate) const ATTACK_TECHNIQUES: &[(&str, &str, &[&str])] = &[
     ),
     (
         "T1566",
-        "فیشینگ",
+        "Phishing",
         &["phishing", "spearphishing", "smishing", "quishing"],
     ),
     (
         "T1486",
-        "باج‌افزار و رمزگذاری داده",
+        "Ransomware & Data Encryption",
         &["ransomware", "extortion"],
     ),
     (
         "T1078",
-        "سوءاستفاده از حساب معتبر",
+        "Valid Account Abuse",
         &["credential", "account takeover", "stolen password"],
     ),
     (
         "T1195",
-        "زنجیره تأمین",
+        "Supply Chain",
         &["supply chain", "malicious package", "typosquat"],
     ),
     (
         "T1059",
-        "اجرای فرمان و اسکریپت",
+        "Command & Script Execution",
         &["powershell", "command injection", "web shell", "webshell"],
     ),
     (
         "T1041",
-        "سرقت و افشای داده",
+        "Data Theft & Exfiltration",
         &["data breach", "data leak", "exfiltration", "stolen data"],
     ),
     (
         "T1498",
-        "منع سرویس",
+        "Denial of Service",
         &["ddos", "denial of service", "denial-of-service"],
     ),
     (
         "T1110",
-        "حمله به گذرواژه",
+        "Password Attack",
         &[
             "brute force",
             "brute-force",
@@ -59,7 +59,7 @@ pub(crate) const ATTACK_TECHNIQUES: &[(&str, &str, &[&str])] = &[
     ),
     (
         "T1189",
-        "آلوده‌سازی مرورگری",
+        "Drive-by Compromise",
         &["watering hole", "malvertising", "drive-by"],
     ),
 ];
@@ -67,9 +67,9 @@ pub(crate) const ATTACK_TECHNIQUES: &[(&str, &str, &[&str])] = &[
 pub(crate) fn build_attack_matrix(brief: &mut Value) {
     let mut rows: Vec<Value> = Vec::new();
     let mut total_hits = 0u64;
-    for (technique, label_fa, needles) in ATTACK_TECHNIQUES {
+    for (technique, label, needles) in ATTACK_TECHNIQUES {
         let mut hits = 0u64;
-        for list_key in ["cves", "global_news", "iran_radar"] {
+        for list_key in ["cves", "global_news"] {
             hits += count_hits(brief, list_key, needles);
         }
         if hits == 0 {
@@ -77,9 +77,9 @@ pub(crate) fn build_attack_matrix(brief: &mut Value) {
         }
         total_hits += hits;
         rows.push(json!({
-            "name": format!("{technique} · {label_fa}"),
+            "name": format!("{technique} · {label}"),
             "technique": technique,
-            "label_fa": label_fa,
+            "label": label,
             "hits": hits,
             "count": hits
         }));
@@ -101,18 +101,18 @@ pub(crate) fn build_attack_matrix(brief: &mut Value) {
         row["bar_width"] = json!(((hits * 100) / peak).clamp(4, 100));
     }
     let techniques = rows.len();
-    let summary_fa = if rows.is_empty() {
-        "در این اجرا الگوی حمله شاخصی از محتوای رصدشده استخراج نشد.".to_string()
+    let summary = if rows.is_empty() {
+        "No significant attack pattern was extracted from monitored content in this run.".to_string()
     } else {
         let top_name = rows[0]["name"].as_str().unwrap_or("-").to_string();
-        format!("محتوای این اجرا به {techniques} تکنیک MITRE ATT&CK نگاشت شد؛ پرتکرارترین الگو: {top_name}.")
+        format!("This run mapped content to {techniques} MITRE ATT&CK techniques; top pattern: {top_name}.")
     };
     brief["attack_matrix"] = json!({
         "ok": techniques > 0,
         "rows": rows,
         "totals": { "techniques": techniques, "hits": total_hits },
-        "summary_fa": summary_fa,
-        "provider": "نگاشت کلیدواژه‌ای به MITRE ATT&CK"
+        "summary": summary,
+        "provider": "Keyword mapping to MITRE ATT&CK"
     });
     if let Some(stats) = brief.get_mut("stats").and_then(|v| v.as_object_mut()) {
         stats.insert("attack_techniques".to_string(), json!(techniques));
@@ -132,8 +132,7 @@ mod tests {
                 { "title": "Large phishing campaign hits banks", "summary": "", "tags": [] },
                 { "title": "Phishing kit abuses QR codes", "summary": "", "tags": [] },
                 { "title": "Ransomware gang claims new victim", "summary": "", "tags": [] }
-            ],
-            "iran_radar": []
+            ]
         });
         build_attack_matrix(&mut brief);
         let pulse = &brief["attack_matrix"];
@@ -146,7 +145,7 @@ mod tests {
 
     #[test]
     fn build_attack_matrix_reports_empty_state() {
-        let mut brief = json!({ "stats": {}, "cves": [], "global_news": [], "iran_radar": [] });
+        let mut brief = json!({ "stats": {}, "cves": [], "global_news": [] });
         build_attack_matrix(&mut brief);
         assert_eq!(brief["attack_matrix"]["ok"], json!(false));
     }

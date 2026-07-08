@@ -149,12 +149,12 @@ pub(crate) fn fetch_poc_watch(
         }
     }
 
-    let summary_fa = if repos == 0 && offline && cache_misses == queries.len() as u64 {
-        format!("در حالت offline، cache قبلی برای جست‌وجوهای جدید PoC وجود نداشت؛ با یک اجرای online، جریان زمانی PoC پر می‌شود و بعداً offline از cache خوانده می‌شود.")
+    let summary = if repos == 0 && offline && cache_misses == queries.len() as u64 {
+        format!("In offline mode, no previous cache was available for new PoC queries; with an online run, the PoC timeline will be populated and then cached for offline use.")
     } else if repos == 0 {
-        format!("در بازه {} روز اخیر، PoC عمومی جدید و قابل نمایش به‌صورت metadata-only از جریان زمانی GitHub دیده نشد یا cache/API محدود بود.", recent_days)
+        format!("In the last {} days, no new publicly visible PoC metadata was found in the GitHub timeline or the cache/API was limited.", recent_days)
     } else {
-        format!("{repos} PoC metadata جدید برای {cves_with_poc} CVE از جریان زمانی GitHub استخراج شد؛ مبنا زمان انتشار repository است، نه جست‌وجو روی CVEهای داشبورد.")
+        format!("{repos} new PoC metadata entries for {cves_with_poc} CVEs were extracted from the GitHub timeline; the basis is repository publish time, not CVE dashboard searches.")
     };
 
     Ok(json!({
@@ -165,7 +165,7 @@ pub(crate) fn fetch_poc_watch(
         "mode": "latest_poc_stream",
         "window_days": recent_days,
         "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands; repository URLs are not rendered in UI",
-        "summary_fa": summary_fa,
+        "summary": summary,
         "totals": {
             "cves_checked": 0,
             "cves_with_poc": cves_with_poc,
@@ -363,14 +363,10 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
     };
     let repo_type = github_poc_repo_type(&text);
     let age_days = poc_age_days(&created_at);
-    let age_fa = poc_age_label_fa(age_days);
-
     cve_ids
         .into_iter()
         .map(|cve_id| {
-            let note_fa = github_poc_note_fa(&cve_id, risk, repo_type, age_days);
             let title = format!("{} latest public PoC metadata", cve_id);
-            let title_fa = format!("PoC عمومی تازه برای {}", cve_id);
             json!({
                 "cve_id": cve_id,
                 "repo": full_name,
@@ -378,9 +374,7 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
                 "github_path": format!("github.com/{full_name}"),
                 "url_rendered": false,
                 "title": title,
-                "title_fa": title_fa,
                 "description": concise_text(description, 180),
-                "description_fa": fallback_persian_summary(description, "این repository فقط به‌عنوان metadata برای وجود PoC عمومی جدید ثبت شده است"),
                 "stars": stars,
                 "forks": forks,
                 "language": language.clone(),
@@ -391,12 +385,10 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
                 "updated_ts": updated_ts,
                 "pushed_at": pushed_at.clone(),
                 "age_days": age_days,
-                "age_fa": age_fa.clone(),
                 "repo_type": repo_type,
                 "risk": risk,
                 "score": score,
                 "bar_width": score,
-                "note_fa": note_fa,
                 "safe_mode": "metadata only; no code, no raw URL, no clone/download command",
                 "tags": github_poc_tags(repo_type, risk, age_days)
             })
@@ -562,41 +554,10 @@ pub(crate) fn poc_age_days(timestamp: &str) -> u64 {
     ((Utc::now().timestamp() - event_ts).max(0) / 86_400) as u64
 }
 
-pub(crate) fn poc_age_label_fa(age_days: u64) -> String {
-    if age_days == 0 {
-        "امروز".to_string()
-    } else if age_days == 1 {
-        "دیروز".to_string()
-    } else if age_days < 7 {
-        format!("{} روز پیش", age_days)
-    } else if age_days < 30 {
-        format!("{} هفته پیش", (age_days as f64 / 7.0).ceil() as u64)
-    } else if age_days < 365 {
-        format!("{} ماه پیش", (age_days as f64 / 30.0).ceil() as u64)
-    } else {
-        "قدیمی".to_string()
-    }
-}
-
 pub(crate) fn parse_rfc3339_timestamp(value: &str) -> Option<i64> {
     chrono::DateTime::parse_from_rfc3339(value)
         .ok()
         .map(|dt| dt.timestamp())
-}
-
-pub(crate) fn github_poc_note_fa(
-    cve_id: &str,
-    risk: &str,
-    repo_type: &str,
-    age_days: u64,
-) -> String {
-    if age_days <= 1 {
-        format!("{} از جریان جدیدترین PoCهای عمومی استخراج شد؛ داده فقط metadata است و کد یا دستور اجرا نمایش داده نمی‌شود.", cve_id)
-    } else if risk == "high" || repo_type == "exploit-metadata" {
-        format!("برای {} نشانه PoC/exploit عمومی تازه دیده شده؛ فقط برای آگاهی دفاعی و اولویت‌بندی patch استفاده شود.", cve_id)
-    } else {
-        format!("برای {} metadata مربوط به PoC عمومی جدید دیده شده؛ قبل از تصمیم عملیاتی اعتبارسنجی دستی لازم است.", cve_id)
-    }
 }
 
 pub(crate) fn github_poc_tags(repo_type: &str, risk: &str, age_days: u64) -> Vec<String> {
@@ -620,7 +581,7 @@ pub(crate) fn empty_poc_watch(reason: &str) -> Value {
         "mode": "latest_poc_stream",
         "window_days": 0,
         "safe_mode": "metadata only; no exploit code; no raw links; no clone/download commands",
-        "summary_fa": "Latest PoC Watch در این اجرا داده‌ای ندارد.",
+        "summary": "PoC Watch has no data for this run.",
         "totals": {
             "cves_checked": 0,
             "cves_with_poc": 0,

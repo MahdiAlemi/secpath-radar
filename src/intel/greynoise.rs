@@ -62,7 +62,7 @@ pub(crate) fn fetch_greynoise_context(
             "provider": "GreyNoise Community API",
             "source_url": cfg.community_api_url.clone(),
             "level": "Low",
-            "summary_fa": "در این اجرا IP مناسبی برای context گیری GreyNoise انتخاب نشد.",
+            "summary": "No suitable IPs selected for GreyNoise context lookup in this run.",
             "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
             "passive_lookup": true,
             "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0},
@@ -118,10 +118,10 @@ pub(crate) fn fetch_greynoise_context(
         "Low"
     };
 
-    let summary_fa = match level {
-        "High" => "برخی IPهای زیرساختی یا C2 در GreyNoise به‌عنوان noise یا malicious دیده شده‌اند؛ این فقط context دفاعی است.",
-        "Medium" => "چند IP در GreyNoise context قابل مشاهده دارند؛ برای کاهش false positive و اولویت‌بندی مناسب است.",
-        _ => "GreyNoise برای IPهای انتخاب‌شده سیگنال پرریسک برجسته‌ای نشان نمی‌دهد.",
+    let summary = match level {
+        "High" => "Some infrastructure or C2 IPs flagged as noise or malicious in GreyNoise; this is defensive context only.",
+        "Medium" => "Several IPs have observable GreyNoise context; useful for reducing false positives and prioritization.",
+        _ => "GreyNoise does not show notable high-risk signals for the selected IPs.",
     };
 
     let value = json!({
@@ -130,7 +130,7 @@ pub(crate) fn fetch_greynoise_context(
         "provider": "GreyNoise Community API",
         "source_url": cfg.community_api_url.clone(),
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
         "passive_lookup": true,
         "rate_limited_possible": true,
@@ -267,8 +267,6 @@ pub(crate) fn fetch_greynoise_candidate(
         .to_string();
 
     let (risk, score) = greynoise_risk_score(&classification, noise, riot);
-    let note_fa = greynoise_note(&classification, noise, riot, &name);
-
     Ok(GreyNoiseContextRow {
         rank: 0,
         ip: candidate.ip.clone(),
@@ -283,7 +281,6 @@ pub(crate) fn fetch_greynoise_candidate(
         risk: risk.to_string(),
         score,
         bar_width: score.clamp(12, 100),
-        note_fa,
     })
 }
 
@@ -395,22 +392,6 @@ pub(crate) fn greynoise_risk_score(
     }
 }
 
-pub(crate) fn greynoise_note(classification: &str, noise: bool, riot: bool, name: &str) -> String {
-    if classification == "malicious" {
-        return "GreyNoise این IP را malicious طبقه‌بندی کرده؛ برای کاهش false positive و triage دفاعی استفاده شود.".to_string();
-    }
-    if noise {
-        return "این IP در GreyNoise به‌عنوان internet noise/scanner دیده شده؛ اولویت بررسی را با سایر سیگنال‌ها تطبیق بده.".to_string();
-    }
-    if riot {
-        return format!(
-            "این IP در RIOT/Business Services دیده شده و احتمالاً سرویس شناخته‌شده است: {}.",
-            truncate_chars(name, 36)
-        );
-    }
-    "GreyNoise برای این IP سیگنال scanning یا RIOT برجسته‌ای نشان نمی‌دهد.".to_string()
-}
-
 pub(crate) fn greynoise_classification_chart(rows: &[GreyNoiseContextRow]) -> Vec<Value> {
     let mut counts: HashMap<String, usize> = HashMap::new();
     for row in rows {
@@ -440,7 +421,7 @@ pub(crate) fn empty_greynoise_context(status: &str) -> Value {
         "ok": false,
         "provider": "GreyNoise Community API",
         "level": "Unknown",
-        "summary_fa": "داده GreyNoise Context در این اجرا در دسترس نبود.",
+        "summary": "GreyNoise Context data was not available this run.",
         "last_updated": "",
         "passive_lookup": true,
         "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0},

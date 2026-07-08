@@ -14,7 +14,6 @@ pub(crate) struct CsafAdvisory {
     pub(crate) risk: String,
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
-    pub(crate) note_fa: String,
 }
 
 pub(crate) fn fetch_csaf_pulse_or_fallback(
@@ -115,11 +114,11 @@ pub(crate) fn fetch_csaf_pulse(
     } else {
         "Watch"
     };
-    let summary_fa = if advisories.is_empty() {
-        "در این اجرا advisory تازه‌ای از فید CSAF دریافت نشد.".to_string()
+    let summary = if advisories.is_empty() {
+        "No new advisories received from the CSAF feed in this run.".to_string()
     } else {
         format!(
-            "{} advisory تازه از فید رسمی CSAF دریافت شد ({} بحرانی/مهم) و در مجموع {} CVE را پوشش می‌دهد.",
+            "{} new advisories received from the official CSAF feed ({} critical/important), covering {} CVEs in total.",
             advisories.len(),
             critical + important,
             cves_total
@@ -131,7 +130,7 @@ pub(crate) fn fetch_csaf_pulse(
         "ok": true,
         "provider": "Red Hat CSAF v2",
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
         "metadata_only": true,
         "totals": {
@@ -221,7 +220,6 @@ pub(crate) fn parse_csaf_document(doc: &Value) -> Option<CsafAdvisory> {
         risk: "watch".to_string(),
         score: 0,
         bar_width: 0,
-        note_fa: String::new(),
     })
 }
 
@@ -248,8 +246,6 @@ pub(crate) fn finalize_csaf_advisories(items: &mut Vec<CsafAdvisory>) {
             "watch"
         }
         .to_string();
-        item.note_fa = "advisory رسمی CSAF است؛ برای تطبیق با سیستم‌های تحت مدیریت خودت استفاده کن."
-            .to_string();
     }
     items.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.id.cmp(&b.id)));
     for (idx, item) in items.iter_mut().enumerate() {
@@ -263,7 +259,7 @@ pub(crate) fn empty_csaf_pulse(status: &str) -> Value {
         "ok": false,
         "provider": "Red Hat CSAF v2",
         "level": "Unknown",
-        "summary_fa": "داده CSAF Advisory Pulse در این اجرا در دسترس نبود.",
+        "summary": "CSAF Advisory Pulse data was not available this run.",
         "last_updated": "",
         "metadata_only": true,
         "totals": {"advisories": 0, "critical": 0, "important": 0, "cves": 0},

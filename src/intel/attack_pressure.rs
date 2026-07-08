@@ -98,10 +98,10 @@ pub(crate) fn fetch_attack_pressure(
         "Low"
     };
 
-    let summary_fa = match level {
-        "High" => "چندین پورت حساس در feedهای DShield تکرار شده‌اند؛ فشار اسکن اینترنتی بالا ارزیابی می‌شود.",
-        "Medium" => "چند سرویس پرریسک در بین پورت‌های هدف دیده می‌شود؛ وضعیت برای پایش روزانه قابل توجه است.",
-        _ => "داده‌های DShield فشار غیرعادی شدیدی را نشان نمی‌دهد، اما سرویس‌های رایج همچنان زیر اسکن هستند.",
+    let summary = match level {
+        "High" => "Multiple sensitive ports repeated in DShield feeds; high internet scan pressure assessed.",
+        "Medium" => "Several high-risk services seen among targeted ports; notable for daily monitoring.",
+        _ => "DShield data does not show extreme abnormal pressure, but common services remain under scan.",
     };
 
     Ok(json!({
@@ -110,7 +110,7 @@ pub(crate) fn fetch_attack_pressure(
         "provider": "SANS ISC / DShield",
         "source_url": "https://www.dshield.org/feeds_doc.html",
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
         "cache_dir": config.intel.cache_dir.clone(),
         "refresh_hours": config.intel.refresh_hours,
@@ -187,7 +187,6 @@ pub(crate) fn parse_dshield_ports(text: &str) -> Vec<AttackPort> {
             service: normalize_port_service(&service),
             description: clean_text(&description),
             risk: attack_port_risk(port).to_string(),
-            note_fa: attack_port_note(port),
             pressure_score: 0,
             bar_width: 0,
         });
@@ -213,26 +212,13 @@ pub(crate) fn attack_port_risk(port: u16) -> &'static str {
     }
 }
 
-pub(crate) fn attack_port_note(port: u16) -> String {
-    match port {
-        22 | 2222 => "اسکن SSH؛ کلیدها، MFA، rate-limit و دسترسی public را بررسی کن.".to_string(),
-        23 => "Telnet روی اینترنت پرریسک است؛ وجود آن در assetها باید سریع حذف یا محدود شود.".to_string(),
-        80 | 443 | 8080 | 8000 | 8443 | 8081 => "فشار روی سرویس‌های وب؛ exposure، WAF، patch و لاگ‌های edge را پایش کن.".to_string(),
-        445 => "SMB نباید public-facing باشد؛ هر exposure اینترنتی را بحرانی فرض کن.".to_string(),
-        3389 => "RDP اینترنتی هدف رایج brute-force و exploit است؛ دسترسی را محدود و مانیتور کن.".to_string(),
-        53 | 853 => "فعالیت DNS دیده می‌شود؛ resolverهای باز و policyهای recursive را بررسی کن.".to_string(),
-        5060 => "SIP/VoIP زیر اسکن است؛ brute-force و تنظیمات exposed PBX را بررسی کن.".to_string(),
-        _ => "این پورت در داده‌های DShield دیده شده؛ در صورت وجود در سطح اینترنت، مالکیت و ضرورت آن را بررسی کن.".to_string(),
-    }
-}
-
 pub(crate) fn empty_attack_pressure(status: &str) -> Value {
     json!({
         "enabled": status != "disabled",
         "ok": false,
         "provider": "SANS ISC / DShield",
         "level": "Unknown",
-        "summary_fa": "داده Attack Pressure در این اجرا در دسترس نبود.",
+        "summary": "Attack Pressure data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
         "top_ports": [],

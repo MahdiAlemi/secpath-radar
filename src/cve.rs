@@ -914,19 +914,19 @@ pub(crate) fn finalize_cve_score(cve: &mut CveItem) {
 
 pub(crate) fn recommended_action_for_cve(cve: &CveItem) -> String {
     if cve.kev && cve.kev_ransomware {
-        "در KEV با سابقه استفاده باج‌افزاری است؛ وصله را با بالاترین اولویت اعمال کن.".to_string()
+        "Listed in KEV with ransomware usage history; apply patch with highest priority.".to_string()
     } else if cve.kev {
-        "به‌دلیل حضور در KEV، فوراً exposure و patch/mitigation را بررسی کن.".to_string()
+        "Listed in KEV; immediately check exposure and apply patch/mitigation.".to_string()
     } else if cve.cisa_priority == "immediate-watch" {
-        "با توجه به SSVC/Vulnrichment، این CVE باید در watch فوری تیم دفاعی باشد.".to_string()
+        "Based on SSVC/Vulnrichment, this CVE should be on the defensive team's immediate watch list.".to_string()
     } else if cve.epss_momentum == "rising" {
-        "EPSS این CVE رو به رشد است؛ اولویت پایش و تطبیق با assetها را بالاتر ببر.".to_string()
+        "EPSS for this CVE is rising; increase monitoring priority and asset matching.".to_string()
     } else if cve.severity == "CRITICAL" || cve.cvss >= 9.0 {
-        "با asset inventory تطبیق بده و برای patch یا mitigation اولویت بالا بده.".to_string()
+        "Match against asset inventory and prioritize patching or mitigation.".to_string()
     } else if cve.epss >= 0.70 {
-        "به‌خاطر احتمال exploit بالا، سرویس‌های public-facing مرتبط را سریع بررسی کن.".to_string()
+        "Due to high exploit probability, quickly review related public-facing services.".to_string()
     } else {
-        "اثرگذاری روی محصولات محیط خودت را بررسی و در چرخه patch عادی پیگیری کن.".to_string()
+        "Assess impact on your environment and track in the normal patching cycle.".to_string()
     }
 }
 

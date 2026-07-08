@@ -12,8 +12,6 @@ pub(crate) struct FeedItem {
     pub(crate) risk_score: i64,
     pub(crate) category: String,
     pub(crate) tags: Vec<String>,
-    pub(crate) iran_related: bool,
-    pub(crate) iran_context: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -74,7 +72,6 @@ pub(crate) struct AttackPort {
     pub(crate) service: String,
     pub(crate) description: String,
     pub(crate) risk: String,
-    pub(crate) note_fa: String,
     pub(crate) pressure_score: usize,
     pub(crate) bar_width: usize,
 }
@@ -94,7 +91,6 @@ pub(crate) struct IocIndicator {
     pub(crate) risk_score: usize,
     pub(crate) bar_width: usize,
     pub(crate) tags: Vec<String>,
-    pub(crate) note_fa: String,
 }
 
 #[derive(Debug, Clone)]
@@ -121,7 +117,6 @@ pub(crate) struct InfrastructureHost {
     pub(crate) exposure_score: usize,
     pub(crate) bar_width: usize,
     pub(crate) risk: String,
-    pub(crate) note_fa: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -135,7 +130,6 @@ pub(crate) struct RansomwareVictim {
     pub(crate) recency_score: usize,
     pub(crate) risk: String,
     pub(crate) bar_width: usize,
-    pub(crate) note_fa: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -151,7 +145,6 @@ pub(crate) struct BotnetC2Indicator {
     pub(crate) risk: String,
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
-    pub(crate) note_fa: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -167,7 +160,6 @@ pub(crate) struct TlsThreatIndicator {
     pub(crate) risk: String,
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
-    pub(crate) note_fa: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -185,7 +177,6 @@ pub(crate) struct GreyNoiseContextRow {
     pub(crate) risk: String,
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
-    pub(crate) note_fa: String,
 }
 
 #[derive(Debug, Clone)]
@@ -209,7 +200,6 @@ pub(crate) struct PhishingUrlIndicator {
     pub(crate) risk: String,
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
-    pub(crate) note_fa: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -228,5 +218,4 @@ pub(crate) struct IcsAdvisoryItem {
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
     pub(crate) source: String,
-    pub(crate) note_fa: String,
 }

@@ -137,10 +137,10 @@ pub(crate) fn fetch_ransomware_pulse(
     } else {
         "Low"
     };
-    let summary_fa = if total == 0 {
-        "در این اجرا claim تازه قابل نمایش از Ransomware.live دریافت نشد.".to_string()
+    let summary = if total == 0 {
+        "No new displayable claims received from Ransomware.live in this run.".to_string()
     } else {
-        format!("{total} claim عمومی ransomware از Ransomware.live وارد رادار شد؛ {recent_7d} مورد در بازه نزدیک به ۷ روز اخیر دیده می‌شود.")
+        format!("{total} public ransomware claims from Ransomware.live entered the radar; {recent_7d} seen within the last 7 days.")
     };
 
     Ok(json!({
@@ -148,7 +148,7 @@ pub(crate) fn fetch_ransomware_pulse(
         "ok": total > 0,
         "provider": "Ransomware.live public API",
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "refresh_hours": config.intel.refresh_hours,
         "totals": {
@@ -229,8 +229,6 @@ pub(crate) fn map_ransomware_victim(row: &Value) -> Option<RansomwareVictim> {
         "watch"
     }
     .to_string();
-    let note_fa = ransomware_note(&group, &country, &sector, &claimed_date);
-
     Some(RansomwareVictim {
         rank: 0,
         victim_safe: sanitize_victim_label(&victim_name),
@@ -241,7 +239,6 @@ pub(crate) fn map_ransomware_victim(row: &Value) -> Option<RansomwareVictim> {
         recency_score,
         risk,
         bar_width: 12,
-        note_fa,
     })
 }
 
@@ -327,35 +324,6 @@ pub(crate) fn is_critical_ransomware_sector(sector: &str) -> bool {
         || lower.contains("manufacturing")
 }
 
-pub(crate) fn ransomware_note(
-    group: &str,
-    country: &str,
-    sector: &str,
-    claimed_date: &str,
-) -> String {
-    let mut parts = Vec::new();
-    if group != "unknown" {
-        parts.push(format!("گروه {group}"));
-    }
-    if country != "unknown" {
-        parts.push(format!("کشور {country}"));
-    }
-    if sector != "unknown" {
-        parts.push(format!("بخش {sector}"));
-    }
-    if claimed_date != "unknown" && !claimed_date.is_empty() {
-        parts.push(format!("تاریخ claim {claimed_date}"));
-    }
-    if parts.is_empty() {
-        "claim عمومی ransomware برای آگاهی موقعیتی ثبت شده؛ لینک leak یا محتوای حساس نمایش داده نمی‌شود.".to_string()
-    } else {
-        format!(
-            "{}؛ فقط برای آگاهی موقعیتی و بدون لینک leak نمایش داده شده است.",
-            parts.join(" · ")
-        )
-    }
-}
-
 pub(crate) fn finalize_ransomware_victims(victims: &mut [RansomwareVictim]) {
     victims.sort_by(|a, b| {
         b.recency_score
@@ -382,7 +350,7 @@ pub(crate) fn empty_ransomware_pulse(status: &str) -> Value {
         "ok": false,
         "provider": "Ransomware.live public API",
         "level": "Unknown",
-        "summary_fa": "داده Ransomware Pulse در این اجرا در دسترس نبود.",
+        "summary": "Ransomware Pulse data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
         "totals": {"victims": 0, "groups": 0, "countries": 0, "sectors": 0, "recent_24h": 0, "recent_7d": 0},

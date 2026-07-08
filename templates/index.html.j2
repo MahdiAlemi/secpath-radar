@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ brief.site_title }} — {{ brief.date_fa }}</title>
+  <title>{{ brief.site_title }} — {{ brief.date_en }}</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="assets/css/radar.css" />
   <script src="assets/js/radar.js" defer></script>
@@ -20,14 +20,14 @@
 {% macro news_card(item) %}
 <article class="item risk-{{ riskcls(item.risk_score) }}{% if item.is_today == false %} is-older{% endif %}">
   <div class="item-head">
-    <h3><a href="{{ item.url }}" rel="noopener noreferrer"><span class="t-fa">{{ item.title_fa }}</span><span class="t-en">{{ item.title or item.title_fa }}</span></a></h3>
+    <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title or item.title_fa }}</a></h3>
     <span class="score">{{ item.risk_score }}</span>
   </div>
-  <p><span class="t-fa">{{ item.summary_fa }}</span><span class="t-en">{{ item.summary or item.summary_fa }}</span></p>
+  <p>{{ item.summary or item.summary_fa }}</p>
   <div class="meta">
     <span>{{ item.source }}</span>
     <span>{{ item.freshness_label }}</span>
-    {% if item.is_new %}<span class="tag tag-new">جدید</span>{% endif %}
+    {% if item.is_new %}<span class="tag tag-new">New</span>{% endif %}
     {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
   </div>
   <p class="note">{{ item.why_it_matters }}</p>
@@ -36,8 +36,8 @@
 {% macro empty_pulse(id, title_fa, title_en, provider, text) %}
 <section id="{{ id }}" class="panel is-empty">
   <div class="panel-head">
-    <div><span class="eyebrow">{{ title_en }}</span><h2>{{ title_fa }}</h2></div>
-    <span class="chip chip-idle">بدون داده در این اجرا</span>
+    <div><span class="eyebrow">{{ title_en }}</span><h2>{{ title_en }}</h2></div>
+    <span class="chip chip-idle">No data in this run</span>
   </div>
   <p class="empty-note">{{ text }}</p>
   <div class="meta"><span>{{ provider }}</span></div>
@@ -45,73 +45,72 @@
 {% endmacro %}
 
 <header class="topbar">
-  <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">رصد غیرفعال امنیت سایبری</span></div>
+  <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">Passive Cyber Threat Monitoring</span></div>
   <div class="topbar-meta">
-    <span class="live-chip" id="today-chip" data-today="{{ brief.date_en }}"><i class="live-dot"></i><span>امروز · {{ brief.date_en }}</span></span>
+    <span class="live-chip" id="today-chip" data-today="{{ brief.date_en }}"><i class="live-dot"></i><span>Today &middot; {{ brief.date_en }}</span></span>
     <span class="chip chip-version">{{ brief.version }}</span>
   </div>
   <div class="topbar-actions">
     {% if brief.site_github %}<a class="ui-chip" href="{{ brief.site_github }}" rel="noopener noreferrer">GitHub</a>{% endif %}
-    <a class="ui-chip" href="weekly.html">جمع‌بندی هفتگی</a>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="density">نمای فشرده</span>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">جمع‌کردن همه</span>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">روشن/تیره</span>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="lang">EN</span>
+    <a class="ui-chip" href="weekly.html">Weekly Digest</a>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="density">Compact View</span>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">Collapse All</span>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">Light/Dark</span>
   </div>
 </header>
 
-<nav class="anchor-nav" aria-label="پرش محلی بین خوشه‌ها">
-  <a href="#top-signals" class="is-active">نمای کلی</a>
-  <a href="#cves">آسیب‌پذیری</a>
-  <a href="#breaking-news">خبر و تحلیل</a>
-  <a href="#ioc-radar">تله‌متری تهدید</a>
-  <a href="#sources">منابع</a>
+<nav class="anchor-nav" aria-label="Jump between clusters">
+  <a href="#top-signals" class="is-active">Overview</a>
+  <a href="#cves">Vulnerabilities</a>
+  <a href="#breaking-news">News &amp; Research</a>
+  <a href="#ioc-radar">Threat Telemetry</a>
+  <a href="#sources">Sources</a>
 </nav>
 
 <main class="shell">
 
-  <section class="kpi-strip" aria-label="شاخص‌های تصمیم سریع">
-    <div class="kpi kpi-risk risk-{{ brief.risk_level|lower }}"><span>امتیاز ریسک</span><b>{{ brief.executive_snapshot.score }}</b><small>{{ brief.risk_level }}</small></div>
-    <div class="kpi"><span>CVE بحرانی</span><b>{{ brief.stats.critical_cves }}</b><small>از {{ brief.stats.cves }} CVE</small></div>
-    <div class="kpi"><span>بهره‌برداری</span><b>{{ brief.stats.kev }}</b><small>KEV · {{ brief.stats.epss_rising }} EPSS↑ · {{ brief.stats.poc_watch }} PoC</small></div>
-    <div class="kpi"><span>خبر امروز</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} فوری · {{ brief.stats.writeups }} تحلیل</small></div>
-    <div class="kpi"><span>تهدید فعال</span><b>{{ brief.stats.iocs }}</b><small>IOC · {{ brief.stats.botnet_c2 }} C2 · {{ brief.stats.phishing_urls }} فیشینگ</small></div>
-    <div class="kpi"><span>پوشش Nuclei</span><b>{{ brief.stats.nuclei_coverage_pct }}٪</b><small>{{ brief.stats.nuclei_covered_cves }} CVE دارای template</small></div>
+  <section class="kpi-strip" aria-label="Quick-decision metrics">
+    <div class="kpi kpi-risk risk-{{ brief.risk_level|lower }}"><span>Risk Score</span><b>{{ brief.executive_snapshot.score }}</b><small>{{ brief.risk_level }}</small></div>
+    <div class="kpi"><span>Critical CVEs</span><b>{{ brief.stats.critical_cves }}</b><small>of {{ brief.stats.cves }} CVE</small></div>
+    <div class="kpi"><span>Exploitation</span><b>{{ brief.stats.kev }}</b><small>KEV &middot; {{ brief.stats.epss_rising }} EPSS&uarr; &middot; {{ brief.stats.poc_watch }} PoC</small></div>
+    <div class="kpi"><span>Today's News</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} Breaking &middot; {{ brief.stats.writeups }} Research</small></div>
+    <div class="kpi"><span>Active Threats</span><b>{{ brief.stats.iocs }}</b><small>IOC &middot; {{ brief.stats.botnet_c2 }} C2 &middot; {{ brief.stats.phishing_urls }} Phishing</small></div>
+    <div class="kpi"><span>Nuclei Coverage</span><b>{{ brief.stats.nuclei_coverage_pct }}%</b><small>{{ brief.stats.nuclei_covered_cves }} CVE with template</small></div>
   </section>
 
-  <section id="top-signals" class="cluster" aria-label="مهم‌ترین سیگنال‌ها">
-    <div class="cluster-head"><span class="eyebrow">Top Signals</span><h2>مهم‌ترین سیگنال‌های امروز</h2></div>
+  <section id="top-signals" class="cluster" aria-label="Top signals">
+    <div class="cluster-head"><span class="eyebrow">Top Signals</span><h2>Top Signals Today</h2></div>
     <div class="triage-row">
       {% for s in brief.top_signals %}{% if loop.index <= 5 %}
       <a class="triage-card risk-{{ s.level }}" href="{{ s.anchor }}">
         <div class="triage-top"><b>{{ s.title }}</b><span>{{ s.metric }}</span></div>
-        <p>{{ s.note_fa }}</p>
+        <p>{{ s.note }}</p>
         <span class="bar-track"><b style="width: {{ s.bar_width }}%"></b></span>
       </a>
       {% endif %}{% endfor %}
     </div>
   </section>
 
-  <section class="cluster" aria-label="نمای مدیریتی">
+  <section class="cluster" aria-label="Executive overview">
     <div class="grid grid-3">
 
       <section id="executive-snapshot" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Executive</span><h2>خلاصه ۶۰ ثانیه‌ای</h2></div><span class="chip">{{ brief.executive_snapshot.score }} / 100</span></div>
-        <p class="lede">{{ brief.executive_snapshot.summary_fa }}</p>
-        <p class="note">{{ brief.executive_snapshot.score_formula_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Executive</span><h2>60-Second Summary</h2></div><span class="chip">{{ brief.executive_snapshot.score }} / 100</span></div>
+        <p class="lede">{{ brief.executive_snapshot.summary }}</p>
+        <p class="note">{{ brief.executive_snapshot.score_formula }}</p>
         <span class="bar-track meter risk-{{ brief.risk_level|lower }}"><b style="width: {{ brief.executive_snapshot.bar_width }}%"></b></span>
         {% for card in brief.executive_snapshot.risk_cards %}
         <div class="row risk-{{ card.level }}">
           <div class="row-head"><b>{{ card.title }}</b><span>{{ card.metric }}</span></div>
-          <p class="note">{{ card.note_fa }}</p>
+          <p class="note">{{ card.note }}</p>
         </div>
         {% endfor %}
       </section>
 
       <section id="priority" class="panel panel-priority">
-        <div class="panel-head"><div><span class="eyebrow">Priority</span><h2>سیگنال اولویت‌دار امروز</h2></div><span class="chip chip-risk">Risk {{ brief.priority_alert.risk_score }}</span></div>
-        <h3 class="priority-title"><a href="{{ brief.priority_alert.url }}" rel="noopener noreferrer"><span class="t-fa">{{ brief.priority_alert.title_fa }}</span><span class="t-en">{{ brief.priority_alert.title or brief.priority_alert.title_fa }}</span></a></h3>
-        <p><span class="t-fa">{{ brief.priority_alert.summary_fa }}</span><span class="t-en">{{ brief.priority_alert.summary or brief.priority_alert.summary_fa }}</span></p>
+        <div class="panel-head"><div><span class="eyebrow">Priority</span><h2>Today's Priority Signal</h2></div><span class="chip chip-risk">Risk {{ brief.priority_alert.risk_score }}</span></div>
+        <h3 class="priority-title"><a href="{{ brief.priority_alert.url }}" rel="noopener noreferrer">{{ brief.priority_alert.title or brief.priority_alert.title_fa }}</a></h3>
+        <p>{{ brief.priority_alert.summary or brief.priority_alert.summary_fa }}</p>
         <p class="note">{{ brief.priority_alert.why_it_matters }}</p>
         <div class="meta">
           <span>{{ brief.priority_alert.source }}</span>
@@ -121,155 +120,146 @@
       </section>
 
       <section id="history-snapshot" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Delta</span><h2>تغییرات نسبت به اجرای قبل</h2></div><span class="chip">{{ brief.history_snapshot.totals.changed }} تغییر</span></div>
-        <p class="lede">{{ brief.history_snapshot.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Delta</span><h2>Changes Since Last Run</h2></div><span class="chip">{{ brief.history_snapshot.totals.changed }} changes</span></div>
+        <p class="lede">{{ brief.history_snapshot.summary }}</p>
         <div class="stat-row">
-          <div><span>ردیابی</span><b>{{ brief.history_snapshot.totals.tracked }}</b></div>
-          <div><span>افزایش</span><b class="up">{{ brief.history_snapshot.totals.increased }}</b></div>
-          <div><span>کاهش</span><b class="down">{{ brief.history_snapshot.totals.decreased }}</b></div>
+          <div><span>Tracked</span><b>{{ brief.history_snapshot.totals.tracked }}</b></div>
+          <div><span>Increased</span><b class="up">{{ brief.history_snapshot.totals.increased }}</b></div>
+          <div><span>Decreased</span><b class="down">{{ brief.history_snapshot.totals.decreased }}</b></div>
         </div>
         {% if brief.history_snapshot.totals.changed > 0 %}
         {% for row in brief.history_snapshot.top_changes %}{% if loop.index <= 10 %}
-        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label_fa }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
+        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
         {% endif %}{% endfor %}
         {% else %}
-        <p class="empty-note">تغییر معناداری ثبت نشده است.</p>
+        <p class="empty-note">No significant changes recorded.</p>
         {% endif %}
-        <div class="meta"><span>قبلی: {{ brief.history_snapshot.previous_version }}</span><span>local only</span></div>
+        <div class="meta"><span>Previous: {{ brief.history_snapshot.previous_version }}</span><span>local only</span></div>
       </section>
       <section id="trend-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Trend</span><h2>روند چند اجرای اخیر</h2></div><span class="chip">{{ brief.trend_pulse.totals.runs }} اجرا</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Trend</span><h2>Recent Run Trend</h2></div><span class="chip">{{ brief.trend_pulse.totals.runs }} runs</span></div>
         {% if brief.trend_pulse.ok %}
-        <p class="lede">{{ brief.trend_pulse.summary_fa }}</p>
+        <p class="lede">{{ brief.trend_pulse.summary }}</p>
         {% for row in brief.trend_pulse.rows %}{% if loop.index <= 10 %}
-        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label_fa }}</span><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ row.spark }}" vector-effect="non-scaling-stroke"/></svg><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
+        <div class="bar-row delta-{{ row.direction }}"><span class="bar-label">{{ row.label }}</span><svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ row.spark }}" vector-effect="non-scaling-stroke"/></svg><span class="bar-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span></div>
         {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.trend_pulse.span_fa }}</span><span>local snapshots</span></div>
+        <div class="meta"><span>{{ brief.trend_pulse.span }}</span><span>local snapshots</span></div>
         {% else %}
-        <p class="empty-note">{{ brief.trend_pulse.summary_fa }}</p>
+        <p class="empty-note">{{ brief.trend_pulse.summary }}</p>
         {% endif %}
       </section>
     </div>
   </section>
 
-  <section class="cluster" aria-label="آسیب‌پذیری و بهره‌برداری">
-    <div class="cluster-head"><span class="eyebrow">Vulnerability &amp; Exploitation</span><h2>آسیب‌پذیری و بهره‌برداری</h2></div>
+  <section class="cluster" aria-label="Vulnerability &amp; Exploitation">
+    <div class="cluster-head"><span class="eyebrow">Vulnerability &amp; Exploitation</span><h2>Vulnerability &amp; Exploitation</h2></div>
     <div class="grid grid-3">
 
       <section id="cves" class="panel panel-wide">
-        <div class="panel-head"><div><span class="eyebrow">CVE</span><h2>اولویت وصله</h2></div><span class="chip">{{ brief.stats.critical_cves }} بحرانی · {{ brief.stats.cves }} کل</span></div>
+        <div class="panel-head"><div><span class="eyebrow">CVE</span><h2>Patch Priority</h2></div><span class="chip">{{ brief.stats.critical_cves }} critical &middot; {{ brief.stats.cves }} total</span></div>
         {% if brief.sev_strip %}
-        <div class="sev-strip" role="img" aria-label="ترکیب شدت CVEها">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
+        <div class="sev-strip" role="img" aria-label="CVE severity distribution">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
         {% endif %}
         {% if brief.cves %}
         {% for cve in brief.cves %}{% if loop.index <= 30 %}
         <article class="item sev-{{ cve.severity|lower }}">
           <div class="item-head">
-            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a> — <span class="t-fa">{{ cve.title_fa }}</span><span class="t-en">{{ cve.title or cve.title_fa }}</span></h3>
+            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a> &mdash; {{ cve.title or cve.title_fa }}</h3>
             <span class="sev-badge sev-{{ cve.severity|lower }}">{{ cve.severity }}</span>
           </div>
-          <p><span class="t-fa">{{ cve.summary_fa }}</span><span class="t-en">{{ cve.summary or cve.summary_fa }}</span></p>
+          <p>{{ cve.summary or cve.summary_fa }}</p>
           <div class="meta">
-            <span>CVSS {{ cve.cvss }}{% if cve.cvss_version %} · v{{ cve.cvss_version }}{% endif %}</span>
-            <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} ↑{% endif %}</span>
-            {% if cve.kev %}<span class="tag tag-risk">KEV{% if cve.kev_due_date %} · مهلت {{ cve.kev_due_date }}{% endif %}</span>{% endif %}{% if cve.kev_ransomware %}<span class="tag tag-risk">باج‌افزار</span>{% endif %}
+            <span>CVSS {{ cve.cvss }}{% if cve.cvss_version %} &middot; v{{ cve.cvss_version }}{% endif %}</span>
+            <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} &uarr;{% endif %}</span>
+            {% if cve.kev %}<span class="tag tag-risk">KEV{% if cve.kev_due_date %} &middot; due {{ cve.kev_due_date }}{% endif %}</span>{% endif %}{% if cve.kev_ransomware %}<span class="tag tag-risk">Ransomware</span>{% endif %}
             {% if cve.cisa_priority %}<span class="tag">CISA {{ cve.cisa_priority }}</span>{% endif %}
           </div>
           <p class="note">{{ cve.why_it_matters }}</p>
         </article>
         {% endif %}{% endfor %}
         {% else %}
-        <p class="empty-note">در این اجرا CVE تازه‌ای در بازه انتخابی ثبت نشد.</p>
+        <p class="empty-note">No new CVEs recorded in the selected window this run.</p>
         {% endif %}
       </section>
 
       <section id="nuclei-coverage" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Nuclei Coverage</span><h2>پوشش Template</h2></div><span class="chip">{{ brief.nuclei_coverage.totals.coverage_pct }}٪</span></div>
-        <p class="lede">{{ brief.nuclei_coverage.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Nuclei Coverage</span><h2>Template Coverage</h2></div><span class="chip">{{ brief.nuclei_coverage.totals.coverage_pct }}%</span></div>
+        <p class="lede">{{ brief.nuclei_coverage.summary }}</p>
         {% for row in brief.nuclei_coverage.covered %}{% if loop.index <= 8 %}
         <div class="row">
-          <div class="row-head"><b>{{ row.cve_id }}</b><span>{{ row.template_count }} template · {{ row.protocol }}</span></div>
-          <p class="note">{{ row.note_fa }}</p>
+          <div class="row-head"><b>{{ row.cve_id }}</b><span>{{ row.template_count }} template &middot; {{ row.protocol }}</span></div>
+          <p class="note">{{ row.note }}</p>
         </div>
         {% endif %}{% endfor %}
         <div class="meta"><span>{{ brief.nuclei_coverage.provider }}</span><span>metadata only</span></div>
       </section>
 
       <section id="poc-watch" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">PoC Watch</span><h2>PoCهای عمومی تازه</h2></div><span class="chip">{{ brief.poc_watch.totals.repos }} repo · {{ brief.poc_watch.totals.cves_with_poc }} CVE</span></div>
-        <p class="lede">{{ brief.poc_watch.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">PoC Watch</span><h2>Fresh Public PoCs</h2></div><span class="chip">{{ brief.poc_watch.totals.repos }} repo &middot; {{ brief.poc_watch.totals.cves_with_poc }} CVE</span></div>
+        <p class="lede">{{ brief.poc_watch.summary }}</p>
         {% for repo in brief.poc_watch.repos %}{% if loop.index <= 8 %}
         <div class="row risk-{{ repo.risk }}">
-          <div class="row-head"><b>{{ repo.cve_id }}</b><span>{{ repo.language }} · ★{{ repo.stars }} · {{ repo.age_fa }}</span></div>
-          <p class="note">{{ repo.note_fa }}</p>
+          <div class="row-head"><b>{{ repo.cve_id }}</b><span>{{ repo.language }} &middot; &#9733;{{ repo.stars }} &middot; {{ repo.age }}</span></div>
+          <p class="note">{{ repo.note }}</p>
         </div>
         {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.poc_watch.provider }}</span><span>بدون کد، فقط metadata</span></div>
+        <div class="meta"><span>{{ brief.poc_watch.provider }}</span><span>no code, metadata only</span></div>
       </section>
 
       {% if brief.supply_chain_radar.ok %}
       <section id="supply-chain-radar" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Supply Chain</span><h2>زنجیره تأمین</h2></div><span class="chip">{{ brief.supply_chain_radar.totals.advisories }} advisory</span></div>
-        <p class="lede">{{ brief.supply_chain_radar.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Supply Chain</span><h2>Supply Chain</h2></div><span class="chip">{{ brief.supply_chain_radar.totals.advisories }} advisory</span></div>
+        <p class="lede">{{ brief.supply_chain_radar.summary }}</p>
         {{ bars(brief.supply_chain_radar.ecosystem_chart, 5) }}
         <div class="meta"><span>{{ brief.supply_chain_radar.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("supply-chain-radar", "زنجیره تأمین", "Supply Chain", brief.supply_chain_radar.provider, brief.supply_chain_radar.summary_fa) }}
+      {{ empty_pulse("supply-chain-radar", "Supply Chain", "Supply Chain", brief.supply_chain_radar.provider, brief.supply_chain_radar.summary) }}
       {% endif %}
 
       {% if brief.vendor_watchlist.ok %}
       <section id="vendor-watchlist" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Vendor Watchlist</span><h2>رصد وندورها</h2></div><span class="chip">{{ brief.vendor_watchlist.totals.vendors }} وندور</span></div>
-        <p class="lede">{{ brief.vendor_watchlist.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Vendor Watchlist</span><h2>Vendor Watchlist</h2></div><span class="chip">{{ brief.vendor_watchlist.totals.vendors }} vendors</span></div>
+        <p class="lede">{{ brief.vendor_watchlist.summary }}</p>
         {{ bars(brief.vendor_watchlist.rows, 8) }}
         <div class="meta"><span>{{ brief.vendor_watchlist.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("vendor-watchlist", "رصد وندورها", "Vendor Watchlist", brief.vendor_watchlist.provider, brief.vendor_watchlist.summary_fa) }}
+      {{ empty_pulse("vendor-watchlist", "Vendor Watchlist", "Vendor Watchlist", brief.vendor_watchlist.provider, brief.vendor_watchlist.summary) }}
       {% endif %}
     </div>
   </section>
 
-  <section class="cluster" aria-label="خبر و تحلیل">
-    <div class="cluster-head"><span class="eyebrow">News &amp; Research</span><h2>خبر و تحلیل</h2></div>
+  <section class="cluster" aria-label="News &amp; Research">
+    <div class="cluster-head"><span class="eyebrow">News &amp; Research</span><h2>News &amp; Research</h2></div>
     <div class="grid grid-3">
 
       <section id="breaking-news" class="panel{% if brief.breaking_news %} panel-breaking{% endif %}">
-        <div class="panel-head"><div><span class="eyebrow">Breaking</span><h2>خبر فوری</h2></div><span class="chip">{{ brief.breaking_news|length }}</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Breaking</span><h2>Breaking</h2></div><span class="chip">{{ brief.breaking_news|length }}</span></div>
         {% if brief.breaking_news %}
         {% for item in brief.breaking_news %}{% if loop.index <= 12 %}{{ news_card(item) }}{% endif %}{% endfor %}
         {% else %}
-        <p class="empty-note">خبر فوری تازه‌ای در پنجره امروز ثبت نشده است.</p>
-        {% endif %}
-      </section>
-
-      <section id="iran" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Iran Radar</span><h2>رصد ایران</h2></div><span class="chip">{{ brief.iran_radar|length }}</span></div>
-        {% if brief.iran_radar %}
-        {% for item in brief.iran_radar %}{% if loop.index <= 12 %}{{ news_card(item) }}{% endif %}{% endfor %}
-        {% else %}
-        <p class="empty-note">آیتم مرتبط با ایران در این اجرا دیده نشد.</p>
+        <p class="empty-note">No breaking news recorded in today's window.</p>
         {% endif %}
       </section>
 
       <section id="global-news" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Global</span><h2>خبر امروز</h2></div><span class="chip">{{ brief.global_news|length }}</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Global</span><h2>Global</h2></div><span class="chip">{{ brief.global_news|length }}</span></div>
         {% if brief.global_news %}
         {% for item in brief.global_news %}{% if loop.index <= 30 %}{{ news_card(item) }}{% endif %}{% endfor %}
         {% else %}
-        <p class="empty-note">خبر تازه‌ای در پنجره امروز نمایش داده نشده است.</p>
+        <p class="empty-note">No news displayed in today's window.</p>
         {% endif %}
       </section>
 
       <section id="writeups-pulse" class="panel panel-wide">
-        <div class="panel-head"><div><span class="eyebrow">Research</span><h2>تحلیل‌های تازه</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} از {{ brief.writeups_pulse.totals.sources }} منبع</span></div>
-        <p class="lede">{{ brief.writeups_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Research</span><h2>Research</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} from {{ brief.writeups_pulse.totals.sources }} sources</span></div>
+        <p class="lede">{{ brief.writeups_pulse.summary }}</p>
         <div class="grid grid-2 grid-inner">
           {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 20 %}
           <article class="item risk-{{ w.risk }}">
-            <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer"><span class="t-fa">{{ w.title_fa }}</span><span class="t-en">{{ w.title or w.title_fa }}</span></a></h3><span class="tag">{{ w.kind_fa }}</span></div>
-            <p><span class="t-fa">{{ w.summary_fa }}</span><span class="t-en">{{ w.summary or w.summary_fa }}</span></p>
+            <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer">{{ w.title or w.title_fa }}</a></h3><span class="tag">{{ w.kind }}</span></div>
+            <p>{{ w.summary or w.summary_fa }}</p>
             <div class="meta"><span>{{ w.source }}</span><span>{{ w.freshness_label }}</span></div>
           </article>
           {% endif %}{% endfor %}
@@ -278,173 +268,173 @@
     </div>
   </section>
 
-  <section class="cluster" aria-label="تله‌متری تهدید">
-    <div class="cluster-head"><span class="eyebrow">Threat Telemetry</span><h2>تله‌متری تهدید</h2></div>
+  <section class="cluster" aria-label="Threat Telemetry">
+    <div class="cluster-head"><span class="eyebrow">Threat Telemetry</span><h2>Threat Telemetry</h2></div>
     <div class="grid grid-3">
 
       {% if brief.ioc_radar.ok %}
       <section id="ioc-radar" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">IOC Radar</span><h2>تهدید فعال</h2></div><span class="chip">{{ brief.ioc_radar.totals.total }} IOC</span></div>
-        <p class="lede">{{ brief.ioc_radar.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">IOC Radar</span><h2>Active Threats</h2></div><span class="chip">{{ brief.ioc_radar.totals.total }} IOC</span></div>
+        <p class="lede">{{ brief.ioc_radar.summary }}</p>
         {{ bars(brief.ioc_radar.malware_chart, 5) }}
         <div class="meta"><span>{{ brief.ioc_radar.provider }}</span><span>defanged</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("ioc-radar", "تهدید فعال", "IOC Radar", brief.ioc_radar.provider, brief.ioc_radar.summary_fa) }}
+      {{ empty_pulse("ioc-radar", "Active Threats", "IOC Radar", brief.ioc_radar.provider, brief.ioc_radar.summary) }}
       {% endif %}
 
       {% if brief.attack_pressure.ok %}
       <section id="attack-pressure" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>فشار حمله</h2></div><span class="chip">{{ brief.attack_pressure.level }}</span></div>
-        <p class="lede">{{ brief.attack_pressure.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>Attack Pressure</h2></div><span class="chip">{{ brief.attack_pressure.level }}</span></div>
+        <p class="lede">{{ brief.attack_pressure.summary }}</p>
         {% for p in brief.attack_pressure.top_ports %}{% if loop.index <= 8 %}
         <div class="row risk-{{ p.risk }}">
-          <div class="row-head"><b>Port {{ p.port }} · {{ p.service }}</b><span>{{ p.description }}</span></div>
-          <p class="note">{{ p.note_fa }}</p>
+          <div class="row-head"><b>Port {{ p.port }} &middot; {{ p.service }}</b><span>{{ p.description }}</span></div>
+          <p class="note">{{ p.note }}</p>
         </div>
         {% endif %}{% endfor %}
         <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("attack-pressure", "فشار حمله", "Attack Pressure", brief.attack_pressure.provider, brief.attack_pressure.summary_fa) }}
+      {{ empty_pulse("attack-pressure", "Attack Pressure", "Attack Pressure", brief.attack_pressure.provider, brief.attack_pressure.summary) }}
       {% endif %}
 
       {% if brief.attack_matrix.ok %}
       <section id="attack-matrix" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>الگوهای حمله</h2></div><span class="chip">{{ brief.attack_matrix.totals.techniques }} تکنیک</span></div>
-        <p class="lede">{{ brief.attack_matrix.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>Attack Patterns</h2></div><span class="chip">{{ brief.attack_matrix.totals.techniques }} techniques</span></div>
+        <p class="lede">{{ brief.attack_matrix.summary }}</p>
         {{ bars(brief.attack_matrix.rows, 8) }}
         <div class="meta"><span>{{ brief.attack_matrix.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("attack-matrix", "الگوهای حمله", "ATT&CK Map", brief.attack_matrix.provider, brief.attack_matrix.summary_fa) }}
+      {{ empty_pulse("attack-matrix", "Attack Patterns", "ATT&CK Map", brief.attack_matrix.provider, brief.attack_matrix.summary) }}
       {% endif %}
 
       {% if brief.greynoise_context.ok %}
       <section id="greynoise-context" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">GreyNoise</span><h2>زمینه زیرساخت</h2></div><span class="chip">{{ brief.greynoise_context.totals.checked }} IP</span></div>
-        <p class="lede">{{ brief.greynoise_context.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">GreyNoise</span><h2>Infrastructure Context</h2></div><span class="chip">{{ brief.greynoise_context.totals.checked }} IP</span></div>
+        <p class="lede">{{ brief.greynoise_context.summary }}</p>
         {% for c in brief.greynoise_context.contexts %}{% if loop.index <= 8 %}
         <div class="row risk-{{ c.risk }}">
-          <div class="row-head"><b dir="ltr">{{ c.ip_safe }}</b><span>{{ c.classification }} · {{ c.last_seen }}</span></div>
-          <p class="note">{{ c.note_fa }}</p>
+          <div class="row-head"><b dir="ltr">{{ c.ip_safe }}</b><span>{{ c.classification }} &middot; {{ c.last_seen }}</span></div>
+          <p class="note">{{ c.note }}</p>
         </div>
         {% endif %}{% endfor %}
         <div class="meta"><span>{{ brief.greynoise_context.provider }}</span><span>passive lookup</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("greynoise-context", "زمینه زیرساخت", "GreyNoise", brief.greynoise_context.provider, brief.greynoise_context.summary_fa) }}
+      {{ empty_pulse("greynoise-context", "Infrastructure Context", "GreyNoise", brief.greynoise_context.provider, brief.greynoise_context.summary) }}
       {% endif %}
 
       {% if brief.botnet_c2_pulse.ok %}
       <section id="botnet-c2-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Botnet C2</span><h2>زیرساخت C2</h2></div><span class="chip">{{ brief.botnet_c2_pulse.totals.c2 }} C2</span></div>
-        <p class="lede">{{ brief.botnet_c2_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Botnet C2</span><h2>C2 Infrastructure</h2></div><span class="chip">{{ brief.botnet_c2_pulse.totals.c2 }} C2</span></div>
+        <p class="lede">{{ brief.botnet_c2_pulse.summary }}</p>
         {{ bars(brief.botnet_c2_pulse.family_chart, 5) }}
         <div class="meta"><span>{{ brief.botnet_c2_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("botnet-c2-pulse", "زیرساخت C2", "Botnet C2", brief.botnet_c2_pulse.provider, brief.botnet_c2_pulse.summary_fa) }}
+      {{ empty_pulse("botnet-c2-pulse", "C2 Infrastructure", "Botnet C2", brief.botnet_c2_pulse.provider, brief.botnet_c2_pulse.summary) }}
       {% endif %}
 
       {% if brief.phishing_pulse.ok %}
       <section id="phishing-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Phishing</span><h2>فیشینگ</h2></div><span class="chip">{{ brief.phishing_pulse.totals.urls }} URL</span></div>
-        <p class="lede">{{ brief.phishing_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Phishing</span><h2>Phishing</h2></div><span class="chip">{{ brief.phishing_pulse.totals.urls }} URL</span></div>
+        <p class="lede">{{ brief.phishing_pulse.summary }}</p>
         {{ bars(brief.phishing_pulse.brand_chart, 5) }}
         <div class="meta"><span>{{ brief.phishing_pulse.provider }}</span><span>defanged</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("phishing-pulse", "فیشینگ", "Phishing", brief.phishing_pulse.provider, brief.phishing_pulse.summary_fa) }}
+      {{ empty_pulse("phishing-pulse", "Phishing", "Phishing", brief.phishing_pulse.provider, brief.phishing_pulse.summary) }}
       {% endif %}
 
       {% if brief.malware_pulse.ok %}
       <section id="malware-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Malware</span><h2>نمونه‌های بدافزار</h2></div><span class="chip">{{ brief.malware_pulse.totals.samples }} نمونه</span></div>
-        <p class="lede">{{ brief.malware_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Malware</span><h2>Malware Samples</h2></div><span class="chip">{{ brief.malware_pulse.totals.samples }} samples</span></div>
+        <p class="lede">{{ brief.malware_pulse.summary }}</p>
         {{ bars(brief.malware_pulse.family_chart, 5) }}
         <div class="meta"><span>{{ brief.malware_pulse.provider }}</span><span>hash-only</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("malware-pulse", "نمونه‌های بدافزار", "Malware", brief.malware_pulse.provider, brief.malware_pulse.summary_fa) }}
+      {{ empty_pulse("malware-pulse", "Malware Samples", "Malware", brief.malware_pulse.provider, brief.malware_pulse.summary) }}
       {% endif %}
 
       {% if brief.drop_pulse.ok %}
       <section id="drop-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">DROP</span><h2>رنج‌های IP خصمانه</h2></div><span class="chip">{{ brief.drop_pulse.totals.ranges }} رنج</span></div>
-        <p class="lede">{{ brief.drop_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">DROP</span><h2>Hostile IP Ranges</h2></div><span class="chip">{{ brief.drop_pulse.totals.ranges }} ranges</span></div>
+        <p class="lede">{{ brief.drop_pulse.summary }}</p>
         {{ bars(brief.drop_pulse.rir_chart, 5) }}
         <div class="meta"><span>{{ brief.drop_pulse.provider }}</span><span>defanged</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("drop-pulse", "رنج‌های IP خصمانه", "DROP", brief.drop_pulse.provider, brief.drop_pulse.summary_fa) }}
+      {{ empty_pulse("drop-pulse", "Hostile IP Ranges", "DROP", brief.drop_pulse.provider, brief.drop_pulse.summary) }}
       {% endif %}
 
       {% if brief.csaf_pulse.ok %}
       <section id="csaf-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">CSAF</span><h2>اطلاعیه‌های وندور</h2></div><span class="chip">{{ brief.csaf_pulse.totals.advisories }} advisory</span></div>
-        <p class="lede">{{ brief.csaf_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">CSAF</span><h2>Vendor Advisories</h2></div><span class="chip">{{ brief.csaf_pulse.totals.advisories }} advisory</span></div>
+        <p class="lede">{{ brief.csaf_pulse.summary }}</p>
         {{ bars(brief.csaf_pulse.severity_chart, 5) }}
         <div class="meta"><span>{{ brief.csaf_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("csaf-pulse", "اطلاعیه‌های وندور", "CSAF", brief.csaf_pulse.provider, brief.csaf_pulse.summary_fa) }}
+      {{ empty_pulse("csaf-pulse", "Vendor Advisories", "CSAF", brief.csaf_pulse.provider, brief.csaf_pulse.summary) }}
       {% endif %}
 
       {% if brief.ics_ot_pulse.ok %}
       <section id="ics-ot-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">ICS / OT</span><h2>صنعتی و OT</h2></div><span class="chip">{{ brief.ics_ot_pulse.totals.advisories }} advisory</span></div>
-        <p class="lede">{{ brief.ics_ot_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">ICS / OT</span><h2>ICS / OT</h2></div><span class="chip">{{ brief.ics_ot_pulse.totals.advisories }} advisory</span></div>
+        <p class="lede">{{ brief.ics_ot_pulse.summary }}</p>
         {{ bars(brief.ics_ot_pulse.vendor_chart, 5) }}
         <div class="meta"><span>{{ brief.ics_ot_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("ics-ot-pulse", "صنعتی و OT", "ICS / OT", brief.ics_ot_pulse.provider, brief.ics_ot_pulse.summary_fa) }}
+      {{ empty_pulse("ics-ot-pulse", "ICS / OT", "ICS / OT", brief.ics_ot_pulse.provider, brief.ics_ot_pulse.summary) }}
       {% endif %}
 
       {% if brief.infrastructure_radar.ok %}
       <section id="infrastructure-radar" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Infrastructure</span><h2>زیرساخت مشکوک</h2></div><span class="chip">{{ brief.infrastructure_radar.totals.hosts }} host</span></div>
-        <p class="lede">{{ brief.infrastructure_radar.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Infrastructure</span><h2>Suspicious Infrastructure</h2></div><span class="chip">{{ brief.infrastructure_radar.totals.hosts }} host</span></div>
+        <p class="lede">{{ brief.infrastructure_radar.summary }}</p>
         {{ bars(brief.infrastructure_radar.port_chart, 5) }}
         <div class="meta"><span>{{ brief.infrastructure_radar.provider }}</span><span>passive</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("infrastructure-radar", "زیرساخت مشکوک", "Infrastructure", brief.infrastructure_radar.provider, brief.infrastructure_radar.summary_fa) }}
+      {{ empty_pulse("infrastructure-radar", "Suspicious Infrastructure", "Infrastructure", brief.infrastructure_radar.provider, brief.infrastructure_radar.summary) }}
       {% endif %}
 
       {% if brief.ransomware_pulse.ok %}
       <section id="ransomware-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Ransomware</span><h2>باج‌افزار</h2></div><span class="chip">{{ brief.ransomware_pulse.totals.recent_7d }} در ۷ روز</span></div>
-        <p class="lede">{{ brief.ransomware_pulse.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Ransomware</span><h2>Ransomware</h2></div><span class="chip">{{ brief.ransomware_pulse.totals.recent_7d }} in 7 days</span></div>
+        <p class="lede">{{ brief.ransomware_pulse.summary }}</p>
         {{ bars(brief.ransomware_pulse.group_chart, 5) }}
         <div class="meta"><span>{{ brief.ransomware_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("ransomware-pulse", "باج‌افزار", "Ransomware", brief.ransomware_pulse.provider, brief.ransomware_pulse.summary_fa) }}
+      {{ empty_pulse("ransomware-pulse", "Ransomware", "Ransomware", brief.ransomware_pulse.provider, brief.ransomware_pulse.summary) }}
       {% endif %}
     </div>
   </section>
 
-  <section id="sources" class="cluster" aria-label="درباره">
-    <div class="cluster-head"><span class="eyebrow">About</span><h2>درباره</h2></div>
+  <section id="sources" class="cluster" aria-label="About">
+    <div class="cluster-head"><span class="eyebrow">About</span><h2>About</h2></div>
     <div class="grid grid-2">
       <section class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Data</span><h2>منابع داده</h2></div></div>
-        <p class="note">گردآوری خودکار از خبرخوان‌های امنیتی معتبر، NVD، CISA KEV، EPSS و تله‌متری عمومی تهدید؛ همگی read-only و بدون اسکن فعال.</p>
-        <div class="meta"><span>{{ brief.source_health.rss_sources }} فید خبری</span><span>{{ brief.source_health.intel_sources }} منبع تله‌متری</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
+        <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
+        <div class="meta"><span>{{ brief.source_health.rss_sources }} news feeds</span><span>{{ brief.source_health.intel_sources }} telemetry sources</span></div>
       </section>
       <section class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Project</span><h2>درباره پروژه</h2></div></div>
-        <p class="note">SecPath Radar یک داشبورد استاتیک و فقط‌خواندنی برای رصد روزانه فضای تهدید سایبری است؛ بدون جمع‌آوری داده از بازدیدکننده.</p>
-        <div class="meta"><span>طراحی و توسعه: Mahdi Alemi</span><span>{{ brief.version }}</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Project</span><h2>About the Project</h2></div></div>
+        <p class="note">SecPath Radar is a static, read-only dashboard for daily monitoring of the cyber threat landscape; no visitor data is collected.</p>
+        <div class="meta"><span>Design &amp; Development: Mahdi Alemi</span><span>{{ brief.version }}</span></div>
       </section>
     </div>
   </section>
 
   <footer class="footer">
-    <span>SecPath Radar · رصد غیرفعال امنیت سایبری</span>
-    <span>طراحی و توسعه: Mahdi Alemi</span>
+    <span>SecPath Radar &middot; Passive Cyber Threat Monitoring</span>
+    <span>Design &amp; Development: Mahdi Alemi</span>
     <span>{{ brief.version }}</span>
   </footer>
 </main>

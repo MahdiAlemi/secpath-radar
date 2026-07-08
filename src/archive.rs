@@ -8,7 +8,6 @@ pub(crate) const ARCHIVE_MAX_NEWS: usize = 12;
 
 pub(crate) const CVE_ARCHIVE_KEYS: &[&str] = &[
     "cve_id",
-    "title_fa",
     "title",
     "url",
     "severity",
@@ -16,19 +15,17 @@ pub(crate) const CVE_ARCHIVE_KEYS: &[&str] = &[
     "epss",
     "kev",
     "risk_score",
-    "summary_fa",
+    "summary",
     "recommended_action",
 ];
 
 pub(crate) const NEWS_ARCHIVE_KEYS: &[&str] = &[
-    "title_fa",
     "title",
     "url",
     "source",
     "risk_score",
     "published",
-    "summary_fa",
-    "iran_relevance",
+    "summary",
     "category",
 ];
 
@@ -77,7 +74,6 @@ pub(crate) fn build_daily_archive(brief: &Value) -> Value {
     json!({
         "date": archive_date(brief),
         "version": brief.get("version").cloned().unwrap_or(Value::Null),
-        "date_fa": brief.get("date_fa").cloned().unwrap_or(Value::Null),
         "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
         "stats": brief.get("stats").cloned().unwrap_or_else(|| json!({})),
         "executive_snapshot": brief
@@ -89,8 +85,7 @@ pub(crate) fn build_daily_archive(brief: &Value) -> Value {
             .map(|alert| compact_item(alert, NEWS_ARCHIVE_KEYS))
             .unwrap_or(Value::Null),
         "cves": compact_list(brief, "cves", CVE_ARCHIVE_KEYS, ARCHIVE_MAX_CVES),
-        "global_news": compact_list(brief, "global_news", NEWS_ARCHIVE_KEYS, ARCHIVE_MAX_NEWS),
-        "iran_radar": compact_list(brief, "iran_radar", NEWS_ARCHIVE_KEYS, 6)
+        "global_news": compact_list(brief, "global_news", NEWS_ARCHIVE_KEYS, ARCHIVE_MAX_NEWS)
     })
 }
 

@@ -1,4 +1,4 @@
-/* SecPath Radar — production dark theme, RTL, no border-radius */
+/* SecPath Radar — production dark theme, LTR, no border-radius */
 
 :root {
   --bg: #141518;
@@ -31,7 +31,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 96px; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Vazirmatn", "Noto Sans Arabic", "Segoe UI", Tahoma, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.7;
   font-variant-numeric: tabular-nums;
@@ -293,11 +293,6 @@ body.theme-light .topbar, body.theme-light .anchor-nav { background: rgba(238, 2
 body.theme-light .tag-new { color: #237a4e; border-color: rgba(35, 122, 78, 0.5); }
 body.theme-light .live-dot { background: #237a4e; box-shadow: 0 0 7px rgba(35, 122, 78, 0.55); }
 
-/* ---- E5: language switch ---- */
-.t-en { display: none; }
-body.lang-en .t-fa { display: none; }
-body.lang-en .t-en { display: inline; }
-
 /* ---- E5: interactive charts ---- */
 [data-chart-name] { cursor: pointer; }
 [data-chart-name]:hover .bar-label { color: var(--accent); }
@@ -317,9 +312,6 @@ body.lang-en .t-en { display: inline; }
 .panel-breaking .panel-head h2::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-inline-start: 8px; background: var(--red); box-shadow: 0 0 7px rgba(233, 115, 102, 0.7); animation: livepulse 2.4s ease-in-out infinite; }
 
 /* ---- QA3 visual upgrade: fonts, sparklines, severity strip, freshness ---- */
-@font-face { font-family: "Noto Sans Arabic"; src: url("../fonts/NotoSansArabic-Regular.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "Noto Sans Arabic"; src: url("../fonts/NotoSansArabic-Medium.woff") format("woff"); font-weight: 500; font-style: normal; font-display: swap; }
-@font-face { font-family: "Noto Sans Arabic"; src: url("../fonts/NotoSansArabic-Bold.woff") format("woff"); font-weight: 700; font-style: normal; font-display: swap; }
 .bar-row .spark { flex: 1 1 auto; height: 20px; min-width: 60px; }
 .spark polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .bar-row.delta-up .spark { color: var(--red); }

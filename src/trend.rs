@@ -58,7 +58,7 @@ pub(crate) fn attach_trend_pulse(brief: &mut Value, snapshots: &[Value]) {
             "enabled": true,
             "ok": false,
             "provider": "local history snapshots",
-            "summary_fa": "برای ترسیم روند حداقل دو اجرا لازم است؛ از اجراهای بعدی روند شاخص‌ها نمایش داده می‌شود.",
+            "summary": "At least two runs are needed to plot trends; trends will appear from the next run.",
             "totals": { "runs": runs, "tracked": 0, "rising": 0, "falling": 0 }
         });
         return;
@@ -86,7 +86,7 @@ pub(crate) fn attach_trend_pulse(brief: &mut Value, snapshots: &[Value]) {
         };
         rows.push(json!({
             "key": metric.key,
-            "label_fa": metric.label_fa,
+            "label": metric.label,
             "first": first,
             "last": last,
             "peak": peak,
@@ -114,15 +114,15 @@ pub(crate) fn attach_trend_pulse(brief: &mut Value, snapshots: &[Value]) {
         .count() as u64;
     let first_date = snapshot_date(&snapshots[0]);
     let last_date = snapshots.last().map(snapshot_date).unwrap_or_default();
-    let span_fa = if first_date == last_date {
-        format!("بازه: {first_date}")
+    let span = if first_date == last_date {
+        format!("Range: {first_date}")
     } else {
-        format!("از {first_date} تا {last_date}")
+        format!("From {first_date} to {last_date}")
     };
-    let summary_fa = if rising == 0 && falling == 0 {
-        format!("در {runs} اجرای اخیر، شاخص‌های اصلی تقریبا ثابت بوده‌اند.")
+    let summary = if rising == 0 && falling == 0 {
+        format!("Across the last {runs} runs, key indicators remained largely stable.")
     } else {
-        format!("در {runs} اجرای اخیر، {rising} شاخص روند افزایشی و {falling} شاخص روند کاهشی داشته‌اند.")
+        format!("Across the last {runs} runs, {rising} indicators showed an upward trend and {falling} showed a downward trend.")
     };
 
     brief["stats"]["trend_rising"] = json!(rising);
@@ -131,8 +131,8 @@ pub(crate) fn attach_trend_pulse(brief: &mut Value, snapshots: &[Value]) {
         "ok": true,
         "provider": "local history snapshots",
         "level": if rising >= 3 { "medium" } else { "info" },
-        "summary_fa": summary_fa,
-        "span_fa": span_fa,
+        "summary": summary,
+        "span": span,
         "totals": {
             "runs": runs,
             "tracked": rows.len(),

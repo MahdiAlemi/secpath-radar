@@ -40,7 +40,7 @@ pub(crate) fn feed_pub_date(item: &Value) -> Option<String> {
 }
 
 pub(crate) fn feed_entry(item: &Value) -> Value {
-    let mut title = item_text(item, &["title_fa", "title"]);
+    let mut title = item_text(item, &["title"]);
     let cve_id = item_text(item, &["cve_id"]);
     if !cve_id.is_empty() && !title.contains(&cve_id) {
         title = format!("{cve_id}: {title}");
@@ -48,7 +48,7 @@ pub(crate) fn feed_entry(item: &Value) -> Value {
     json!({
         "title": title,
         "link": item_text(item, &["url"]),
-        "description": item_text(item, &["summary_fa", "summary", "why_it_matters"]),
+        "description": item_text(item, &["summary", "why_it_matters"]),
         "pub_date": feed_pub_date(item)
     })
 }
@@ -77,8 +77,8 @@ pub(crate) fn build_feed_xml(brief: &Value, channel_title: &str) -> String {
     xml.push_str("<rss version=\"2.0\">\n<channel>\n");
     xml.push_str(&format!("<title>{}</title>\n", xml_escape(channel_title)));
     xml.push_str(&format!("<link>{SITE_LINK}/</link>\n"));
-    xml.push_str("<description>رصد استاتیک تهدیدهای سایبری، CVEها و اخبار امنیتی</description>\n");
-    xml.push_str("<language>fa</language>\n");
+    xml.push_str("<description>Static monitoring of cyber threats, CVEs, and security news</description>\n");
+    xml.push_str("<language>en</language>\n");
     xml.push_str(&format!(
         "<lastBuildDate>{}</lastBuildDate>\n",
         Utc::now().to_rfc2822()
@@ -138,7 +138,7 @@ pub(crate) fn write_json_api(brief: &Value, out_path: &PathBuf) -> Result<()> {
     let summary = json!({
         "version": brief.get("version").cloned().unwrap_or_else(|| json!("unknown")),
         "generated_at": brief.get("generated_at").cloned().unwrap_or_else(|| json!("")),
-        "date_fa": brief.get("date_fa").cloned().unwrap_or_else(|| json!("")),
+        "date_en": brief.get("date_en").cloned().unwrap_or_else(|| json!("")),
         "stats": brief.get("stats").cloned().unwrap_or_else(|| json!({})),
         "executive_snapshot": brief
             .get("executive_snapshot")
@@ -172,13 +172,13 @@ mod tests {
             "cves": [{
                 "title": "Bug <critical> & bad",
                 "url": "https://example.com/a?x=1&y=2",
-                "summary_fa": "خلاصه"
+                "summary": "Summary"
             }]
         });
         let xml = build_feed_xml(&brief, "SecPath Radar");
         assert!(xml.contains("Bug &lt;critical&gt; &amp; bad"));
         assert!(xml.contains("https://example.com/a?x=1&amp;y=2"));
         assert!(!xml.contains("<critical>"));
-        assert!(xml.contains("<language>fa</language>"));
+        assert!(xml.contains("<language>en</language>"));
     }
 }

@@ -1,6 +1,6 @@
 site:
   title: "SecPath Radar"
-  tagline: "رادار روزانه امنیت سایبری، CVEها و تهدیدهای مهم"
+  tagline: "Daily cybersecurity intelligence dashboard"
   github: "https://github.com/MahdiAlemi/secpath-radar"
   domain: "radar.secpath.space"
 
@@ -127,33 +127,10 @@ gemini:
   api_url: "https://generativelanguage.googleapis.com/v1beta"
   cache_dir: "data/cache/ai"
   temperature: 0.15
-  max_iran_items: 6
   max_global_news: 10
   max_cves: 10
 
 filters:
-  iran_keywords:
-    - iran
-    - iranian
-    - tehran
-    - .ir
-    - irancell
-    - hamrah aval
-    - shaparak
-    - shetab
-    - apt34
-    - oilrig
-    - charming kitten
-    - muddywater
-    - ایران
-    - ایرانی
-    - تهران
-    - ایرانسل
-    - همراه اول
-    - شاپرک
-    - شتاب
-    - بانک ملی
-    - بانک ملت
   high_keywords:
     - zero-day
     - zeroday
@@ -197,7 +174,6 @@ filters:
     - conference
 
 limits:
-  iran_radar: 5
   global_news: 18
   cves: 10
 

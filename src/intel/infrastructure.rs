@@ -52,7 +52,7 @@ pub(crate) fn fetch_infrastructure_radar(
             "ok": true,
             "provider": "Shodan InternetDB + DShield top IPs",
             "level": "Low",
-            "summary_fa": "در IOCها یا DShield Top IPs این اجرا IP عمومی مناسبی برای رادار زیرساختی دیده نشد.",
+            "summary": "No suitable public IPs found in IOC or DShield top IPs for infrastructure radar this run.",
             "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
             "source_url": "https://internetdb.shodan.io/",
             "cache_dir": config.intel.cache_dir.clone(),
@@ -92,10 +92,10 @@ pub(crate) fn fetch_infrastructure_radar(
         "Low"
     };
 
-    let summary_fa = match level {
-        "High" => "چند IP مشکوک دارای پورت‌های باز یا نشانه آسیب‌پذیری هستند؛ این بخش برای exposure awareness است.",
-        "Medium" => "چند IP استخراج‌شده از IOCها سطح exposure قابل مشاهده دارند؛ برای correlation دفاعی مناسب است.",
-        _ => "زیرساخت‌های استخراج‌شده از IOCها exposure محدودی در InternetDB نشان می‌دهند.",
+    let summary = match level {
+        "High" => "Several suspicious IPs have open ports or vulnerability indicators; this section is for exposure awareness.",
+        "Medium" => "Some IOC-extracted IPs show observable exposure levels; useful for defensive correlation.",
+        _ => "IOC-extracted infrastructure shows limited exposure in InternetDB.",
     };
 
     let port_chart = infrastructure_port_chart(&hosts, 10);
@@ -107,7 +107,7 @@ pub(crate) fn fetch_infrastructure_radar(
         "provider": "Shodan InternetDB + DShield top IPs",
         "source_url": "https://internetdb.shodan.io/",
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
         "cache_dir": config.intel.cache_dir.clone(),
         "refresh_hours": config.intel.refresh_hours,
@@ -210,8 +210,6 @@ pub(crate) fn fetch_shodan_internetdb_host(
     }
     .to_string();
 
-    let note_fa = infrastructure_note(&ports, vulns.len(), &tags);
-
     Ok(Some(InfrastructureHost {
         rank: 0,
         ip: candidate.ip.clone(),
@@ -227,7 +225,6 @@ pub(crate) fn fetch_shodan_internetdb_host(
         exposure_score,
         bar_width: 0,
         risk,
-        note_fa,
     }))
 }
 
@@ -356,7 +353,6 @@ pub(crate) fn candidate_only_infrastructure_host(candidate: &InfraCandidate) -> 
         exposure_score: 32,
         bar_width: 0,
         risk: "watch".to_string(),
-        note_fa: "این IP در feedهای IOC/DShield دیده شده، اما InternetDB برای آن exposure قابل مشاهده‌ای برنگرداند.".to_string(),
     }
 }
 
@@ -626,31 +622,13 @@ pub(crate) fn is_exposure_tag(tag: &str) -> bool {
         || lower.contains("compromised")
 }
 
-pub(crate) fn infrastructure_note(ports: &[u16], vuln_count: usize, tags: &[String]) -> String {
-    if vuln_count > 0 {
-        return "InternetDB برای این IP نشانه CVE نشان می‌دهد؛ فقط برای آگاهی و correlation دفاعی استفاده شود.".to_string();
-    }
-    if ports
-        .iter()
-        .any(|port| matches!(port, 445 | 3389 | 23 | 5900))
-    {
-        return "پورت‌های مدیریت/شبکه پرریسک دیده می‌شود؛ exposure را در assetهای خودتان تطبیق بدهید.".to_string();
-    }
-    if tags.iter().any(|tag| is_exposure_tag(tag)) {
-        return "Tagهای Shodan نشان‌دهنده سرویس حساس احتمالی است؛ برای surface awareness بررسی شود."
-            .to_string();
-    }
-    "این IP از IOCها استخراج و با InternetDB enrich شده؛ خروجی فقط برای رادار مشاهده‌ای است."
-        .to_string()
-}
-
 pub(crate) fn empty_infrastructure_radar(status: &str) -> Value {
     json!({
         "enabled": status != "disabled",
         "ok": false,
         "provider": "Shodan InternetDB + DShield top IPs",
         "level": "Unknown",
-        "summary_fa": "داده Suspicious Infrastructure در این اجرا در دسترس نبود.",
+        "summary": "Suspicious Infrastructure data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
         "totals": {"candidates": 0, "hosts": 0, "high": 0, "vulns": 0, "ports": 0},

@@ -103,11 +103,10 @@ pub(crate) fn build_weekly_brief(archives: &[Value]) -> Value {
             cve,
             &[
                 "cve_id",
-                "title_fa",
                 "title",
                 "url",
                 "severity",
-                "summary_fa",
+                "summary",
                 "archived_on",
             ],
             &["risk_score", "cvss", "epss"],
@@ -120,15 +119,14 @@ pub(crate) fn build_weekly_brief(archives: &[Value]) -> Value {
         ensure_item_defaults(
             item,
             &[
-                "title_fa",
                 "title",
                 "url",
                 "source",
-                "summary_fa",
+                "summary",
                 "archived_on",
                 "published",
             ],
-            &["risk_score", "iran_relevance"],
+            &["risk_score"],
         );
     }
     let kev_count = top_cves
@@ -153,17 +151,17 @@ pub(crate) fn build_weekly_brief(archives: &[Value]) -> Value {
         .and_then(|a| a.get("date").and_then(|v| v.as_str()))
         .unwrap_or("")
         .to_string();
-    let span_fa = if days == 0 {
+    let span = if days == 0 {
         String::new()
     } else if first_date == last_date {
-        format!("بازه: {first_date}")
+        format!("Range: {first_date}")
     } else {
-        format!("از {first_date} تا {last_date}")
+        format!("From {first_date} to {last_date}")
     };
-    let summary_fa = if days == 0 {
-        "هنوز آرشیو روزانه‌ای ثبت نشده است؛ از اجراهای بعدی جمع‌بندی هفتگی ساخته می‌شود.".to_string()
+    let summary = if days == 0 {
+        "No daily archives recorded yet; weekly summaries will be built from the next run.".to_string()
     } else {
-        format!("در {days} روز اخیر، {total_cves} آسیب‌پذیری و {total_news} خبر منتخب رصد شد؛ {kev_count} مورد از CVEهای برگزیده در فهرست بهره‌برداری فعال (KEV) قرار دارد.")
+        format!("Over the last {days} days, {total_cves} vulnerabilities and {total_news} selected news items were tracked; {kev_count} of the selected CVEs are in the Known Exploited Vulnerabilities (KEV) list.")
     };
     json!({
         "ok": days > 0,
@@ -178,8 +176,8 @@ pub(crate) fn build_weekly_brief(archives: &[Value]) -> Value {
             .and_then(|a| a.get("generated_at"))
             .cloned()
             .unwrap_or_else(|| json!("")),
-        "span_fa": span_fa,
-        "summary_fa": summary_fa,
+        "span": span,
+        "summary": summary,
         "totals": {
             "days": days,
             "cves": total_cves,

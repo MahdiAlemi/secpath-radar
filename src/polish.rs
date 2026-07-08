@@ -1,4 +1,4 @@
-//! Local Persian editorial polish applied without AI.
+//! Local editorial polish applied without AI.
 
 use crate::prelude::*;
 
@@ -38,11 +38,6 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
             .and_then(|v| v.as_array())
             .map(|items| items.len())
             .unwrap_or(0)
-            + brief
-                .get("iran_radar")
-                .and_then(|v| v.as_array())
-                .map(|items| items.len())
-                .unwrap_or(0)
             + brief
                 .get("breaking_news")
                 .and_then(|v| v.as_array())
@@ -448,7 +443,6 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
 
     polish_priority(brief);
     polish_array_items(brief, "breaking_news", 88, 240);
-    polish_array_items(brief, "iran_radar", 88, 240);
     polish_array_items(brief, "global_news", 88, 240);
     polish_writeups_pulse(brief);
     polish_cves(brief);
@@ -518,12 +512,6 @@ pub(crate) fn polish_writeups_pulse(brief: &mut Value) {
         if let Some(Value::String(summary)) = obj.get_mut("summary") {
             *summary = non_empty_summary(summary, 260);
         }
-        if let Some(Value::String(title_fa)) = obj.get_mut("title_fa") {
-            *title_fa = truncate_chars(title_fa, 160);
-        }
-        if let Some(Value::String(summary_fa)) = obj.get_mut("summary_fa") {
-            *summary_fa = truncate_chars(summary_fa, 210);
-        }
     }
 }
 
@@ -550,9 +538,8 @@ pub(crate) fn polish_cves(brief: &mut Value) {
 
 pub(crate) fn add_editorial_display_fields(brief: &mut Value) {
     enrich_priority_fields(brief);
-    enrich_news_fields(brief, "breaking_news", false);
-    enrich_news_fields(brief, "iran_radar", true);
-    enrich_news_fields(brief, "global_news", false);
+    enrich_news_fields(brief, "breaking_news");
+    enrich_news_fields(brief, "global_news");
     enrich_cve_fields(brief);
 }
 
@@ -564,27 +551,16 @@ pub(crate) fn enrich_priority_fields(brief: &mut Value) {
         return;
     };
 
-    let title = obj
-        .get("title")
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .to_string();
+    let risk_score = obj
+        .get("risk_score")
+        .and_then(|value| value.as_i64())
+        .unwrap_or(1);
     let summary = obj
         .get("summary")
         .and_then(|value| value.as_str())
         .unwrap_or("")
         .to_string();
-    let risk_score = obj
-        .get("risk_score")
-        .and_then(|value| value.as_i64())
-        .unwrap_or(1);
 
-    insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
-    insert_string_if_missing(
-        obj,
-        "summary_fa",
-        &fallback_persian_summary(&summary, "این هشدار مهم‌ترین آیتم امروز است"),
-    );
     insert_string_if_missing(
         obj,
         "why_it_matters",
@@ -593,11 +569,11 @@ pub(crate) fn enrich_priority_fields(brief: &mut Value) {
     insert_string_if_missing(
         obj,
         "ops_note",
-        "اول exposure و دارایی‌های مرتبط را مشخص کن، سپس وضعیت patch یا mitigation را ثبت کن.",
+        "Identify exposed assets first, then track patch or mitigation status.",
     );
 }
 
-pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str, iran_section: bool) {
+pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str) {
     let Some(items) = brief.get_mut(key).and_then(|value| value.as_array_mut()) else {
         return;
     };
@@ -606,7 +582,7 @@ pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str, iran_section: boo
         let Some(obj) = item.as_object_mut() else {
             continue;
         };
-        let title = obj
+        let _title = obj
             .get("title")
             .and_then(|value| value.as_str())
             .unwrap_or("")
@@ -638,26 +614,18 @@ pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str, iran_section: boo
         obj.insert("freshness_label".to_string(), json!(freshness_label));
         obj.insert(
             "is_today".to_string(),
-            json!(freshness_label.starts_with("امروز")),
+            json!(freshness_label.starts_with("Today")),
         );
 
-        insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
-        insert_string_if_missing(
-            obj,
-            "summary_fa",
-            &fallback_persian_summary(&summary, "این خبر برای پایش امروز قابل توجه است"),
-        );
         insert_string_if_missing(
             obj,
             "why_it_matters",
             &fallback_why_it_matters(risk_score, &summary),
         );
-        let note = if iran_section {
-            "ارتباط این آیتم با ایران را با دامنه، برند، vendor و زیرساخت خودت جداگانه triage کن."
-        } else if risk_score >= 8 {
-            "برای دارایی‌های public-facing مرتبط، وضعیت exposure و لاگ‌های ۲۴ تا ۴۸ ساعت اخیر را بررسی کن."
+        let note = if risk_score >= 8 {
+            "Review exposure and logs from the last 24-48 hours for related public-facing assets."
         } else {
-            "نام vendor یا محصول را با inventory و backlog patch مقایسه کن."
+            "Compare the vendor or product name against your inventory and patch backlog."
         };
         insert_string_if_missing(obj, "ops_note", note);
     }
@@ -672,11 +640,6 @@ pub(crate) fn enrich_cve_fields(brief: &mut Value) {
         let Some(obj) = item.as_object_mut() else {
             continue;
         };
-        let title = obj
-            .get("title")
-            .and_then(|value| value.as_str())
-            .unwrap_or("")
-            .to_string();
         let summary = obj
             .get("summary")
             .and_then(|value| value.as_str())
@@ -696,12 +659,6 @@ pub(crate) fn enrich_cve_fields(brief: &mut Value) {
             .unwrap_or("UNKNOWN")
             .to_string();
 
-        insert_string_if_missing(obj, "title_fa", &fallback_persian_title(&title));
-        insert_string_if_missing(
-            obj,
-            "summary_fa",
-            &fallback_persian_summary(&summary, "این CVE باید با موجودی دارایی‌ها تطبیق داده شود"),
-        );
         insert_string_if_missing(
             obj,
             "why_it_matters",
@@ -709,11 +666,11 @@ pub(crate) fn enrich_cve_fields(brief: &mut Value) {
         );
 
         let note = if kev {
-            "چون در KEV دیده شده، وضعیت affected/not affected را همان‌روز مشخص و mitigation را پیگیری کن."
+            "Listed in KEV: determine affected/not-affected the same day and track mitigation."
         } else if severity == "CRITICAL" || risk_score >= 8 {
-            "ابتدا assetهای اینترنتی و سرویس‌های حساس مرتبط را بررسی و برای patch اولویت بالا تعیین کن."
+            "Review internet-facing assets and sensitive services first; set high patch priority."
         } else {
-            "با inventory تطبیق بده و در چرخه patch عادی یا accelerated پیگیری کن."
+            "Match against inventory and track in the normal or accelerated patch cycle."
         };
         insert_string_if_missing(obj, "ops_note", note);
     }
@@ -730,221 +687,17 @@ pub(crate) fn insert_string_if_missing(obj: &mut serde_json::Map<String, Value>,
     }
 }
 
-pub(crate) fn fallback_persian_title(title: &str) -> String {
-    // Non-AI runs must NOT rewrite headlines: keep the original title text as-is.
-    // A faithful Persian translation is added only by the AI editorial layer.
-    let cleaned = concise_title(title, 160);
-    if cleaned.trim().is_empty() {
-        return "سیگنال امنیتی قابل بررسی".to_string();
-    }
-    truncate_chars(&cleaned, 160)
-}
-
-pub(crate) fn fallback_persian_summary(summary: &str, fallback_prefix: &str) -> String {
-    let cleaned = non_empty_summary(summary, 220);
-    if contains_persian(&cleaned) {
-        return truncate_chars(&cleaned, 190);
-    }
-
-    let lower = cleaned.to_lowercase();
-    let focus = persian_focus_label(&cleaned);
-    let text = if lower.contains("actively exploited")
-        || lower.contains("exploited in the wild")
-        || lower.contains("mass exploitation")
-    {
-        format!("این سیگنال نشانه بهره‌برداری فعال پیرامون {focus} دارد؛ exposure دارایی‌های مرتبط باید سریع بررسی شود.")
-    } else if lower.contains("cve-")
-        || lower.contains("vulnerability")
-        || lower.contains("vulnerabilities")
-        || lower.contains("flaw")
-        || lower.contains("bug")
-    {
-        format!("این آیتم به آسیب‌پذیری در {focus} اشاره دارد و باید با موجودی دارایی‌ها و برنامه وصله تطبیق داده شود.")
-    } else if lower.contains("ransomware") {
-        format!("این گزارش به فعالیت باج‌افزاری مرتبط با {focus} اشاره دارد و برای پایش ریسک تداوم سرویس مهم است.")
-    } else if lower.contains("malware")
-        || lower.contains("trojan")
-        || lower.contains("botnet")
-        || lower.contains("backdoor")
-    {
-        format!("این سیگنال به بدافزار یا زیرساخت مخرب مرتبط با {focus} اشاره دارد و برای correlation دفاعی قابل استفاده است.")
-    } else if lower.contains("supply chain")
-        || lower.contains("package")
-        || lower.contains("dependency")
-    {
-        format!("این آیتم به ریسک زنجیره تأمین نرم‌افزار پیرامون {focus} اشاره دارد و باید با وابستگی‌های واقعی مقایسه شود.")
-    } else if lower.contains("phishing") || lower.contains("credential") {
-        format!("این سیگنال به فیشینگ یا سرقت اعتبار مرتبط با {focus} اشاره دارد و برای پایش هویت و ایمیل مهم است.")
-    } else if !fallback_prefix.trim().is_empty() {
-        format!("{fallback_prefix}؛ موضوع اصلی برای پایش امروز {focus} است.")
-    } else {
-        format!(
-            "این خبر امنیتی درباره {focus} برای آگاهی موقعیتی و اولویت‌بندی روزانه قابل بررسی است."
-        )
-    };
-
-    truncate_chars(&text, 190)
-}
-
-pub(crate) fn persian_focus_label(text: &str) -> String {
-    if let Some(cve) = first_cve_id(text) {
-        return cve;
-    }
-
-    let lower = text.to_lowercase();
-    let known = [
-        ("microsoft", "Microsoft"),
-        ("windows", "Windows"),
-        ("exchange", "Exchange"),
-        ("office", "Office"),
-        ("azure", "Azure"),
-        ("github", "GitHub"),
-        ("gitlab", "GitLab"),
-        ("gitea", "Gitea"),
-        ("google chrome", "Chrome"),
-        ("chrome", "Chrome"),
-        ("android", "Android"),
-        ("apple", "Apple"),
-        ("ios", "iOS"),
-        ("macos", "macOS"),
-        ("linux", "Linux"),
-        ("kernel", "Linux Kernel"),
-        ("cisco", "Cisco"),
-        ("fortinet", "Fortinet"),
-        ("fortigate", "FortiGate"),
-        ("palo alto", "Palo Alto"),
-        ("ivanti", "Ivanti"),
-        ("vmware", "VMware"),
-        ("citrix", "Citrix"),
-        ("apache", "Apache"),
-        ("nginx", "Nginx"),
-        ("wordpress", "WordPress"),
-        ("drupal", "Drupal"),
-        ("kubernetes", "Kubernetes"),
-        ("docker", "Docker"),
-        ("jenkins", "Jenkins"),
-        ("npm", "npm"),
-        ("pypi", "PyPI"),
-        ("maven", "Maven"),
-        ("rust", "Rust"),
-        ("golang", "Go"),
-        ("go ", "Go"),
-        ("ransomware", "باج‌افزار"),
-        ("malware", "بدافزار"),
-        ("phishing", "فیشینگ"),
-        ("botnet", "بات‌نت"),
-        ("zero-day", "روز-صفر"),
-    ];
-
-    let mut hits: Vec<&str> = Vec::new();
-    for (needle, label) in known {
-        if lower.contains(needle) && !hits.contains(&label) {
-            hits.push(label);
-        }
-        if hits.len() >= 2 {
-            break;
-        }
-    }
-    if !hits.is_empty() {
-        return hits.join(" / ");
-    }
-
-    let mut tokens: Vec<String> = Vec::new();
-    for raw in text.split_whitespace() {
-        let token = raw.trim_matches(|ch: char| {
-            !(ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == '.' || ch == '/')
-        });
-        if token.len() < 3 || token.len() > 32 || is_noise_token(token) {
-            continue;
-        }
-        let has_signal_case = token.chars().any(|ch| ch.is_ascii_uppercase())
-            || token.contains('-')
-            || token.contains('.')
-            || token.contains('/');
-        if has_signal_case && !tokens.iter().any(|existing| existing == token) {
-            tokens.push(token.to_string());
-        }
-        if tokens.len() >= 2 {
-            break;
-        }
-    }
-
-    if tokens.is_empty() {
-        "دارایی یا سرویس مهم".to_string()
-    } else {
-        tokens.join(" / ")
-    }
-}
-
-pub(crate) fn first_cve_id(text: &str) -> Option<String> {
-    for raw in text.split_whitespace() {
-        let token = raw
-            .trim_matches(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '-'))
-            .to_ascii_uppercase();
-        if token.starts_with("CVE-") && token.len() >= 13 {
-            return Some(token);
-        }
-    }
-    None
-}
-
-pub(crate) fn is_noise_token(token: &str) -> bool {
-    let lower = token.to_lowercase();
-    matches!(
-        lower.as_str(),
-        "the"
-            | "and"
-            | "for"
-            | "from"
-            | "with"
-            | "that"
-            | "this"
-            | "into"
-            | "after"
-            | "before"
-            | "over"
-            | "under"
-            | "new"
-            | "old"
-            | "security"
-            | "cyber"
-            | "hackers"
-            | "attacks"
-            | "attack"
-            | "vulnerability"
-            | "vulnerabilities"
-            | "critical"
-            | "high"
-            | "medium"
-            | "low"
-            | "warning"
-            | "alert"
-            | "update"
-            | "updates"
-            | "patch"
-            | "patches"
-            | "users"
-            | "companies"
-            | "researchers"
-    )
-}
-
 pub(crate) fn fallback_why_it_matters(risk_score: i64, text: &str) -> String {
     let lower = text.to_lowercase();
     if lower.contains("ransomware") {
-        "احتمال اثر مستقیم روی تداوم کسب‌وکار و بازیابی سرویس‌ها وجود دارد.".to_string()
+        "Potential direct impact on business continuity and service recovery.".to_string()
     } else if lower.contains("actively exploited") || lower.contains("exploited in the wild") {
-        "نشانه بهره‌برداری فعال دیده شده و باید از backlog عادی جدا شود.".to_string()
+        "Signs of active exploitation observed; keep it out of the normal backlog.".to_string()
     } else if lower.contains("cve-") || risk_score >= 8 {
-        "اگر محصول مرتبط در محیط وجود داشته باشد، اولویت patch و کنترل exposure بالاست.".to_string()
+        "If the related product exists in your environment, patch and exposure control are high priority.".to_string()
     } else {
-        "برای تصمیم روزانه SOC و تیم زیرساخت، ارزش triage و ثبت وضعیت دارد.".to_string()
+        "Worth triaging and tracking for daily SOC and infrastructure decisions.".to_string()
     }
-}
-
-pub(crate) fn contains_persian(text: &str) -> bool {
-    text.chars()
-        .any(|ch| ('\u{0600}'..='\u{06FF}').contains(&ch))
 }
 
 pub(crate) fn build_brief_notes(brief: &Value) -> Vec<String> {
@@ -966,113 +719,32 @@ pub(crate) fn build_brief_notes(brief: &Value) -> Vec<String> {
         .and_then(|v| v.get("failed_rss_sources"))
         .and_then(|v| v.as_u64())
         .unwrap_or(0);
-    let attack_pressure_ok = brief
-        .get("attack_pressure")
-        .and_then(|v| v.get("ok"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let ioc_radar_ok = brief
-        .get("ioc_radar")
-        .and_then(|v| v.get("ok"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let infrastructure_ok = brief
-        .get("infrastructure_radar")
-        .and_then(|v| v.get("ok"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let supply_chain_ok = brief
-        .get("supply_chain_radar")
-        .and_then(|v| v.get("ok"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let ransomware_ok = brief
-        .get("ransomware_pulse")
-        .and_then(|v| v.get("ok"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let botnet_ok = brief
-        .get("botnet_c2_pulse")
-        .and_then(|v| v.get("ok"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
-    let greynoise_ok = brief
-        .get("greynoise_context")
-        .and_then(|v| v.get("ok"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
 
     if ai_enabled && ai_ok && ai_cache {
         notes.push(
-            "نسخه فارسی این رادار از cache هوش مصنوعی آماده شده و داده خام منابع حفظ شده است."
-                .to_string(),
+            "AI editorial layer applied from cache; raw source data preserved.".to_string(),
         );
     } else if ai_enabled && ai_ok {
         notes.push(
-            "نسخه فارسی این رادار با یک ویرایش هوش مصنوعی ساخته و برای اجرای بعدی cache شد."
-                .to_string(),
+            "AI editorial layer applied and cached for next run.".to_string(),
         );
     } else if ai_enabled {
         notes.push(
-            "لایه فارسی‌سازی هوش مصنوعی در این اجرا کامل نشد؛ خروجی با fallback محلی ساخته شده است."
-                .to_string(),
+            "AI editorial layer incomplete; output built with local fallback rules.".to_string(),
         );
     } else {
         notes.push(
-            "این خروجی بدون هوش مصنوعی ساخته شده و فقط از ruleهای محلی استفاده می‌کند.".to_string(),
+            "Built without AI; uses local editorial rules only.".to_string(),
         );
     }
 
     if sources > 0 {
         let mut coverage = format!(
-            "پوشش خبری این نسخه از {sources} منبع RSS به‌همراه NVD، CISA KEV و EPSS ساخته شده است."
+            "Coverage from {sources} RSS feeds plus NVD, CISA KEV, and EPSS."
         );
-        if attack_pressure_ok {
-            coverage.push_str(" لایه Attack Pressure نیز از DShield/SANS اضافه شده است.");
-        }
-        if ioc_radar_ok {
-            coverage.push_str(" IOC Radar هم از URLhaus و ThreatFox ساخته شده است.");
-        }
-        if infrastructure_ok {
-            coverage
-                .push_str(" Suspicious Infrastructure نیز با Shodan InternetDB enrich شده است.");
-        }
-        if supply_chain_ok {
-            coverage.push_str(
-                " Supply Chain Radar نیز از GitHub Advisories و OSV reference ساخته شده است.",
-            );
-        }
-        if ransomware_ok {
-            coverage.push_str(" Ransomware Pulse هم از Ransomware.live به صورت آماری و بدون لینک leak ساخته شده است.");
-        }
-        if botnet_ok {
-            coverage
-                .push_str(" Botnet C2 Pulse از Feodo و SSLBL به‌صورت metadata-only ساخته شده است.");
-        }
-        if greynoise_ok {
-            coverage.push_str(
-                " GreyNoise Context نیز برای IPهای منتخب به‌صورت passive lookup اضافه شده است.",
-            );
-        }
-        if brief
-            .get("ics_ot_pulse")
-            .and_then(|v| v.get("ok"))
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-        {
-            coverage.push_str(" ICS/OT Advisory Pulse هم از CISA ICS Advisories به‌صورت metadata-only ساخته شده است.");
-        }
-        if brief
-            .get("poc_watch")
-            .and_then(|v| v.get("ok"))
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-        {
-            coverage.push_str(" Latest PoC Watch نیز از GitHub Search به‌صورت latest-first ساخته شده، CVE را از metadata استخراج می‌کند و کد exploit نمایش نمی‌دهد.");
-        }
         if failed_sources > 0 {
             coverage.push_str(&format!(
-                " {failed_sources} منبع RSS در این اجرا skip شد و در Source Health ثبت شده است."
+                " {failed_sources} RSS source(s) skipped this run."
             ));
         }
         notes.push(coverage);
@@ -1106,7 +778,7 @@ pub(crate) fn concise_title(input: &str, max_chars: usize) -> String {
 pub(crate) fn non_empty_summary(input: &str, max_chars: usize) -> String {
     let cleaned = clean_text(input);
     if cleaned.trim().is_empty() {
-        "جزئیات کافی در منبع وجود نداشت؛ برای تصمیم‌گیری، advisory اصلی را بررسی کن.".to_string()
+        "Insufficient details in source; check the original advisory.".to_string()
     } else {
         truncate_chars(&cleaned, max_chars)
     }

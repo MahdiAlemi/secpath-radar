@@ -141,7 +141,6 @@ pub(crate) fn fetch_ics_ot_pulse(
             score,
             bar_width: score.max(12).min(100),
             source: "CISA ICS Advisories".to_string(),
-            note_fa: ics_note_fa(cvss, &detail),
         });
     }
 
@@ -157,19 +156,19 @@ pub(crate) fn fetch_ics_ot_pulse(
 
     let high = advisories.iter().filter(|item| item.risk == "high").count();
     let cves_total: usize = advisories.iter().map(|item| item.cve_count).sum();
-    let summary_fa = if advisories.is_empty() {
-        "در این اجرا advisory تازه ICS/OT از CISA در cache فعلی دیده نشد.".to_string()
+    let summary = if advisories.is_empty() {
+        "No new ICS/OT advisories from CISA seen in the current cache this run.".to_string()
     } else if high > 0 {
-        format!("{} advisory صنعتی/OT از CISA خوانده شد؛ {} مورد سطح بالا و {} CVE برای triage دفاعی دیده می‌شود.", advisories.len(), high, cves_total)
+        format!("{} industrial/OT advisories read from CISA; {} high-level and {} CVEs flagged for defensive triage.", advisories.len(), high, cves_total)
     } else {
-        format!("{} advisory صنعتی/OT از CISA خوانده شد؛ تمرکز روی vendor، تجهیز و CVE برای مرور دفاعی است.", advisories.len())
+        format!("{} industrial/OT advisories read from CISA; focus is on vendor, equipment, and CVEs for defensive review.", advisories.len())
     };
 
     Ok(json!({
         "ok": true,
         "provider": "CISA ICS Advisories",
         "source_url": config.intel.ics_ot.ics_advisories_feed_url,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "totals": {
             "advisories": advisories.len(),
             "high": high,
@@ -363,18 +362,6 @@ pub(crate) fn ics_risk_from_detail(cvss: f64, detail: &str) -> (String, usize) {
     (risk.to_string(), score)
 }
 
-pub(crate) fn ics_note_fa(cvss: f64, detail: &str) -> String {
-    let lower = detail.to_lowercase();
-    if cvss >= 9.0 {
-        "Advisory صنعتی با CVSS بحرانی؛ برای assetهای OT/ICS باید اولویت patch، segmentation و exposure review بررسی شود.".to_string()
-    } else if lower.contains("exploitable remotely") || lower.contains("low attack complexity") {
-        "در متن CISA نشانه قابلیت بهره‌برداری remote/low-complexity دیده می‌شود؛ برای triage دفاعی با موجودی OT تطبیق بده.".to_string()
-    } else {
-        "این advisory برای آگاهی OT/ICS و تطبیق با vendor/equipment محیط نگه داشته شده است."
-            .to_string()
-    }
-}
-
 pub(crate) fn finalize_ics_advisories(items: &mut [IcsAdvisoryItem]) {
     items.sort_by(|a, b| {
         b.score
@@ -392,7 +379,7 @@ pub(crate) fn empty_ics_ot_pulse(reason: &str) -> Value {
         "ok": false,
         "reason": reason,
         "provider": "CISA ICS Advisories",
-        "summary_fa": "داده ICS/OT Advisory Pulse در این اجرا در دسترس نبود.",
+        "summary": "ICS/OT Advisory Pulse data was not available this run.",
         "totals": {"advisories": 0, "high": 0, "vendors": 0, "sectors": 0, "cves": 0},
         "advisories": [],
         "vendor_chart": [],

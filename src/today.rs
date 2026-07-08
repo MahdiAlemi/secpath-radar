@@ -92,7 +92,6 @@ fn refresh_day_stats(brief: &mut Value) {
         .as_array()
         .map(|a| a.len())
         .unwrap_or(0);
-    let iran = brief["iran_radar"].as_array().map(|a| a.len()).unwrap_or(0);
     let breaking = brief["breaking_news"]
         .as_array()
         .map(|a| a.len())
@@ -122,9 +121,8 @@ fn refresh_day_stats(brief: &mut Value) {
         .unwrap_or(0);
     if let Some(stats) = brief.get_mut("stats").and_then(|v| v.as_object_mut()) {
         stats.insert("global_news".to_string(), json!(global));
-        stats.insert("iran_items".to_string(), json!(iran));
         stats.insert("breaking_news".to_string(), json!(breaking));
-        stats.insert("daily_news".to_string(), json!(global + iran + breaking));
+        stats.insert("daily_news".to_string(), json!(global + breaking));
         stats.insert("cves".to_string(), json!(cves));
         stats.insert("critical_cves".to_string(), json!(critical));
         stats.insert("kev".to_string(), json!(kev));
@@ -153,9 +151,8 @@ pub(crate) fn apply_day_accumulation(brief: &mut Value) {
     if state.get("date").and_then(|v| v.as_str()) != Some(date.as_str()) {
         state = json!({ "date": date });
     }
-    let plans: [(&str, &[&str], usize); 4] = [
+    let plans: [(&str, &[&str], usize); 3] = [
         ("breaking_news", &["url", "title"], DAY_MAX_NEWS),
-        ("iran_radar", &["url", "title"], DAY_MAX_NEWS),
         ("global_news", &["url", "title"], DAY_MAX_NEWS),
         ("cves", &["cve_id", "url"], DAY_MAX_CVES),
     ];
@@ -196,20 +193,12 @@ fn item_signal(item: &Value, fallback_title: &str, anchor: &str) -> Value {
         .unwrap_or(0.0);
     let title = item
         .get("cve_id")
-        .or_else(|| item.get("title_fa"))
         .or_else(|| item.get("title"))
         .and_then(|v| v.as_str())
         .unwrap_or(fallback_title);
-    let note = item
-        .get("title_fa")
-        .or_else(|| item.get("summary_fa"))
-        .or_else(|| item.get("title"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
     json!({
         "title": truncate_chars(title, 60),
         "metric": format!("risk {risk:.1}"),
-        "note_fa": truncate_chars(note, 110),
         "level": signal_level(risk),
         "bar_width": ((risk * 10.0) as u64).clamp(8, 100),
         "anchor": anchor
@@ -223,38 +212,31 @@ pub(crate) fn build_top_signals(brief: &Value) -> Value {
         .and_then(|v| v.as_array())
         .and_then(|a| a.first())
     {
-        cards.push(item_signal(cve, "CVE برجسته", "#cves"));
+        cards.push(item_signal(cve, "Top CVE", "#cves"));
     }
     if let Some(item) = brief
         .get("breaking_news")
         .and_then(|v| v.as_array())
         .and_then(|a| a.first())
     {
-        cards.push(item_signal(item, "خبر فوری", "#breaking-news"));
+        cards.push(item_signal(item, "Breaking News", "#breaking-news"));
     } else if let Some(item) = brief
         .get("global_news")
         .and_then(|v| v.as_array())
         .and_then(|a| a.first())
     {
-        cards.push(item_signal(item, "خبر برجسته", "#global-news"));
-    }
-    if let Some(item) = brief
-        .get("iran_radar")
-        .and_then(|v| v.as_array())
-        .and_then(|a| a.first())
-    {
-        cards.push(item_signal(item, "رادار ایران", "#iran"));
+        cards.push(item_signal(item, "Top News", "#global-news"));
     }
     if let Some(row) = brief.pointer("/vendor_watchlist/rows/0") {
         let name = row
             .get("name")
             .or_else(|| row.get("vendor"))
             .and_then(|v| v.as_str())
-            .unwrap_or("وندور");
+            .unwrap_or("vendor");
         let cves_hits = row.get("cves").and_then(|v| v.as_u64()).unwrap_or(0);
         let news_hits = row.get("news").and_then(|v| v.as_u64()).unwrap_or(0);
         let metric = if cves_hits + news_hits > 0 {
-            format!("{cves_hits} CVE · {news_hits} خبر")
+            format!("{cves_hits} CVE · {news_hits} news")
         } else {
             row.get("count")
                 .and_then(|v| v.as_str())
@@ -262,9 +244,8 @@ pub(crate) fn build_top_signals(brief: &Value) -> Value {
                 .to_string()
         };
         cards.push(json!({
-            "title": format!("وندور پرتکرار: {name}"),
+            "title": format!("Top Vendor: {name}"),
             "metric": metric,
-            "note_fa": "بیشترین اشاره وندوری در CVEها و اخبار امروز.",
             "level": row.get("level").and_then(|v| v.as_str()).unwrap_or("watch"),
             "bar_width": row.get("bar_width").cloned().unwrap_or(json!(40)),
             "anchor": "#vendor-watchlist"
@@ -273,20 +254,18 @@ pub(crate) fn build_top_signals(brief: &Value) -> Value {
     if let Some(row) = brief.pointer("/attack_matrix/rows/0") {
         let technique = row.get("technique").and_then(|v| v.as_str()).unwrap_or("");
         let label = row
-            .get("label_fa")
-            .or_else(|| row.get("name"))
+            .get("name")
             .and_then(|v| v.as_str())
             .unwrap_or("ATT&CK");
         let hits = row.get("hits").and_then(|v| v.as_u64()).unwrap_or(0);
         let metric = if technique.is_empty() {
-            format!("{hits} برخورد")
+            format!("{hits} hits")
         } else {
-            format!("{technique} · {hits} برخورد")
+            format!("{technique} · {hits} hits")
         };
         cards.push(json!({
-            "title": format!("الگوی حمله غالب: {label}"),
+            "title": format!("Dominant Attack Pattern: {label}"),
             "metric": metric,
-            "note_fa": "پرتکرارترین تکنیک ATT&CK در محتوای امروز.",
             "level": "medium",
             "bar_width": row.get("bar_width").cloned().unwrap_or(json!(40)),
             "anchor": "#attack-matrix"
@@ -348,8 +327,8 @@ mod tests {
     #[test]
     fn build_top_signals_leads_with_top_cve() {
         let brief = json!({
-            "cves": [ { "cve_id": "CVE-2026-1111", "title_fa": "نمونه", "risk_score": 9.2 } ],
-            "global_news": [ { "title_fa": "خبر مهم", "title": "Big news", "risk_score": 8.1 } ]
+            "cves": [ { "cve_id": "CVE-2026-1111", "title": "Example", "risk_score": 9.2 } ],
+            "global_news": [ { "title": "Big news", "risk_score": 8.1 } ]
         });
         let cards = build_top_signals(&brief);
         let rows = cards.as_array().expect("array");

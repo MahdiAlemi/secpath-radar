@@ -26,7 +26,7 @@ pub(crate) fn build_executive_snapshot(brief: &Value) -> Value {
     let supply_critical = path_u64(brief, &["supply_chain_radar", "totals", "critical"]);
     let supply_high = path_u64(brief, &["supply_chain_radar", "totals", "high"]);
     let ransomware_24h = path_u64(brief, &["ransomware_pulse", "totals", "recent_24h"]);
-    let attack_level = path_string(brief, &["attack_pressure", "level"], "Unknown");
+    let _attack_level = path_string(brief, &["attack_pressure", "level"], "Unknown");
 
     let cve_score =
         (critical_cves * 32 + kev * 28 + cves * 4 + poc_watch.min(20) + poc_watch_high * 12)
@@ -54,20 +54,20 @@ pub(crate) fn build_executive_snapshot(brief: &Value) -> Value {
 
     let score = ((cve_score * 45 + intel_score * 35 + ecosystem_score * 20) / 100).clamp(12, 100);
     let level = snapshot_level(score);
-    let score_formula_fa = format!(
-        "ترکیب وزنی: ۴۵٪ آسیب‌پذیری ({cve_score}) + ۳۵٪ تله‌متری ({intel_score}) + ۲۰٪ اکوسیستم ({ecosystem_score})"
+    let score_formula = format!(
+        "Weighted blend: 45% Vulnerability ({cve_score}) + 35% Telemetry ({intel_score}) + 20% Ecosystem ({ecosystem_score})"
     );
 
     let top_port = top_attack_port(brief);
     let top_ioc = first_chart_entry(brief, &["ioc_radar", "malware_chart"])
         .or_else(|| first_chart_entry(brief, &["ioc_radar", "source_chart"]))
-        .unwrap_or_else(|| ("بدون IOC برجسته".to_string(), 0));
+        .unwrap_or_else(|| ("No prominent IOC".to_string(), 0));
     let top_phishing = first_chart_entry(brief, &["phishing_pulse", "brand_chart"])
-        .unwrap_or_else(|| ("بدون phishing برجسته".to_string(), 0));
+        .unwrap_or_else(|| ("No prominent phishing".to_string(), 0));
     let top_ransomware = first_chart_entry(brief, &["ransomware_pulse", "group_chart"])
-        .unwrap_or_else(|| ("بدون گروه برجسته".to_string(), 0));
+        .unwrap_or_else(|| ("No prominent group".to_string(), 0));
     let top_supply = first_chart_entry(brief, &["supply_chain_radar", "severity_chart"])
-        .unwrap_or_else(|| ("بدون severity برجسته".to_string(), 0));
+        .unwrap_or_else(|| ("No prominent severity".to_string(), 0));
 
     let impact_a = cves + critical_cves + kev + poc_watch;
     let impact_b = iocs + infrastructure_hosts + botnet_c2 + malicious_tls + phishing_urls;
@@ -79,33 +79,30 @@ pub(crate) fn build_executive_snapshot(brief: &Value) -> Value {
         "level": level,
         "score": score,
         "bar_width": score.max(12),
-        "score_formula_fa": score_formula_fa,
+        "score_formula": score_formula,
         "generated_at": brief.get("generated_at").cloned().unwrap_or(Value::Null),
-        "summary_fa": format!(
-            "خلاصه ۶۰ ثانیه‌ای: در این اجرا {} آیتم، {} CVE، {} PoC metadata، {} IOC، {} C2 botnet، {} URL فیشینگ، {} advisory ICS/OT، {} IP با context GreyNoise، {} advisory زنجیره تأمین و {} claim ransomware دیده شد.",
+        "summary": format!(
+            "60-second summary: This run saw {} items, {} CVEs, {} PoC metadata, {} IOCs, {} C2 botnets, {} phishing URLs, {} ICS/OT advisories, {} IPs with GreyNoise context, {} supply chain advisories, and {} ransomware claims.",
             total_items, cves, poc_watch, iocs, botnet_c2, phishing_urls, ics_advisories, greynoise_noise + greynoise_malicious, supply_advisories, ransomware_victims
         ),
         "risk_cards": [
             {
-                "title": "ریسک آسیب‌پذیری‌ها",
+                "title": "Vulnerability Risk",
                 "metric": format!("{} critical / {} CVE / {} PoC", critical_cves, cves, poc_watch),
                 "level": snapshot_level(cve_score),
-                "bar_width": cve_score,
-                "note_fa": if critical_cves > 0 { "CVEهای critical باید در اولویت patch و exposure review دیده شوند." } else { "در این اجرا CVE critical برجسته‌ای دیده نشده است." }
+                "bar_width": cve_score
             },
             {
-                "title": "IOC و زیرساخت مشکوک",
+                "title": "IOC & Suspicious Infrastructure",
                 "metric": format!("{} IOC / {} C2 / {} phish / {} ICS", iocs, botnet_c2, phishing_urls, ics_advisories),
                 "level": snapshot_level(intel_score),
-                "bar_width": intel_score,
-                "note_fa": if ics_high > 0 { "Advisoryهای ICS/OT سطح بالا کنار IOC/C2 برای اولویت‌بندی دفاعی OT دیده شوند." } else if phishing_high > 0 { "URLهای فیشینگ defanged کنار IOC/C2 برای correlation دفاعی آمده‌اند." } else if greynoise_malicious > 0 { "GreyNoise برای برخی IPها classification بدخواه داده و با C2/IOC باید correlation شود." } else if botnet_c2 > 0 { "سیگنال‌های C2 و زیرساخت برای correlation دفاعی کنار هم دیده می‌شوند." } else if infra_high > 0 { "برخی hostها با exposure یا vulnerability hint بالاتر دیده شده‌اند." } else { "سیگنال‌های زیرساختی برای correlation دفاعی نگه داشته شده‌اند." }
+                "bar_width": intel_score
             },
             {
-                "title": "Supply Chain و Ransomware",
+                "title": "Supply Chain & Ransomware",
                 "metric": format!("{} advisory / {} claims", supply_advisories, ransomware_victims),
                 "level": snapshot_level(ecosystem_score),
-                "bar_width": ecosystem_score,
-                "note_fa": "این بخش فشار اکوسیستم نرم‌افزار و claimهای عمومی ransomware را در یک نگاه ترکیب می‌کند."
+                "bar_width": ecosystem_score
             }
         ],
         "rising_signals": [
@@ -113,42 +110,36 @@ pub(crate) fn build_executive_snapshot(brief: &Value) -> Value {
                 "title": "Attack Pressure",
                 "metric": top_port.0,
                 "level": top_port.2,
-                "bar_width": top_port.1.max(12),
-                "note_fa": format!("سطح کلی DShield در این اجرا {} گزارش شده است.", attack_level)
+                "bar_width": top_port.1.max(12)
             },
             {
                 "title": "IOC Pattern",
                 "metric": format!("{} · {} | {} · {}", top_ioc.0, top_ioc.1, top_phishing.0, top_phishing.1),
                 "level": if phishing_high >= 4 || top_ioc.1 >= 5 { "high" } else if phishing_urls >= 10 || top_ioc.1 >= 2 { "medium" } else { "watch" },
-                "bar_width": ((top_ioc.1 * 12 + phishing_high * 10 + phishing_urls.min(20)).min(100)).max(12),
-                "note_fa": "بیشترین الگوی IOC و phishing برای triage و correlation دفاعی نمایش داده شده است."
+                "bar_width": ((top_ioc.1 * 12 + phishing_high * 10 + phishing_urls.min(20)).min(100)).max(12)
             },
             {
                 "title": "Ransomware / Ecosystem",
                 "metric": format!("{} · {} | {} · {}", top_ransomware.0, top_ransomware.1, top_supply.0, top_supply.1),
                 "level": if ransomware_24h >= 8 || supply_critical >= 3 { "high" } else if ransomware_24h >= 3 || supply_high >= 5 { "medium" } else { "watch" },
-                "bar_width": ((ransomware_24h * 10 + supply_critical * 15 + supply_high * 4).min(100)).max(12),
-                "note_fa": "Claimهای عمومی ransomware و advisoryهای package در یک سیگنال فشرده آمده‌اند."
+                "bar_width": ((ransomware_24h * 10 + supply_critical * 15 + supply_high * 4).min(100)).max(12)
             }
         ],
         "impact_sources": [
             {
                 "name": "NVD + CISA KEV + EPSS",
                 "count": impact_a,
-                "bar_width": relative_width(impact_a, impact_max),
-                "note_fa": "هسته اولویت‌بندی CVE و exploitability."
+                "bar_width": relative_width(impact_a, impact_max)
             },
             {
                 "name": "DShield + abuse.ch + SSLBL + OpenPhish + InternetDB + GreyNoise",
                 "count": impact_b,
-                "bar_width": relative_width(impact_b, impact_max),
-                "note_fa": "فشار حمله، IOC و زیرساخت قابل مشاهده."
+                "bar_width": relative_width(impact_b, impact_max)
             },
             {
                 "name": "GitHub Advisories + OSV + Ransomware.live",
                 "count": impact_c,
-                "bar_width": relative_width(impact_c, impact_max),
-                "note_fa": "ریسک اکوسیستم نرم‌افزار و claimهای عمومی."
+                "bar_width": relative_width(impact_c, impact_max)
             }
         ]
     })
@@ -205,7 +196,7 @@ pub(crate) fn top_attack_port(brief: &Value) -> (String, u64, &'static str) {
         .and_then(|v| v.as_array())
         .and_then(|items| items.first())
     else {
-        return ("بدون پورت برجسته".to_string(), 12, "watch");
+        return ("No prominent port".to_string(), 12, "watch");
     };
     let port = row
         .get("port")
@@ -282,12 +273,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
     signals.push((
         100 + risk_score,
         json!({
-            "title": "تصمیم سریع امروز",
+            "title": "Quick Decision Today",
             "metric": format!("Risk {risk_score}"),
             "level": snapshot_level(risk_score),
             "anchor": "#executive-snapshot",
-            "bar_width": risk_score.max(12),
-            "note_fa": "ابتدا خلاصه مدیریتی و دلیل امتیاز ریسک را ببین."
+            "bar_width": risk_score.max(12)
         }),
     ));
 
@@ -296,12 +286,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         signals.push((
             95 + score,
             json!({
-                "title": "Breaking / خبر تازه",
-                "metric": format!("{breaking_news} breaking · {daily_news} امروز"),
+                "title": "Breaking / Latest News",
+                "metric": format!("{breaking_news} breaking · {daily_news} today"),
                 "level": if breaking_news > 0 { "high" } else { "watch" },
                 "anchor": "#breaking-news",
-                "bar_width": score,
-                "note_fa": "خبرهای امروز با ترتیب زمان انتشار نمایش داده می‌شوند؛ خبرهای مهم جدا شده‌اند."
+                "bar_width": score
             }),
         ));
     }
@@ -311,12 +300,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         signals.push((
             88 + score,
             json!({
-                "title": "Writeup / تحلیل تازه",
-                "metric": format!("{writeups} writeup · {writeup_sources} منبع"),
+                "title": "Writeup / Latest Analysis",
+                "metric": format!("{writeups} writeup · {writeup_sources} sources"),
                 "level": if score >= 70 { "medium" } else { "watch" },
                 "anchor": "#writeups-pulse",
-                "bar_width": score,
-                "note_fa": "تحلیل‌های تازه را جدا از خبر خام ببین؛ خروجی فقط خلاصه و metadata است."
+                "bar_width": score
             }),
         ));
     }
@@ -328,12 +316,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         signals.push((
             90 + score,
             json!({
-                "title": "آسیب‌پذیری قابل اقدام",
+                "title": "Actionable Vulnerabilities",
                 "metric": format!("{critical_cves} critical · {kev} KEV · {epss_rising} EPSS↑"),
                 "level": snapshot_level(score),
                 "anchor": "#cves",
-                "bar_width": score,
-                "note_fa": if kev > 0 || critical_cves > 0 { "CVEهای critical/KEV را قبل از خبرهای عمومی مرور کن." } else { "CVEها برای تطبیق با asset inventory نگه داشته شده‌اند." }
+                "bar_width": score
             }),
         ));
     }
@@ -349,8 +336,7 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
                 "metric": format!("{poc_watch} repo · {poc_watch_cves} CVE"),
                 "level": if poc_watch_high > 0 { "high" } else if score >= 55 { "medium" } else { "watch" },
                 "anchor": "#poc-watch",
-                "bar_width": score,
-                "note_fa": "جدیدترین PoCهای عمومی ابتدا از جریان زمانی metadata استخراج و سپس بر اساس CVE گروه‌بندی می‌شوند؛ کد و لینک raw نمایش داده نمی‌شود."
+                "bar_width": score
             }),
         ));
     }
@@ -362,12 +348,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         signals.push((
             80 + score,
             json!({
-                "title": "Context اسکنرها",
+                "title": "Scanner Context",
                 "metric": format!("{greynoise_malicious} malicious · {greynoise_noise} noise"),
                 "level": if greynoise_malicious > 0 { "high" } else { "watch" },
                 "anchor": "#greynoise-context",
-                "bar_width": score,
-                "note_fa": "GreyNoise برای کاهش false positive و اولویت‌بندی IPها استفاده شود."
+                "bar_width": score
             }),
         ));
     }
@@ -379,12 +364,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         signals.push((
             75 + score,
             json!({
-                "title": "تهدید فعال و C2",
+                "title": "Active Threats & C2",
                 "metric": format!("{iocs} IOC · {botnet_c2} C2 · {malicious_tls} TLS"),
                 "level": if botnet_c2 > 0 { "high" } else if iocs > 0 { "medium" } else { "watch" },
                 "anchor": "#ioc-radar",
-                "bar_width": score,
-                "note_fa": "IOC، C2 و TLS بدخواه را فقط برای correlation دفاعی ببین."
+                "bar_width": score
             }),
         ));
     }
@@ -400,8 +384,7 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
                 "metric": format!("{phishing_urls} URL · {phishing_high} high"),
                 "level": if phishing_high > 0 { "medium" } else { "watch" },
                 "anchor": "#phishing-pulse",
-                "bar_width": score,
-                "note_fa": "نمایش فقط defanged و برای آگاهی/همبستگی دفاعی است."
+                "bar_width": score
             }),
         ));
     }
@@ -415,8 +398,7 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
                 "metric": format!("{ics_advisories} advisory · {ics_high} high"),
                 "level": if ics_high > 0 { "medium" } else { "watch" },
                 "anchor": "#ics-ot-pulse",
-                "bar_width": score,
-                "note_fa": "Vendor و تجهیز را با موجودی OT/ICS تطبیق بده."
+                "bar_width": score
             }),
         ));
     }
@@ -426,12 +408,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         signals.push((
             55 + score,
             json!({
-                "title": "تغییر نسبت به قبل",
-                "metric": format!("{history_changes} شاخص تغییر کرد"),
+                "title": "Changes From Previous",
+                "metric": format!("{history_changes} indicators changed"),
                 "level": "medium",
                 "anchor": "#history-snapshot",
-                "bar_width": score,
-                "note_fa": "اول تغییرهای تازه را ببین، بعد وارد جزئیات پنل‌ها شو."
+                "bar_width": score
             }),
         ));
     }
@@ -441,12 +422,11 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         signals.push((
             45 + score,
             json!({
-                "title": "سلامت منابع",
+                "title": "Source Health",
                 "metric": format!("{failed_rss} RSS failed"),
                 "level": "medium",
                 "anchor": "#sources",
-                "bar_width": score,
-                "note_fa": "قبل از تصمیم‌گیری، محدودیت پوشش منبع را در نظر بگیر."
+                "bar_width": score
             }),
         ));
     }

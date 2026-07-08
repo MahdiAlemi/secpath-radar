@@ -14,7 +14,6 @@ pub(crate) struct DropRange {
     pub(crate) risk: String,
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
-    pub(crate) note_fa: String,
 }
 
 pub(crate) fn fetch_drop_pulse_or_fallback(
@@ -80,11 +79,11 @@ pub(crate) fn fetch_drop_pulse(
     } else {
         "Watch"
     };
-    let summary_fa = if total_ranges == 0 {
-        "در این اجرا داده‌ای از فهرست Spamhaus DROP دریافت نشد.".to_string()
+    let summary = if total_ranges == 0 {
+        "No data received from Spamhaus DROP list in this run.".to_string()
     } else {
         format!(
-            "{} رنج IP خصمانه (حدود {} میلیون آدرس) در فهرست DROP است؛ بزرگ‌ترین رنج‌ها نمایش داده شده‌اند؛ در شبکه سالم نباید ترافیکی به/از آنها دیده شود.",
+            "{} hostile IP ranges (~{} million addresses) in DROP list; largest ranges shown; no traffic to/from them should be seen on a healthy network.",
             total_ranges,
             (total_ips / 1_000_000).max(1)
         )
@@ -95,7 +94,7 @@ pub(crate) fn fetch_drop_pulse(
         "ok": true,
         "provider": "Spamhaus DROP v4",
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
         "metadata_only": true,
         "totals": {
@@ -160,7 +159,6 @@ pub(crate) fn parse_drop_v4_jsonl(text: &str) -> Vec<DropRange> {
             risk: "watch".to_string(),
             score: 0,
             bar_width: 0,
-            note_fa: String::new(),
         });
     }
     out
@@ -185,10 +183,6 @@ pub(crate) fn finalize_drop_ranges(items: &mut Vec<DropRange>) {
             "watch"
         }
         .to_string();
-        item.note_fa = format!(
-            "رنج {} در فهرست DROP است؛ فقط برای آگاهی و مسدودسازی دفاعی داخلی استفاده شود.",
-            item.cidr_safe
-        );
     }
 }
 
@@ -198,7 +192,7 @@ pub(crate) fn empty_drop_pulse(status: &str) -> Value {
         "ok": false,
         "provider": "Spamhaus DROP v4",
         "level": "Unknown",
-        "summary_fa": "داده Spamhaus DROP در این اجرا در دسترس نبود.",
+        "summary": "Spamhaus DROP data was not available this run.",
         "last_updated": "",
         "metadata_only": true,
         "totals": {"ranges": 0, "shown": 0, "rirs": 0, "big_ranges": 0, "est_ips": 0},

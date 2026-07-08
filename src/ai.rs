@@ -11,7 +11,7 @@ pub(crate) struct GeminiEditResult {
     pub(crate) cache_hit: bool,
 }
 
-const NEWS_SECTIONS: [&str; 2] = ["iran_radar", "global_news"];
+const NEWS_SECTIONS: [&str; 1] = ["global_news"];
 
 pub(crate) fn enhance_brief_with_gemini(
     config: &Config,
@@ -205,7 +205,6 @@ pub(crate) fn enhance_brief_with_gemini(
 
 pub(crate) fn editorial_limit(config: &Config, section: &str) -> usize {
     match section {
-        "iran_radar" => config.gemini.max_iran_items,
         "global_news" => config.gemini.max_global_news,
         "cves" => config.gemini.max_cves,
         _ => 0,
@@ -342,14 +341,14 @@ pub(crate) fn sanitize_editorial(kind: &str, value: &Value) -> Value {
     };
     let keys: &[&str] = if kind == "cve" {
         &[
-            "title_fa",
-            "summary_fa",
+            "title",
+            "summary",
             "why_it_matters",
             "recommended_action",
             "ops_note",
         ]
     } else {
-        &["title_fa", "summary_fa", "why_it_matters", "ops_note"]
+        &["title", "summary", "why_it_matters", "ops_note"]
     };
     for key in keys {
         if let Some(Value::String(text)) = obj.get(*key) {
@@ -359,20 +358,13 @@ pub(crate) fn sanitize_editorial(kind: &str, value: &Value) -> Value {
             }
         }
     }
-    if kind == "news" {
-        if let Some(score) = obj.get("iran_relevance").and_then(|v| v.as_i64()) {
-            if (0..=100).contains(&score) {
-                clean.insert("iran_relevance".to_string(), json!(score));
-            }
-        }
-    }
     Value::Object(clean)
 }
 
 pub(crate) fn editorial_is_usable(editorial: &Value) -> bool {
     editorial
         .as_object()
-        .map(|obj| obj.keys().any(|key| key != "iran_relevance"))
+        .map(|obj| !obj.is_empty())
         .unwrap_or(false)
 }
 
@@ -405,7 +397,6 @@ pub(crate) fn item_cache_key(model: &str, section: &str, item: &Value) -> String
 
 pub(crate) fn section_slug(section: &str) -> &'static str {
     match section {
-        "iran_radar" => "iran",
         "global_news" => "news",
         "cves" => "cve",
         "alert" => "alert",
@@ -440,41 +431,39 @@ pub(crate) fn write_item_cache(config: &Config, key: &str, value: &Value) -> Res
     Ok(())
 }
 
-const NEWS_PROMPT_RULES: &str = r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
+const NEWS_PROMPT_RULES: &str = r#"You are the editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
 
 Input JSON contains news items in "items" and may contain a "priority_alert" object. Every item has a "ref" identifier.
 
 Hard rules:
 - Do not invent facts, sources, URLs, exploitation status, affected products, victim geography, attribution, or exploit details.
-- Return editorial fields only: title_fa, summary_fa, why_it_matters, ops_note, iran_relevance.
+- Return editorial fields only: title, summary, why_it_matters, ops_note.
 - Return exactly one output entry per input item and copy its "ref" value unchanged.
-- iran_relevance: integer 0-100 estimating operational relevance for defenders in Iran (sector exposure, products widely used in Iran, regional targeting). Judge only from the given text; use 0-20 when there is no clear link.
-- If an item is unclear, write a cautious Persian summary and say the original advisory should be checked.
-- Do not imply a target is inside Iran when Iran appears only as attribution.
+- If an item is unclear, write a cautious summary and say the original advisory should be checked.
 - Use defensive language only. No exploit chains, payloads, bypass steps, or unauthorized access guidance.
-- summary_fa: 1 short Persian sentence, max 170 characters.
-- why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
-- ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
-- title_fa: a faithful, complete Persian translation of the original "title". Translate the entire title without summarizing, shortening, generalizing or dropping any part; keep product, malware, campaign and vendor names in their original Latin script; max 150 characters.
-- If "priority_alert" exists in the input, also return "priority_alert" with title_fa, summary_fa, why_it_matters, ops_note.
+- summary: 1 short sentence, max 170 characters.
+- why_it_matters: 1 sentence about operational impact, max 150 characters.
+- ops_note: 1 action sentence for SOC/admin teams, max 160 characters.
+- title: a faithful, concise English headline with product and impact, max 70 characters; not a full sentence.
+- If "priority_alert" exists in the input, also return "priority_alert" with title, summary, why_it_matters, ops_note.
 - Return valid JSON only, matching the response schema. Never stop mid-string."#;
 
-const CVE_PROMPT_RULES: &str = r#"You are the Persian editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
+const CVE_PROMPT_RULES: &str = r#"You are the editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
 
 Input JSON contains CVE items in "items". Every item has a "ref" identifier.
 
 Hard rules:
 - Do not invent facts, CVEs, sources, URLs, exploitation status, affected products, or exploit details.
 - Never change or restate cve_id, cvss, epss, kev, severity, or url values; they stay as-is in the site.
-- Return editorial fields only: title_fa, summary_fa, why_it_matters, recommended_action, ops_note.
+- Return editorial fields only: title, summary, why_it_matters, recommended_action, ops_note.
 - Return exactly one output entry per input item and copy its "ref" value unchanged.
-- If an item is unclear, write a cautious Persian summary and say the original advisory should be checked.
+- If an item is unclear, write a cautious summary and say the original advisory should be checked.
 - Use defensive language only. No exploit chains, payloads, bypass steps, or unauthorized access guidance.
-- title_fa: concise Persian headline with product and impact, max 70 characters; not a full NVD sentence.
-- summary_fa: 1 short Persian sentence, max 170 characters.
-- why_it_matters: 1 Persian sentence about operational impact, max 150 characters.
-- recommended_action: 1 short Persian sentence with the safest next step (patching, mitigation, monitoring), max 160 characters.
-- ops_note: 1 Persian action sentence for SOC/admin teams, max 160 characters.
+- title: concise English headline with product and impact, max 70 characters; not a full NVD sentence.
+- summary: 1 short sentence, max 170 characters.
+- why_it_matters: 1 sentence about operational impact, max 150 characters.
+- recommended_action: 1 short sentence with the safest next step (patching, mitigation, monitoring), max 160 characters.
+- ops_note: 1 action sentence for SOC/admin teams, max 160 characters.
 - Return valid JSON only, matching the response schema. Never stop mid-string."#;
 
 pub(crate) fn build_news_batch_prompt(
@@ -536,7 +525,6 @@ pub(crate) fn compact_news_item(reference: &str, section: &str, item: &Value) ->
         "title": clip_field(item, "title", 300),
         "summary": clip_field(item, "summary", 700),
         "source": clip_field(item, "source", 80),
-        "iran_context": item.get("iran_context").cloned().unwrap_or(Value::Null),
         "tags": item.get("tags").cloned().unwrap_or(Value::Null)
     })
 }
@@ -578,8 +566,8 @@ pub(crate) fn gemini_news_schema() -> Value {
             "priority_alert": {
                 "type": "OBJECT",
                 "properties": {
-                    "title_fa": {"type": "STRING"},
-                    "summary_fa": {"type": "STRING"},
+                    "title": {"type": "STRING"},
+                    "summary": {"type": "STRING"},
                     "why_it_matters": {"type": "STRING"},
                     "ops_note": {"type": "STRING"}
                 }
@@ -590,13 +578,12 @@ pub(crate) fn gemini_news_schema() -> Value {
                     "type": "OBJECT",
                     "properties": {
                         "ref": {"type": "STRING"},
-                        "title_fa": {"type": "STRING"},
-                        "summary_fa": {"type": "STRING"},
+                        "title": {"type": "STRING"},
+                        "summary": {"type": "STRING"},
                         "why_it_matters": {"type": "STRING"},
-                        "ops_note": {"type": "STRING"},
-                        "iran_relevance": {"type": "INTEGER"}
+                        "ops_note": {"type": "STRING"}
                     },
-                    "required": ["ref", "title_fa", "summary_fa"]
+                    "required": ["ref", "title", "summary"]
                 }
             }
         },
@@ -614,13 +601,13 @@ pub(crate) fn gemini_cve_schema() -> Value {
                     "type": "OBJECT",
                     "properties": {
                         "ref": {"type": "STRING"},
-                        "title_fa": {"type": "STRING"},
-                        "summary_fa": {"type": "STRING"},
+                        "title": {"type": "STRING"},
+                        "summary": {"type": "STRING"},
                         "why_it_matters": {"type": "STRING"},
                         "recommended_action": {"type": "STRING"},
                         "ops_note": {"type": "STRING"}
                     },
-                    "required": ["ref", "title_fa", "summary_fa"]
+                    "required": ["ref", "title", "summary"]
                 }
             }
         },
@@ -697,7 +684,7 @@ pub(crate) fn send_gemini_prompt(
 
 pub(crate) fn build_gemini_repair_prompt(broken_json: &str, parse_error: &str) -> String {
     format!(
-        "Repair the following truncated or invalid JSON so it becomes valid JSON only.\n\nRules:\n- Return JSON only, no markdown.\n- Preserve the same schema and field names.\n- If a string is incomplete, close it safely.\n- If an array/object is incomplete, close it safely.\n- Do not add new source URLs, IOCs, leak links, or user-facing actions.\n- Keep Persian text concise.\n\nParser error: {parse_error}\n\nBroken JSON:\n{broken_json}"
+        "Repair the following truncated or invalid JSON so it becomes valid JSON only.\n\nRules:\n- Return JSON only, no markdown.\n- Preserve the same schema and field names.\n- If a string is incomplete, close it safely.\n- If an array/object is incomplete, close it safely.\n- Do not add new source URLs, IOCs, leak links, or user-facing actions.\n- Keep text concise.\n\nParser error: {parse_error}\n\nBroken JSON:\n{broken_json}"
     )
 }
 
@@ -773,7 +760,6 @@ pub(crate) fn protected_ai_field(key: &str) -> bool {
             | "severity"
             | "risk_score"
             | "published"
-            | "iran_context"
             | "summary"
             | "title"
             | "tags"
@@ -857,7 +843,6 @@ mod tests {
         });
         assert_ne!(first, item_cache_key("gemini-2.5-flash", "global_news", &changed));
         assert_ne!(first, item_cache_key("gemini-x", "global_news", &item));
-        assert_ne!(first, item_cache_key("gemini-2.5-flash", "iran_radar", &item));
     }
 
     #[test]
@@ -865,25 +850,22 @@ mod tests {
         let raw = json!({
             "ref": "n0",
             "url": "https://evil.example",
-            "title_fa": "تیتر",
-            "summary_fa": " خلاصه ",
-            "iran_relevance": 55,
+            "title": "Test Title",
+            "summary": " Test Summary ",
             "unexpected": "x"
         });
         let clean = sanitize_editorial("news", &raw);
-        assert_eq!(clean["title_fa"], "تیتر");
-        assert_eq!(clean["summary_fa"], "خلاصه");
-        assert_eq!(clean["iran_relevance"], 55);
+        assert_eq!(clean["title"], "Test Title");
+        assert_eq!(clean["summary"], "Test Summary");
         assert!(clean.get("url").is_none());
         assert!(clean.get("ref").is_none());
         assert!(clean.get("unexpected").is_none());
 
         let cve = sanitize_editorial(
             "cve",
-            &json!({"recommended_action": "پچ شود", "iran_relevance": 10}),
+            &json!({"recommended_action": "Apply patch"}),
         );
-        assert_eq!(cve["recommended_action"], "پچ شود");
-        assert!(cve.get("iran_relevance").is_none());
+        assert_eq!(cve["recommended_action"], "Apply patch");
     }
 
     #[test]
@@ -896,15 +878,15 @@ mod tests {
         let editorial = sanitize_editorial(
             "news",
             &json!({
-                "title_fa": "تیتر فارسی",
-                "ops_note": "بررسی شود",
+                "title": "New Title",
+                "ops_note": "Review needed",
                 "url": "https://b.example"
             }),
         );
         assert!(merge_batch_item(&mut brief, "global_news", 0, &editorial));
         assert_eq!(
-            brief["global_news"][0]["title_fa"],
-            "تیتر فارسی"
+            brief["global_news"][0]["title"],
+            "New Title"
         );
         assert_eq!(brief["global_news"][0]["url"], "https://a.example");
         assert!(merge_batch_item(&mut brief, "missing_section", 0, &editorial) == false);

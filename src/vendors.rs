@@ -47,7 +47,7 @@ pub(crate) const VENDOR_WATCHLIST: &[(&str, &[&str])] = &[
 
 pub(crate) fn item_blob(item: &Value) -> String {
     let mut parts: Vec<String> = Vec::new();
-    for key in ["title", "title_fa", "summary", "source", "cve_id"] {
+    for key in ["title", "summary", "source", "cve_id"] {
         if let Some(text) = item.get(key).and_then(|v| v.as_str()) {
             parts.push(text.to_lowercase());
         }
@@ -81,8 +81,7 @@ pub(crate) fn build_vendor_watchlist(brief: &mut Value) {
     let mut total_news = 0u64;
     for (vendor, needles) in VENDOR_WATCHLIST {
         let cves = count_hits(brief, "cves", needles);
-        let news =
-            count_hits(brief, "global_news", needles) + count_hits(brief, "iran_radar", needles);
+        let news = count_hits(brief, "global_news", needles);
         let total = cves + news;
         if total == 0 {
             continue;
@@ -102,7 +101,7 @@ pub(crate) fn build_vendor_watchlist(brief: &mut Value) {
             "cves": cves,
             "news": news,
             "total": total,
-            "count": format!("{cves} CVE · {news} خبر"),
+            "count": format!("{cves} CVE · {news} news"),
             "level": level
         }));
     }
@@ -127,18 +126,18 @@ pub(crate) fn build_vendor_watchlist(brief: &mut Value) {
         row["bar_width"] = json!(((total * 100) / peak).clamp(4, 100));
     }
     let vendors_hit = rows.len();
-    let summary_fa = if rows.is_empty() {
-        "در این اجرا اشاره مستقیمی به وندورهای فهرست رصد دیده نشد.".to_string()
+    let summary = if rows.is_empty() {
+        "No direct mention of watchlist vendors was observed in this run.".to_string()
     } else {
         let top = rows[0]["vendor"].as_str().unwrap_or("-").to_string();
-        format!("{vendors_hit} وندور از فهرست رصد در CVEها و اخبار این اجرا دیده شد؛ بیشترین تمرکز روی {top} است.")
+        format!("{vendors_hit} watchlist vendors seen in CVEs and news this run; highest focus on {top}.")
     };
     brief["vendor_watchlist"] = json!({
         "ok": vendors_hit > 0,
         "rows": rows,
         "totals": { "vendors": vendors_hit, "cves": total_cves, "news": total_news },
-        "summary_fa": summary_fa,
-        "provider": "اسکن کلیدواژه‌ای محلی"
+        "summary": summary,
+        "provider": "Local keyword scan"
     });
     if let Some(stats) = brief.get_mut("stats").and_then(|v| v.as_object_mut()) {
         stats.insert("vendor_hits".to_string(), json!(total_cves + total_news));
@@ -159,8 +158,7 @@ mod tests {
             ],
             "global_news": [
                 { "title": "New FortiOS bug under active attack", "summary": "", "tags": [] }
-            ],
-            "iran_radar": []
+            ]
         });
         build_vendor_watchlist(&mut brief);
         let pulse = &brief["vendor_watchlist"];
@@ -174,12 +172,12 @@ mod tests {
 
     #[test]
     fn build_vendor_watchlist_reports_empty_state() {
-        let mut brief = json!({ "stats": {}, "cves": [], "global_news": [], "iran_radar": [] });
+        let mut brief = json!({ "stats": {}, "cves": [], "global_news": [] });
         build_vendor_watchlist(&mut brief);
         assert_eq!(brief["vendor_watchlist"]["ok"], json!(false));
-        assert!(brief["vendor_watchlist"]["summary_fa"]
+        assert!(brief["vendor_watchlist"]["summary"]
             .as_str()
             .unwrap_or("")
-            .contains("دیده نشد"));
+            .contains("No direct mention"));
     }
 }

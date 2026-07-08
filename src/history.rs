@@ -34,14 +34,13 @@ pub(crate) fn attach_history_snapshot(brief: &mut Value, previous: Option<&Value
             let level = history_delta_level(metric.key, delta);
             json!({
                 "key": metric.key,
-                "label_fa": metric.label_fa,
+                "label": metric.label,
                 "before": previous_value,
                 "after": current,
                 "delta": delta,
                 "direction": direction,
                 "level": level,
-                "bar_width": relative_width(delta.unsigned_abs(), metric.baseline),
-                "note_fa": history_delta_note(metric.label_fa, delta)
+                "bar_width": relative_width(delta.unsigned_abs(), metric.baseline)
             })
         })
         .collect();
@@ -77,13 +76,13 @@ pub(crate) fn attach_history_snapshot(brief: &mut Value, previous: Option<&Value
         changed_rows.into_iter().take(9).collect()
     };
 
-    let summary_fa = if previous.is_none() {
-        "برای مقایسه با اجرای قبل هنوز snapshot قبلی در دسترس نبود؛ از اجرای بعدی تغییرات روزانه نمایش داده می‌شود.".to_string()
+    let summary = if previous.is_none() {
+        "No previous snapshot available for comparison yet; daily changes will appear from the next run.".to_string()
     } else if changed == 0 {
-        "در مقایسه با اجرای قبلی، تغییر معناداری در شاخص‌های اصلی دیده نشد.".to_string()
+        "Compared to the previous run, no significant changes in key indicators were observed.".to_string()
     } else {
         format!(
-            "نسبت به اجرای قبلی، {changed} شاخص تغییر کرده؛ {increased} مورد افزایش و {decreased} مورد کاهش داشته است."
+            "Compared to the previous run, {changed} indicators changed; {increased} increased and {decreased} decreased."
         )
     };
 
@@ -94,7 +93,7 @@ pub(crate) fn attach_history_snapshot(brief: &mut Value, previous: Option<&Value
         "previous_available": previous.is_some(),
         "previous_version": previous_version,
         "current_version": brief.get("version").and_then(|v| v.as_str()).unwrap_or("unknown"),
-        "summary_fa": summary_fa,
+        "summary": summary,
         "totals": {
             "tracked": tracked,
             "changed": changed,
@@ -123,7 +122,6 @@ pub(crate) fn write_history_snapshot(brief: &Value) -> Result<()> {
         .to_string();
     let snapshot = json!({
         "version": brief.get("version").cloned().unwrap_or_else(|| json!("unknown")),
-        "date_fa": brief.get("date_fa").cloned().unwrap_or_else(|| json!("")),
         "generated_at": generated_at,
         "stats": brief.get("stats").cloned().unwrap_or_else(|| json!({})),
         "executive_snapshot": brief.get("executive_snapshot").cloned().unwrap_or_else(|| json!({})),
@@ -142,7 +140,7 @@ pub(crate) fn write_history_snapshot(brief: &Value) -> Result<()> {
 #[derive(Clone, Copy)]
 pub(crate) struct HistoryMetric {
     pub(crate) key: &'static str,
-    pub(crate) label_fa: &'static str,
+    pub(crate) label: &'static str,
     pub(crate) path: &'static [&'static str],
     pub(crate) baseline: u64,
 }
@@ -151,103 +149,103 @@ pub(crate) fn history_metrics() -> Vec<HistoryMetric> {
     vec![
         HistoryMetric {
             key: "risk_score",
-            label_fa: "امتیاز ریسک",
+            label: "Risk Score",
             path: &["executive_snapshot", "score"],
             baseline: 100,
         },
         HistoryMetric {
             key: "global_news",
-            label_fa: "خبر جهانی",
+            label: "Global News",
             path: &["stats", "global_news"],
             baseline: 30,
         },
         HistoryMetric {
             key: "writeups",
-            label_fa: "Writeup امنیتی",
+            label: "Writeup",
             path: &["stats", "writeups"],
             baseline: 20,
         },
         HistoryMetric {
             key: "poc_watch",
-            label_fa: "PoC public metadata",
+            label: "PoC Public Metadata",
             path: &["stats", "poc_watch"],
             baseline: 20,
         },
         HistoryMetric {
             key: "cves",
-            label_fa: "CVE",
+            label: "CVE",
             path: &["stats", "cves"],
             baseline: 20,
         },
         HistoryMetric {
             key: "critical_cves",
-            label_fa: "CVE بحرانی",
+            label: "Critical CVE",
             path: &["stats", "critical_cves"],
             baseline: 10,
         },
         HistoryMetric {
             key: "epss_rising",
-            label_fa: "EPSS رو به رشد",
+            label: "EPSS Rising",
             path: &["stats", "epss_rising"],
             baseline: 10,
         },
         HistoryMetric {
             key: "iocs",
-            label_fa: "IOC",
+            label: "IOC",
             path: &["stats", "iocs"],
             baseline: 50,
         },
         HistoryMetric {
             key: "botnet_c2",
-            label_fa: "Botnet C2",
+            label: "Botnet C2",
             path: &["stats", "botnet_c2"],
             baseline: 20,
         },
         HistoryMetric {
             key: "malicious_tls",
-            label_fa: "TLS بدخواه",
+            label: "Malicious TLS",
             path: &["stats", "malicious_tls"],
             baseline: 30,
         },
         HistoryMetric {
             key: "greynoise_malicious",
-            label_fa: "GreyNoise malicious",
+            label: "GreyNoise Malicious",
             path: &["stats", "greynoise_malicious"],
             baseline: 10,
         },
         HistoryMetric {
             key: "phishing_urls",
-            label_fa: "URL فیشینگ",
+            label: "Phishing URLs",
             path: &["stats", "phishing_urls"],
             baseline: 50,
         },
         HistoryMetric {
             key: "ics_advisories",
-            label_fa: "ICS/OT advisory",
+            label: "ICS/OT Advisory",
             path: &["stats", "ics_advisories"],
             baseline: 20,
         },
         HistoryMetric {
             key: "ics_high",
-            label_fa: "ICS/OT سطح بالا",
+            label: "ICS/OT High",
             path: &["stats", "ics_high"],
             baseline: 10,
         },
         HistoryMetric {
             key: "supply_chain_advisories",
-            label_fa: "زنجیره تأمین",
+            label: "Supply Chain",
             path: &["stats", "supply_chain_advisories"],
             baseline: 30,
         },
         HistoryMetric {
             key: "ransomware_victims",
-            label_fa: "Ransomware claim",
+            label: "Ransomware Claim",
             path: &["stats", "ransomware_victims"],
             baseline: 40,
         },
         HistoryMetric {
             key: "failed_rss_sources",
-            label_fa: "RSS خطادار",
+            label: "Failed RSS",
             path: &["stats", "failed_rss_sources"],
             baseline: 10,
         },
@@ -290,12 +288,3 @@ pub(crate) fn history_delta_level(key: &str, delta: i64) -> &'static str {
     }
 }
 
-pub(crate) fn history_delta_note(label: &str, delta: i64) -> String {
-    if delta > 0 {
-        format!("{label} نسبت به اجرای قبل افزایش داشته است.")
-    } else if delta < 0 {
-        format!("{label} نسبت به اجرای قبل کاهش داشته است.")
-    } else {
-        format!("{label} نسبت به اجرای قبل ثابت مانده است.")
-    }
-}

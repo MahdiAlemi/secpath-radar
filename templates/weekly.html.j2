@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ brief.site_title }} — جمع‌بندی هفتگی</title>
+  <title>{{ brief.site_title }} — Weekly Digest</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="assets/css/radar.css" />
   <script src="assets/js/radar.js" defer></script>
@@ -12,62 +12,69 @@
 {% macro riskcls(score) %}{{ "high" if score >= 8 else ("medium" if score >= 5 else "low") }}{% endmacro %}
 
 <header class="topbar">
-  <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">جمع‌بندی هفتگی</span></div>
+  <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">Weekly Digest</span></div>
   <div class="topbar-meta">
-    <span>{{ brief.span_fa }}</span>
+    <span>{{ brief.span }}</span>
     <span>{{ brief.generated_at }}</span>
     <span class="chip chip-version">{{ brief.version }}</span>
   </div>
   <div class="topbar-actions">
-    <a class="ui-chip" href="index.html">داشبورد روزانه</a>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">روشن/تیره</span>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="lang">EN</span>
+    <a class="ui-chip" href="index.html">Daily Dashboard</a>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="density">Compact View</span>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">Collapse All</span>
+    <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">Light/Dark</span>
   </div>
 </header>
+
+<nav class="anchor-nav" aria-label="Jump between clusters">
+  <a href="#weekly-overview" class="is-active">Overview</a>
+  <a href="#weekly-cves">Vulnerabilities</a>
+  <a href="#weekly-news">News</a>
+</nav>
 
 <main class="shell">
 
   {% if brief.ok %}
-  <section class="cluster" aria-label="هفته در یک نگاه">
-    <div class="cluster-head"><span class="eyebrow">Weekly</span><h2>هفته در یک نگاه</h2></div>
+  <section class="cluster" aria-label="Week at a glance">
+    <div class="cluster-head"><span class="eyebrow">Weekly</span><h2>Week at a Glance</h2></div>
     <div class="grid grid-3">
 
       <section id="weekly-overview" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Overview</span><h2>خلاصه هفته</h2></div><span class="chip">{{ brief.totals.days }} روز</span></div>
-        <p class="lede">{{ brief.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Overview</span><h2>Weekly Summary</h2></div><span class="chip">{{ brief.totals.days }} days</span></div>
+        <p class="lede">{{ brief.summary }}</p>
         <div class="stat-row">
-          <div><span>CVE منتخب</span><b>{{ brief.totals.unique_cves }}</b></div>
+          <div><span>CVEs Tracked</span><b>{{ brief.totals.unique_cves }}</b></div>
           <div><span>KEV</span><b>{{ brief.totals.kev }}</b></div>
-          <div><span>خبر</span><b>{{ brief.totals.news }}</b></div>
+          <div><span>News</span><b>{{ brief.totals.news }}</b></div>
         </div>
-        <div class="meta"><span>{{ brief.span_fa }}</span><span>local archive</span></div>
+        <div class="meta"><span>{{ brief.span }}</span><span>local archive</span></div>
       </section>
 
       <section id="weekly-activity" class="panel panel-wide">
-        <div class="panel-head"><div><span class="eyebrow">Activity</span><h2>فعالیت روزانه</h2></div><span class="chip">CVE در روز</span></div>
+        <div class="panel-head"><div><span class="eyebrow">Activity</span><h2>Daily Activity</h2></div><span class="chip">CVE per day</span></div>
         <div class="bars">
           {% for row in brief.daily_rows %}
-          <div class="bar-row"><span class="bar-label">{{ row.label }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{{ row.cves }} CVE · {{ row.news }} خبر</span></div>
+          <div class="bar-row"><span class="bar-label">{{ row.label }}</span><span class="bar-track"><b style="width: {{ row.bar_width }}%"></b></span><span class="bar-count">{{ row.cves }} CVE · {{ row.news }} news</span></div>
           {% endfor %}
         </div>
-        <div class="meta"><span>مقیاس: نسبت به بیشینه هفته</span><span>snapshots/archive</span></div>
+        <div class="meta"><span>Scale: relative to weekly peak</span><span>snapshots/archive</span></div>
       </section>
     </div>
   </section>
 
-  <section class="cluster" aria-label="برگزیدههای هفته">
-    <div class="cluster-head"><span class="eyebrow">Highlights</span><h2>برگزیده‌های هفته</h2></div>
+  <section class="cluster" aria-label="Weekly highlights">
+    <div class="cluster-head"><span class="eyebrow">Highlights</span><h2>Weekly Highlights</h2></div>
     <div class="grid grid-3">
 
       <section id="weekly-cves" class="panel panel-wide">
-        <div class="panel-head"><div><span class="eyebrow">CVE</span><h2>مهم‌ترین آسیب‌پذیری‌ها</h2></div><span class="chip">{{ brief.totals.unique_cves }} مورد</span></div>
+        <div class="panel-head"><div><span class="eyebrow">CVE</span><h2>Top Vulnerabilities</h2></div><span class="chip">{{ brief.totals.unique_cves }} items</span></div>
         {% for cve in brief.top_cves %}{% if loop.index <= 10 %}
         <article class="item risk-{{ riskcls(cve.risk_score) }}">
           <div class="item-head">
-            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }} — {{ cve.title_fa }}</a></h3>
+            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }} — {{ cve.title }}</a></h3>
             <span class="score">{{ cve.risk_score }}</span>
           </div>
-          <p>{{ cve.summary_fa }}</p>
+          <p>{{ cve.summary }}</p>
           <div class="meta">
             <span>{{ cve.severity }}</span>
             <span>CVSS {{ cve.cvss }}</span>
@@ -79,14 +86,14 @@
       </section>
 
       <section id="weekly-news" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">News</span><h2>خبرهای مهم هفته</h2></div><span class="chip">منتخب</span></div>
+        <div class="panel-head"><div><span class="eyebrow">News</span><h2>Top News This Week</h2></div><span class="chip">Curated</span></div>
         {% for item in brief.top_news %}{% if loop.index <= 6 %}
         <article class="item risk-{{ riskcls(item.risk_score) }}">
           <div class="item-head">
-            <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title_fa }}</a></h3>
+            <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title }}</a></h3>
             <span class="score">{{ item.risk_score }}</span>
           </div>
-          <p>{{ item.summary_fa }}</p>
+          <p>{{ item.summary }}</p>
           <div class="meta"><span>{{ item.source }}</span><span>{{ item.archived_on }}</span></div>
         </article>
         {% endif %}{% endfor %}
@@ -94,11 +101,11 @@
     </div>
   </section>
   {% else %}
-  <section class="cluster" aria-label="جمع‌بندی هفتگی">
+  <section class="cluster" aria-label="Weekly digest">
     <div class="grid grid-3">
       <section class="panel is-empty">
-        <div class="panel-head"><div><span class="eyebrow">Weekly</span><h2>جمع‌بندی هفتگی</h2></div><span class="chip chip-idle">بدون داده</span></div>
-        <p class="empty-note">{{ brief.summary_fa }}</p>
+        <div class="panel-head"><div><span class="eyebrow">Weekly</span><h2>Weekly Digest</h2></div><span class="chip chip-idle">No data</span></div>
+        <p class="empty-note">{{ brief.summary }}</p>
         <div class="meta"><span>local archive</span></div>
       </section>
     </div>
@@ -106,9 +113,9 @@
   {% endif %}
 
   <footer class="footer">
-    <span>SecPath Radar · جمع‌بندی هفتگی استاتیک · بدون اسکن فعال</span>
+    <span>SecPath Radar · Static Weekly Digest · No Active Scanning</span>
     <span>{{ brief.version }} · {{ brief.generated_at }}</span>
-    <span><a href="index.html">بازگشت به داشبورد روزانه</a></span>
+    <span><a href="index.html">Back to Daily Dashboard</a></span>
   </footer>
 </main>
 </body>

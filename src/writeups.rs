@@ -33,19 +33,19 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem]) -> Value {
     let source_chart = count_chart(source_counts, 6);
     let kind_chart = count_chart(kind_counts, 6);
 
-    let summary_fa = if visible == 0 {
-        "در پنجره خبری فعلی writeup تحلیلی تازه‌ای از منابع موجود دیده نشد.".to_string()
+    let summary = if visible == 0 {
+        "No new analytical writeups from available sources were seen in the current news window.".to_string()
     } else if hidden > 0 {
-        format!("{visible} writeup تحلیلی تازه نمایش داده شد و {hidden} مورد کم‌اولویت‌تر برای فشردگی پنهان شد؛ جدیدترین تحلیل‌ها بالاتر هستند.")
+        format!("{visible} analytical writeups shown and {hidden} lower-priority items hidden for conciseness; latest analyses are at the top.")
     } else {
-        format!("{visible} writeup تحلیلی تازه از {sources} منبع جدا شد؛ این بخش خبر خام را از تحلیل فنی جدا می‌کند.")
+        format!("{visible} analytical writeups from {sources} sources separated; this section distinguishes raw news from technical analysis.")
     };
 
     json!({
         "enabled": true,
         "source": "Dedicated research/writeup RSS feeds",
         "safe_mode": "summary and metadata only; no exploit steps; no code execution",
-        "summary_fa": summary_fa,
+        "summary": summary,
         "totals": {
             "writeups": visible,
             "candidates": total_candidates,
@@ -64,7 +64,7 @@ pub(crate) fn empty_writeups_pulse(reason: &str) -> Value {
         "enabled": false,
         "source": reason,
         "safe_mode": "summary and metadata only; no exploit steps; no code execution",
-        "summary_fa": "Writeups Pulse در این اجرا داده‌ای ندارد.",
+        "summary": "Writeups Pulse has no data for this run.",
         "totals": {
             "writeups": 0,
             "candidates": 0,
@@ -94,9 +94,7 @@ pub(crate) fn writeup_item_value(rank: usize, item: &FeedItem) -> Value {
     json!({
         "rank": rank,
         "title": item.title.clone(),
-        "title_fa": writeup_title_fa(kind, &item.title),
         "summary": item.summary.clone(),
-        "summary_fa": fallback_persian_summary(&item.summary, "این writeup برای تحلیل فنی روز قابل توجه است"),
         "source": item.source.clone(),
         "url": item.url.clone(),
         "published": item.published.clone(),
@@ -104,12 +102,10 @@ pub(crate) fn writeup_item_value(rank: usize, item: &FeedItem) -> Value {
         "published_time_local": published_time_local,
         "freshness_label": freshness_label,
         "kind": kind,
-        "kind_fa": writeup_kind_fa(kind),
         "risk": risk,
         "risk_score": score,
         "bar_width": score,
         "tags": writeup_tags(item),
-        "note_fa": writeup_note_fa(kind),
         "safe_mode": "metadata only"
     })
 }
@@ -257,15 +253,6 @@ pub(crate) fn is_writeup_item(item: &FeedItem) -> bool {
     explicit_analysis_marker || (research_source_allows_depth && technical_depth_signal)
 }
 
-pub(crate) fn writeup_title_fa(_kind: &str, title: &str) -> String {
-    // Keep the original research title; the kind is already shown as a tag.
-    let cleaned = title.trim();
-    if cleaned.is_empty() {
-        return "یادداشت پژوهشی تازه".to_string();
-    }
-    truncate_chars(cleaned, 160)
-}
-
 pub(crate) fn writeup_kind(item: &FeedItem) -> &'static str {
     let text =
         format!("{} {} {}", item.title, item.summary, item.tags.join(" ")).to_ascii_lowercase();
@@ -309,30 +296,6 @@ pub(crate) fn writeup_kind(item: &FeedItem) -> &'static str {
         "Cloud/SaaS Research"
     } else {
         "Research Note"
-    }
-}
-
-pub(crate) fn writeup_kind_fa(kind: &str) -> &'static str {
-    match kind {
-        "CVE Analysis" => "تحلیل CVE",
-        "Malware Writeup" => "تحلیل بدافزار",
-        "Phishing Analysis" => "تحلیل فیشینگ",
-        "Incident Analysis" => "تحلیل رخداد",
-        "Detection Engineering" => "مهندسی تشخیص",
-        "Cloud/SaaS Research" => "تحلیل Cloud/SaaS",
-        _ => "یادداشت پژوهشی",
-    }
-}
-
-pub(crate) fn writeup_note_fa(kind: &str) -> &'static str {
-    match kind {
-        "CVE Analysis" => "برای تطبیق با CVEها، EPSS/KEV و backlog وصله نگه داشته شود؛ این بخش exploit اجرا نمی‌کند.",
-        "Malware Writeup" => "برای correlation با IOC، C2 و خانواده‌های بدافزار استفاده شود؛ نمونه یا payload نمایش داده نمی‌شود.",
-        "Phishing Analysis" => "برای آگاهی ایمیل/هویت و تطبیق با Phishing Pulse استفاده شود؛ URLها عملیاتی نمی‌شوند.",
-        "Incident Analysis" => "برای فهم روند حمله و اثر احتمالی روی کنترل‌های دفاعی مرور شود.",
-        "Detection Engineering" => "برای ایده rule/detection قابل بررسی است، اما هیچ rule یا scan خودکار اجرا نمی‌شود.",
-        "Cloud/SaaS Research" => "برای تطبیق با دارایی‌های Cloud/SaaS و کنترل exposure مرور شود.",
-        _ => "برای زمینه‌سازی triage روزانه و خواندن تحلیل فنی نگه داشته شود.",
     }
 }
 

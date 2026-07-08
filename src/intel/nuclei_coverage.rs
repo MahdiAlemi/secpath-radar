@@ -110,7 +110,7 @@ pub(crate) fn fetch_nuclei_coverage(
     for row in &dashboard_cves {
         let cve_id = value_str(row, "cve_id").to_string();
         let severity = value_str(row, "severity").to_string();
-        let title_fa = value_str(row, "title_fa").to_string();
+        let title = value_str(row, "title").to_string();
         if let Some(paths) = cve_to_paths.get(&cve_id) {
             let first_path = paths.first().cloned().unwrap_or_default();
             *severity_counts.entry(severity.clone()).or_insert(0) += 1;
@@ -118,7 +118,7 @@ pub(crate) fn fetch_nuclei_coverage(
             covered.push(json!({
                 "cve_id": cve_id,
                 "severity": severity,
-                "title_fa": title_fa,
+                "title": title,
                 "template_path": first_path,
                 "template_path_safe": truncate_chars(&first_path, 82),
                 "protocol": nuclei_protocol_from_path(&first_path),
@@ -126,16 +126,14 @@ pub(crate) fn fetch_nuclei_coverage(
                 "risk": nuclei_coverage_risk(&severity),
                 "score": score,
                 "bar_width": score.clamp(12, 100),
-                "note_fa": nuclei_coverage_note_fa(&severity, paths.len()),
                 "safe_mode": "metadata only; template path only; no nuclei execution; no scan target"
             }));
         } else if missing.len() < cfg.max_missing {
             missing.push(json!({
                 "cve_id": cve_id,
                 "severity": severity,
-                "title_fa": title_fa,
-                "risk": nuclei_coverage_risk(&severity),
-                "note_fa": "برای این CVE در index فعلی nuclei-templates مسیر template دیده نشد."
+                "title": title,
+                "risk": nuclei_coverage_risk(&severity)
             }));
         }
     }
@@ -163,14 +161,14 @@ pub(crate) fn fetch_nuclei_coverage(
         ((covered_cves as f64 / dashboard_total as f64) * 100.0).round() as u64
     };
 
-    let summary_fa = if cache_misses > 0 {
-        "در حالت offline، cache قبلی برای index عمومی nuclei-templates وجود نداشت؛ با یک اجرای online، coverage بعداً از cache خوانده می‌شود.".to_string()
+    let summary = if cache_misses > 0 {
+        "Offline mode: no previous cache for public nuclei-templates index; run online once to populate the cache for coverage lookup.".to_string()
     } else if dashboard_total == 0 {
-        "CVE فعالی در این اجرا برای سنجش پوشش Nuclei وجود نداشت.".to_string()
+        "No active CVEs this run to assess Nuclei coverage.".to_string()
     } else if covered_cves == 0 {
-        format!("از {dashboard_total} CVE فعلی، مسیر template متناظر در index عمومی nuclei-templates دیده نشد یا index/cache محدود بود.")
+        format!("Of {dashboard_total} current CVEs, no matching template path found in the public nuclei-templates index, or the index/cache was limited.")
     } else {
-        format!("{covered_cves} از {dashboard_total} CVE فعلی در index عمومی nuclei-templates مسیر template دارند؛ این فقط سنجش پوشش metadata است و هیچ scan اجرا نمی‌شود.")
+        format!("{covered_cves} of {dashboard_total} current CVEs have template paths in the public nuclei-templates index; this is metadata coverage assessment only, no scan is executed.")
     };
 
     let mut coverage_counts = HashMap::new();
@@ -183,7 +181,7 @@ pub(crate) fn fetch_nuclei_coverage(
         "provider": "ProjectDiscovery nuclei-templates Git tree",
         "source": "projectdiscovery/nuclei-templates path metadata",
         "mode": "template_path_coverage",
-        "summary_fa": summary_fa,
+        "summary": summary,
         "safe_mode": "metadata only; no nuclei execution; no active scan; no target input; no exploit content",
         "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "totals": {
@@ -225,7 +223,7 @@ pub(crate) fn dashboard_cve_metadata(cves: &Value) -> Vec<Value> {
         rows.push(json!({
             "cve_id": cve_id,
             "severity": item.get("severity").and_then(|value| value.as_str()).unwrap_or("UNKNOWN"),
-            "title_fa": item.get("title_fa").and_then(|value| value.as_str()).unwrap_or("CVE فعلی داشبورد")
+            "title": item.get("title").and_then(|value| value.as_str()).unwrap_or("Current dashboard CVE")
         }));
     }
     rows
@@ -258,14 +256,6 @@ pub(crate) fn nuclei_coverage_score(severity: &str, template_count: usize) -> us
     (base + template_count.saturating_sub(1).min(4) * 4).min(100)
 }
 
-pub(crate) fn nuclei_coverage_note_fa(severity: &str, template_count: usize) -> String {
-    if severity.eq_ignore_ascii_case("CRITICAL") || severity.eq_ignore_ascii_case("HIGH") {
-        format!("برای این CVE مسیر template عمومی Nuclei دیده شد ({template_count} مورد). این فقط نشانه پوشش detection است، نه اجرای scan.")
-    } else {
-        format!("پوشش template برای این CVE در index عمومی Nuclei دیده شد ({template_count} مورد)، به‌صورت metadata-only.")
-    }
-}
-
 pub(crate) fn empty_nuclei_coverage(reason: &str) -> Value {
     json!({
         "enabled": false,
@@ -273,7 +263,7 @@ pub(crate) fn empty_nuclei_coverage(reason: &str) -> Value {
         "reason": reason,
         "provider": "ProjectDiscovery nuclei-templates Git tree",
         "mode": "template_path_coverage",
-        "summary_fa": "داده Nuclei Template Coverage در این اجرا در دسترس نبود.",
+        "summary": "Nuclei Template Coverage data was not available this run.",
         "safe_mode": "metadata only; no nuclei execution; no active scan; no target input; no exploit content",
         "totals": {
             "dashboard_cves": 0,

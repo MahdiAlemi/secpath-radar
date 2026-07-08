@@ -81,10 +81,10 @@ pub(crate) fn fetch_ioc_radar(
         "Low"
     };
 
-    let summary_fa = match level {
-        "High" => "حجم IOCهای تازه و چند خانواده بدافزاری قابل توجه است؛ این بخش برای آگاهی موقعیتی و triage دفاعی است.",
-        "Medium" => "IOCهای تازه از URLhaus و ThreatFox دریافت شده‌اند؛ چند نوع indicator و خانواده بدافزاری دیده می‌شود.",
-        _ => "IOCهای تازه دریافت شد، اما شدت کلی در این اجرا پایین ارزیابی می‌شود.",
+    let summary = match level {
+        "High" => "Large volume of new IOCs and several notable malware families; this section is for situational awareness and defensive triage.",
+        "Medium" => "New IOCs received from URLhaus and ThreatFox; several indicator types and malware families observed.",
+        _ => "New IOCs received, but overall severity is assessed as low in this run.",
     };
 
     Ok(json!({
@@ -96,7 +96,7 @@ pub(crate) fn fetch_ioc_radar(
             "https://threatfox.abuse.ch/api/"
         ],
         "level": level,
-        "summary_fa": summary_fa,
+        "summary": summary,
         "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
         "cache_dir": config.intel.cache_dir.clone(),
         "refresh_hours": config.intel.refresh_hours,
@@ -158,7 +158,6 @@ pub(crate) fn parse_urlhaus_recent_csv(text: &str) -> Vec<IocIndicator> {
             risk_score: 0,
             bar_width: 0,
             tags,
-            note_fa: String::new(),
         });
     }
     out
@@ -229,7 +228,6 @@ pub(crate) fn parse_threatfox_recent_csv(text: &str) -> Vec<IocIndicator> {
             risk_score: 0,
             bar_width: 0,
             tags,
-            note_fa: String::new(),
         });
     }
     out
@@ -269,7 +267,6 @@ pub(crate) fn finalize_ioc_indicators(items: &mut [IocIndicator]) {
         } else {
             "watch".to_string()
         };
-        item.note_fa = ioc_note(&item.indicator_type, &item.malware);
         item.tags = item
             .tags
             .iter()
@@ -430,23 +427,13 @@ pub(crate) fn defang_indicator(value: &str) -> String {
     truncate_chars(&out, 96)
 }
 
-pub(crate) fn ioc_note(indicator_type: &str, malware: &str) -> String {
-    match indicator_type {
-        "url" => "URL بدافزاری defanged نمایش داده شده؛ آن را مستقیم باز نکن و فقط برای correlation دفاعی استفاده کن.".to_string(),
-        "domain" => "دامنه IOC برای correlation در DNS logs، proxy و EDR مناسب است؛ از کلیک مستقیم خودداری شود.".to_string(),
-        "ip" => "IP IOC را با firewall/proxy/EDR logs تطبیق بده و قبل از block، مالکیت و false positive را بررسی کن.".to_string(),
-        "hash" => format!("Hash مرتبط با {malware} برای hunting در EDR و فایل‌لاگ‌ها قابل استفاده است."),
-        _ => "IOC تازه برای آگاهی موقعیتی نمایش داده شده؛ قبل از اقدام، با منبع و لاگ داخلی تطبیق بده.".to_string(),
-    }
-}
-
 pub(crate) fn empty_ioc_radar(status: &str) -> Value {
     json!({
         "enabled": status != "disabled",
         "ok": false,
         "provider": "abuse.ch URLhaus + ThreatFox",
         "level": "Unknown",
-        "summary_fa": "داده IOC Radar در این اجرا در دسترس نبود.",
+        "summary": "IOC Radar data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
         "totals": {"urlhaus": 0, "threatfox": 0, "total": 0, "high": 0, "watch": 0},

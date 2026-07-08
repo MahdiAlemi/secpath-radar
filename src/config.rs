@@ -632,14 +632,12 @@ pub(crate) fn default_openphish_feed_url() -> String {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct FiltersConfig {
-    pub(crate) iran_keywords: Vec<String>,
     pub(crate) high_keywords: Vec<String>,
     pub(crate) low_keywords: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct LimitsConfig {
-    pub(crate) iran_radar: usize,
     pub(crate) global_news: usize,
     #[serde(default = "default_cve_limit")]
     pub(crate) cves: usize,
@@ -777,8 +775,6 @@ pub(crate) struct GeminiConfig {
     pub(crate) cache_dir: String,
     #[serde(default = "default_gemini_temperature")]
     pub(crate) temperature: f64,
-    #[serde(default = "default_gemini_max_iran")]
-    pub(crate) max_iran_items: usize,
     #[serde(default = "default_gemini_max_global")]
     pub(crate) max_global_news: usize,
     #[serde(default = "default_gemini_max_cves")]
@@ -792,7 +788,6 @@ impl Default for GeminiConfig {
             api_url: default_gemini_api_url(),
             cache_dir: default_gemini_cache_dir(),
             temperature: default_gemini_temperature(),
-            max_iran_items: default_gemini_max_iran(),
             max_global_news: default_gemini_max_global(),
             max_cves: default_gemini_max_cves(),
         }
@@ -813,10 +808,6 @@ pub(crate) fn default_gemini_cache_dir() -> String {
 
 pub(crate) fn default_gemini_temperature() -> f64 {
     0.2
-}
-
-pub(crate) fn default_gemini_max_iran() -> usize {
-    5
 }
 
 pub(crate) fn default_gemini_max_global() -> usize {
