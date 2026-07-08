@@ -5,15 +5,9 @@
 
   var body = document.body;
 
-  // --- Local display chips (density / collapse-all) ---
+  // --- Local display chips (collapse-all) ---
   function setChipState(chip, on) {
     chip.classList.toggle("is-on", on);
-  }
-
-  function toggleDensity(chip) {
-    var on = body.classList.toggle("is-compact");
-    if (chip) setChipState(chip, on);
-    save("radar-dense", on ? "on" : "off");
   }
 
   function toggleCollapseAll(chip) {
@@ -30,7 +24,6 @@
   document.querySelectorAll("[data-ui-action]").forEach(function (chip) {
     var action = chip.getAttribute("data-ui-action");
     function run() {
-      if (action === "density") toggleDensity(chip);
       if (action === "collapse") toggleCollapseAll(chip);
     }
     chip.addEventListener("click", run);
@@ -54,12 +47,7 @@
   // --- Keyboard shortcuts (local only) ---
   document.addEventListener("keydown", function (ev) {
     if (ev.target !== document.body) return;
-    if (ev.key === "d" || ev.key === "D") {
-      toggleDensity(document.querySelector('[data-ui-action="density"]'));
-    }
     if (ev.key === "Escape") {
-      body.classList.remove("is-compact");
-      save("radar-dense", "off");
       document.querySelectorAll(".panel.is-collapsed").forEach(function (p) {
         p.classList.remove("is-collapsed");
       });
@@ -107,7 +95,7 @@
 })();
 
 
-// SecPath Radar — E5: theme, interactive charts (local-only, no requests).
+// SecPath Radar — theme, interactive charts (local-only, no requests).
 (function () {
   "use strict";
 
@@ -138,16 +126,6 @@
   }
   applyTheme(load("radar-theme") === "light");
 
-  // --- Dense (SOC) mode: default on desktop, persisted locally (radar-dense) ---
-  (function () {
-    var pref = load("radar-dense");
-    var on = pref ? pref === "on" : window.innerWidth >= 1280;
-    if (on) {
-      body.classList.add("is-compact");
-      var chip = document.querySelector('[data-ui-action="density"]');
-      if (chip) setChipState(chip, true);
-    }
-  })();
   bind(chipFor("theme"), function () {
     var light = !body.classList.contains("theme-light");
     applyTheme(light);

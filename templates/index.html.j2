@@ -20,20 +20,21 @@
 {% macro news_card(item) %}
 <article class="item risk-{{ riskcls(item.risk_score) }}{% if item.is_today == false %} is-older{% endif %}">
   <div class="item-head">
-    <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title or item.title_fa }}</a></h3>
+    <h3><a href="{{ item.url }}" rel="noopener noreferrer">{{ item.title }}</a></h3>
     <span class="score">{{ item.risk_score }}</span>
   </div>
-  <p>{{ item.summary or item.summary_fa }}</p>
+  <p class="news-excerpt">{{ item.summary }}</p>
   <div class="meta">
-    <span>{{ item.source }}</span>
-    <span>{{ item.freshness_label }}</span>
+    <span class="news-source">{{ item.source }}</span>
+    <span class="news-time">{{ item.published_time_local }} Tehran &middot; {{ item.published_time_utc }}</span>
+    <span class="news-date">{{ item.published_date_local }}</span>
     {% if item.is_new %}<span class="tag tag-new">New</span>{% endif %}
     {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
   </div>
   <p class="note">{{ item.why_it_matters }}</p>
 </article>
 {% endmacro %}
-{% macro empty_pulse(id, title_fa, title_en, provider, text) %}
+{% macro empty_pulse(id, title_en, provider, text) %}
 <section id="{{ id }}" class="panel is-empty">
   <div class="panel-head">
     <div><span class="eyebrow">{{ title_en }}</span><h2>{{ title_en }}</h2></div>
@@ -53,16 +54,15 @@
   <div class="topbar-actions">
     {% if brief.site_github %}<a class="ui-chip" href="{{ brief.site_github }}" rel="noopener noreferrer">GitHub</a>{% endif %}
     <a class="ui-chip" href="weekly.html">Weekly Digest</a>
-    <span class="ui-chip" role="button" tabindex="0" data-ui-action="density">Compact View</span>
     <span class="ui-chip" role="button" tabindex="0" data-ui-action="collapse">Collapse All</span>
     <span class="ui-chip" role="button" tabindex="0" data-ui-action="theme">Light/Dark</span>
   </div>
 </header>
 
 <nav class="anchor-nav" aria-label="Jump between clusters">
-  <a href="#top-signals" class="is-active">Overview</a>
+  <a href="#breaking-news" class="is-active">News</a>
+  <a href="#top-signals">Overview</a>
   <a href="#cves">Vulnerabilities</a>
-  <a href="#breaking-news">News &amp; Research</a>
   <a href="#ioc-radar">Threat Telemetry</a>
   <a href="#sources">Sources</a>
 </nav>
@@ -76,6 +76,44 @@
     <div class="kpi"><span>Today's News</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} Breaking &middot; {{ brief.stats.writeups }} Research</small></div>
     <div class="kpi"><span>Active Threats</span><b>{{ brief.stats.iocs }}</b><small>IOC &middot; {{ brief.stats.botnet_c2 }} C2 &middot; {{ brief.stats.phishing_urls }} Phishing</small></div>
     <div class="kpi"><span>Nuclei Coverage</span><b>{{ brief.stats.nuclei_coverage_pct }}%</b><small>{{ brief.stats.nuclei_covered_cves }} CVE with template</small></div>
+  </section>
+
+  <section class="cluster cluster-news" aria-label="News &amp; Research">
+    <div class="cluster-head"><span class="eyebrow">News &amp; Research</span><h2>News &amp; Research</h2></div>
+
+      <section id="breaking-news" class="panel{% if brief.breaking_news %} panel-breaking{% endif %}">
+        <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><span class="chip chip-risk">{{ brief.breaking_news|length }}</span></div>
+        {% if brief.breaking_news %}
+        {% for item in brief.breaking_news %}{{ news_card(item) }}{% endfor %}
+        {% else %}
+        <p class="empty-note">No breaking news recorded in today's window.</p>
+        {% endif %}
+      </section>
+
+      <section id="global-news" class="panel panel-news-global">
+        <div class="panel-head"><div><span class="eyebrow">TODAY</span><h2>All News Today</h2></div><span class="chip">{{ brief.global_news|length }}</span></div>
+        {% if brief.global_news %}
+        <div class="news-grid">
+          {% for item in brief.global_news %}{{ news_card(item) }}{% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-note">No news displayed in today's window.</p>
+        {% endif %}
+      </section>
+
+      <section id="writeups-pulse" class="panel panel-wide">
+        <div class="panel-head"><div><span class="eyebrow">Research</span><h2>Research</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} from {{ brief.writeups_pulse.totals.sources }} sources</span></div>
+        <p class="lede">{{ brief.writeups_pulse.summary }}</p>
+        <div class="grid grid-2 grid-inner">
+          {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 20 %}
+          <article class="item risk-{{ w.risk }}">
+            <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer">{{ w.title }}</a></h3><span class="tag">{{ w.kind }}</span></div>
+            <p>{{ w.summary }}</p>
+            <div class="meta"><span>{{ w.source }}</span><span>{{ w.freshness_label }}</span></div>
+          </article>
+          {% endif %}{% endfor %}
+        </div>
+      </section>
   </section>
 
   <section id="top-signals" class="cluster" aria-label="Top signals">
@@ -109,8 +147,8 @@
 
       <section id="priority" class="panel panel-priority">
         <div class="panel-head"><div><span class="eyebrow">Priority</span><h2>Today's Priority Signal</h2></div><span class="chip chip-risk">Risk {{ brief.priority_alert.risk_score }}</span></div>
-        <h3 class="priority-title"><a href="{{ brief.priority_alert.url }}" rel="noopener noreferrer">{{ brief.priority_alert.title or brief.priority_alert.title_fa }}</a></h3>
-        <p>{{ brief.priority_alert.summary or brief.priority_alert.summary_fa }}</p>
+        <h3 class="priority-title"><a href="{{ brief.priority_alert.url }}" rel="noopener noreferrer">{{ brief.priority_alert.title }}</a></h3>
+        <p>{{ brief.priority_alert.summary }}</p>
         <p class="note">{{ brief.priority_alert.why_it_matters }}</p>
         <div class="meta">
           <span>{{ brief.priority_alert.source }}</span>
@@ -164,10 +202,10 @@
         {% for cve in brief.cves %}{% if loop.index <= 30 %}
         <article class="item sev-{{ cve.severity|lower }}">
           <div class="item-head">
-            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a> &mdash; {{ cve.title or cve.title_fa }}</h3>
+            <h3><a href="{{ cve.url }}" rel="noopener noreferrer">{{ cve.cve_id }}</a> &mdash; {{ cve.title }}</h3>
             <span class="sev-badge sev-{{ cve.severity|lower }}">{{ cve.severity }}</span>
           </div>
-          <p>{{ cve.summary or cve.summary_fa }}</p>
+          <p>{{ cve.summary }}</p>
           <div class="meta">
             <span>CVSS {{ cve.cvss }}{% if cve.cvss_version %} &middot; v{{ cve.cvss_version }}{% endif %}</span>
             <span>EPSS {{ cve.epss }}{% if cve.epss_momentum == "rising" %} &uarr;{% endif %}</span>
@@ -214,7 +252,7 @@
         <div class="meta"><span>{{ brief.supply_chain_radar.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("supply-chain-radar", "Supply Chain", "Supply Chain", brief.supply_chain_radar.provider, brief.supply_chain_radar.summary) }}
+      {{ empty_pulse("supply-chain-radar", "Supply Chain", brief.supply_chain_radar.provider, brief.supply_chain_radar.summary) }}
       {% endif %}
 
       {% if brief.vendor_watchlist.ok %}
@@ -225,46 +263,8 @@
         <div class="meta"><span>{{ brief.vendor_watchlist.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("vendor-watchlist", "Vendor Watchlist", "Vendor Watchlist", brief.vendor_watchlist.provider, brief.vendor_watchlist.summary) }}
+      {{ empty_pulse("vendor-watchlist", "Vendor Watchlist", brief.vendor_watchlist.provider, brief.vendor_watchlist.summary) }}
       {% endif %}
-    </div>
-  </section>
-
-  <section class="cluster" aria-label="News &amp; Research">
-    <div class="cluster-head"><span class="eyebrow">News &amp; Research</span><h2>News &amp; Research</h2></div>
-    <div class="grid grid-3">
-
-      <section id="breaking-news" class="panel{% if brief.breaking_news %} panel-breaking{% endif %}">
-        <div class="panel-head"><div><span class="eyebrow">Breaking</span><h2>Breaking</h2></div><span class="chip">{{ brief.breaking_news|length }}</span></div>
-        {% if brief.breaking_news %}
-        {% for item in brief.breaking_news %}{% if loop.index <= 12 %}{{ news_card(item) }}{% endif %}{% endfor %}
-        {% else %}
-        <p class="empty-note">No breaking news recorded in today's window.</p>
-        {% endif %}
-      </section>
-
-      <section id="global-news" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Global</span><h2>Global</h2></div><span class="chip">{{ brief.global_news|length }}</span></div>
-        {% if brief.global_news %}
-        {% for item in brief.global_news %}{% if loop.index <= 30 %}{{ news_card(item) }}{% endif %}{% endfor %}
-        {% else %}
-        <p class="empty-note">No news displayed in today's window.</p>
-        {% endif %}
-      </section>
-
-      <section id="writeups-pulse" class="panel panel-wide">
-        <div class="panel-head"><div><span class="eyebrow">Research</span><h2>Research</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} from {{ brief.writeups_pulse.totals.sources }} sources</span></div>
-        <p class="lede">{{ brief.writeups_pulse.summary }}</p>
-        <div class="grid grid-2 grid-inner">
-          {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 20 %}
-          <article class="item risk-{{ w.risk }}">
-            <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer">{{ w.title or w.title_fa }}</a></h3><span class="tag">{{ w.kind }}</span></div>
-            <p>{{ w.summary or w.summary_fa }}</p>
-            <div class="meta"><span>{{ w.source }}</span><span>{{ w.freshness_label }}</span></div>
-          </article>
-          {% endif %}{% endfor %}
-        </div>
-      </section>
     </div>
   </section>
 
@@ -280,7 +280,7 @@
         <div class="meta"><span>{{ brief.ioc_radar.provider }}</span><span>defanged</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("ioc-radar", "Active Threats", "IOC Radar", brief.ioc_radar.provider, brief.ioc_radar.summary) }}
+      {{ empty_pulse("ioc-radar", "IOC Radar", brief.ioc_radar.provider, brief.ioc_radar.summary) }}
       {% endif %}
 
       {% if brief.attack_pressure.ok %}
@@ -296,7 +296,7 @@
         <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("attack-pressure", "Attack Pressure", "Attack Pressure", brief.attack_pressure.provider, brief.attack_pressure.summary) }}
+      {{ empty_pulse("attack-pressure", "Attack Pressure", brief.attack_pressure.provider, brief.attack_pressure.summary) }}
       {% endif %}
 
       {% if brief.attack_matrix.ok %}
@@ -307,7 +307,7 @@
         <div class="meta"><span>{{ brief.attack_matrix.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("attack-matrix", "Attack Patterns", "ATT&CK Map", brief.attack_matrix.provider, brief.attack_matrix.summary) }}
+      {{ empty_pulse("attack-matrix", "ATT&CK Map", brief.attack_matrix.provider, brief.attack_matrix.summary) }}
       {% endif %}
 
       {% if brief.greynoise_context.ok %}
@@ -323,7 +323,7 @@
         <div class="meta"><span>{{ brief.greynoise_context.provider }}</span><span>passive lookup</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("greynoise-context", "Infrastructure Context", "GreyNoise", brief.greynoise_context.provider, brief.greynoise_context.summary) }}
+      {{ empty_pulse("greynoise-context", "GreyNoise", brief.greynoise_context.provider, brief.greynoise_context.summary) }}
       {% endif %}
 
       {% if brief.botnet_c2_pulse.ok %}
@@ -334,7 +334,7 @@
         <div class="meta"><span>{{ brief.botnet_c2_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("botnet-c2-pulse", "C2 Infrastructure", "Botnet C2", brief.botnet_c2_pulse.provider, brief.botnet_c2_pulse.summary) }}
+      {{ empty_pulse("botnet-c2-pulse", "Botnet C2", brief.botnet_c2_pulse.provider, brief.botnet_c2_pulse.summary) }}
       {% endif %}
 
       {% if brief.phishing_pulse.ok %}
@@ -345,7 +345,7 @@
         <div class="meta"><span>{{ brief.phishing_pulse.provider }}</span><span>defanged</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("phishing-pulse", "Phishing", "Phishing", brief.phishing_pulse.provider, brief.phishing_pulse.summary) }}
+      {{ empty_pulse("phishing-pulse", "Phishing", brief.phishing_pulse.provider, brief.phishing_pulse.summary) }}
       {% endif %}
 
       {% if brief.malware_pulse.ok %}
@@ -356,7 +356,7 @@
         <div class="meta"><span>{{ brief.malware_pulse.provider }}</span><span>hash-only</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("malware-pulse", "Malware Samples", "Malware", brief.malware_pulse.provider, brief.malware_pulse.summary) }}
+      {{ empty_pulse("malware-pulse", "Malware", brief.malware_pulse.provider, brief.malware_pulse.summary) }}
       {% endif %}
 
       {% if brief.drop_pulse.ok %}
@@ -367,7 +367,7 @@
         <div class="meta"><span>{{ brief.drop_pulse.provider }}</span><span>defanged</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("drop-pulse", "Hostile IP Ranges", "DROP", brief.drop_pulse.provider, brief.drop_pulse.summary) }}
+      {{ empty_pulse("drop-pulse", "DROP", brief.drop_pulse.provider, brief.drop_pulse.summary) }}
       {% endif %}
 
       {% if brief.csaf_pulse.ok %}
@@ -378,7 +378,7 @@
         <div class="meta"><span>{{ brief.csaf_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("csaf-pulse", "Vendor Advisories", "CSAF", brief.csaf_pulse.provider, brief.csaf_pulse.summary) }}
+      {{ empty_pulse("csaf-pulse", "CSAF", brief.csaf_pulse.provider, brief.csaf_pulse.summary) }}
       {% endif %}
 
       {% if brief.ics_ot_pulse.ok %}
@@ -389,7 +389,7 @@
         <div class="meta"><span>{{ brief.ics_ot_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("ics-ot-pulse", "ICS / OT", "ICS / OT", brief.ics_ot_pulse.provider, brief.ics_ot_pulse.summary) }}
+      {{ empty_pulse("ics-ot-pulse", "ICS / OT", brief.ics_ot_pulse.provider, brief.ics_ot_pulse.summary) }}
       {% endif %}
 
       {% if brief.infrastructure_radar.ok %}
@@ -400,7 +400,7 @@
         <div class="meta"><span>{{ brief.infrastructure_radar.provider }}</span><span>passive</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("infrastructure-radar", "Suspicious Infrastructure", "Infrastructure", brief.infrastructure_radar.provider, brief.infrastructure_radar.summary) }}
+      {{ empty_pulse("infrastructure-radar", "Infrastructure", brief.infrastructure_radar.provider, brief.infrastructure_radar.summary) }}
       {% endif %}
 
       {% if brief.ransomware_pulse.ok %}
@@ -411,7 +411,7 @@
         <div class="meta"><span>{{ brief.ransomware_pulse.provider }}</span></div>
       </section>
       {% else %}
-      {{ empty_pulse("ransomware-pulse", "Ransomware", "Ransomware", brief.ransomware_pulse.provider, brief.ransomware_pulse.summary) }}
+      {{ empty_pulse("ransomware-pulse", "Ransomware", brief.ransomware_pulse.provider, brief.ransomware_pulse.summary) }}
       {% endif %}
     </div>
   </section>

@@ -76,7 +76,6 @@ pub(crate) fn build_brief(
         effective_news_day.month(),
         effective_news_day.day()
     );
-    global.truncate(config.limits.global_news);
     let news_lanes = build_news_lanes(&global);
     let writeups_pulse = build_writeups_pulse(&writeup_items);
     let writeups_total = writeups_pulse

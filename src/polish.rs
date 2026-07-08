@@ -603,6 +603,9 @@ pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str) {
             .to_string();
         let (published_date_local, published_time_local, freshness_label) =
             news_time_display_fields(&published);
+        let published_time_utc = chrono::DateTime::parse_from_rfc3339(&published)
+            .map(|dt| dt.with_timezone(&chrono::Utc).format("%H:%M").to_string())
+            .unwrap_or_default();
         obj.insert(
             "published_date_local".to_string(),
             json!(published_date_local),
@@ -610,6 +613,10 @@ pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str) {
         obj.insert(
             "published_time_local".to_string(),
             json!(published_time_local),
+        );
+        obj.insert(
+            "published_time_utc".to_string(),
+            json!(format!("{published_time_utc} UTC")),
         );
         obj.insert("freshness_label".to_string(), json!(freshness_label));
         obj.insert(
