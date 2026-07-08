@@ -104,13 +104,20 @@
     </section>
 
     <section class="panel panel-top-card panel-cve-top">
-      <div class="panel-head"><div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div><span class="chip">{{ brief.stats.critical_cves }} critical</span></div>
+      <div class="panel-head">
+        <div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div>
+        <div class="panel-head-actions">
+          {% if brief.cves|length > 10 %}<span class="chip">Top 10 of {{ brief.cves|length }}</span>{% else %}<span class="chip">{{ brief.cves|length }} prioritized</span>{% endif %}
+          <span class="chip chip-muted">{{ brief.stats.critical_cves }} critical total</span>
+        </div>
+      </div>
       <div class="top-card-body">
         {% if brief.sev_strip %}
         <div class="sev-strip" role="img" aria-label="CVE severity distribution">{% for seg in brief.sev_strip %}<i class="sev-seg sev-{{ seg.sev }}" style="width: {{ seg.pct }}%" title="{{ seg.sev }}: {{ seg.count }}"></i>{% endfor %}</div>
         {% endif %}
         {% if brief.cves %}
-        <div class="cve-priority-list" aria-label="Top patch priorities">
+        <div class="cve-priority-note">Showing the highest-risk 10 for quick triage; the header count includes the full daily CVE set.</div>
+        <div class="cve-priority-list" aria-label="Top 10 patch priorities from the full daily CVE set">
           {% for cve in brief.cves %}{% if loop.index <= 10 %}
           <div class="cve-priority-row sev-{{ cve.severity|lower }}">
             <div class="cve-priority-rank">{{ loop.index }}</div>
