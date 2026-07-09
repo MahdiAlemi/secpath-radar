@@ -10,7 +10,7 @@ fetch:
   max_total_items: 500
   sleep_ms_between_sources: 200
   user_agent: "SecPathRadar/1.0.1 (+https://radar.secpath.space)"
-  proxy: "socks5://127.0.0.1:1080"
+  proxy: ""
 
 cve:
   max_cves: 14

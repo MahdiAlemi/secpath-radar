@@ -245,6 +245,18 @@
         </div>
         <div class="meta"><span>{{ brief.drop_pulse.provider }}</span><span>defanged · denylist metadata</span></div>
       </section>
+      <section id="attack-pressure" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>Attack Pressure</h2></div><span class="chip">{{ brief.attack_pressure.level }}</span></div>
+        <p class="lede">{{ brief.attack_pressure.summary }}</p>
+        {% for p in brief.attack_pressure.top_ports %}{% if loop.index <= 8 %}
+        <div class="row risk-{{ p.risk }}">
+          <div class="row-head"><b>Port {{ p.port }} &middot; {{ p.service }}</b><span>{{ p.description }}</span></div>
+          <p class="note">{{ p.note }}</p>
+        </div>
+        {% endif %}{% endfor %}
+        <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
+      </section>
+
       <section class="panel panel-intel-card panel-meta-card panel-data-card">
         <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
         <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
@@ -611,16 +623,23 @@
         </div>
       </section>
 
+      <section id="attack-matrix" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>Attack Patterns</h2></div><span class="chip">{{ brief.attack_matrix.totals.techniques }} techniques</span></div>
+        <p class="lede">{{ brief.attack_matrix.summary }}</p>
+        {{ bars(brief.attack_matrix.rows, 8) }}
+        <div class="meta"><span>{{ brief.attack_matrix.provider }}</span></div>
+      </section>
+
       <section id="writeups-pulse" class="panel panel-intel-card panel-wide panel-research-priority panel-column-fill{% if not brief.writeups_pulse.writeups %} is-empty{% endif %}">
         <div class="panel-head">
           <div><span class="eyebrow">WRITEUPS</span><h2>Writeups</h2></div>
           <div class="panel-head-actions">
-            <span class="chip">{{ brief.writeups_pulse.totals.writeups }} today</span>
+            <span class="chip">{{ brief.writeups_pulse.count_label }}</span>
             <span class="chip chip-muted">{{ brief.writeups_pulse.totals.sources }} sources</span>
           </div>
         </div>
         {% if brief.writeups_pulse.writeups %}
-        <p class="lede">Current-day writeups from configured sources only. Older analyses are not backfilled into this panel.</p>
+        <p class="lede">Writeups from dedicated research feeds. Same-day items are shown first; on quiet days the most recent analyses from the past week are surfaced instead.</p>
         <div class="grid grid-2 grid-inner writeups-list">
           {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 20 %}
           <article class="item risk-{{ w.risk }}">
@@ -631,7 +650,7 @@
           {% endif %}{% endfor %}
         </div>
         {% else %}
-        <p class="empty-note">No current-day writeups found in configured writeup feeds for {{ brief.date_en }}.</p>
+        <p class="empty-note">No writeups found in the configured feeds for {{ brief.date_en }} or the preceding 7 days.</p>
         {% endif %}
       </section>
 
@@ -751,25 +770,6 @@
           <div><span>Sectors</span>{{ bars(brief.ransomware_pulse.sector_chart, 3) }}</div>
         </div>
         <div class="meta"><span>{{ brief.ransomware_pulse.provider }}</span><span>public claims · passive</span></div>
-      </section>
-
-      <section id="attack-pressure" class="panel panel-intel-card">
-        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>Attack Pressure</h2></div><span class="chip">{{ brief.attack_pressure.level }}</span></div>
-        <p class="lede">{{ brief.attack_pressure.summary }}</p>
-        {% for p in brief.attack_pressure.top_ports %}{% if loop.index <= 8 %}
-        <div class="row risk-{{ p.risk }}">
-          <div class="row-head"><b>Port {{ p.port }} &middot; {{ p.service }}</b><span>{{ p.description }}</span></div>
-          <p class="note">{{ p.note }}</p>
-        </div>
-        {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
-      </section>
-
-      <section id="attack-matrix" class="panel panel-intel-card">
-        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>Attack Patterns</h2></div><span class="chip">{{ brief.attack_matrix.totals.techniques }} techniques</span></div>
-        <p class="lede">{{ brief.attack_matrix.summary }}</p>
-        {{ bars(brief.attack_matrix.rows, 8) }}
-        <div class="meta"><span>{{ brief.attack_matrix.provider }}</span></div>
       </section>
 
       <section class="panel panel-intel-card panel-meta-card panel-project-card">

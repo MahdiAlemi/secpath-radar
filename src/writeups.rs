@@ -11,13 +11,39 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem], day: NaiveDate, date_labe
     let total_candidates_all_days = qualified_candidates.len();
 
     let mut candidates: Vec<FeedItem> = qualified_candidates
-        .into_iter()
+        .iter()
         .filter(|item| feed_item_is_local_day(item, day))
+        .cloned()
         .collect();
     sort_news_latest_first(&mut candidates);
 
     let total_candidates = candidates.len();
     let filtered_other_days = total_candidates_all_days.saturating_sub(total_candidates);
+
+    // Phase 472: research blogs publish sporadically, so an empty same-day set is
+    // common. On quiet days, fall back to the most recent writeups from the past
+    // 7 local days, clearly labeled as recent instead of same-day content.
+    let mut fallback_used = false;
+    if candidates.is_empty() {
+        let mut recent: Vec<FeedItem> = qualified_candidates
+            .iter()
+            .filter(|item| {
+                parse_feed_item_local_time(item)
+                    .map(|dt| {
+                        let age = day.signed_duration_since(dt.date_naive()).num_days();
+                        (1..=7).contains(&age)
+                    })
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect();
+        sort_news_latest_first(&mut recent);
+        recent.truncate(6);
+        if !recent.is_empty() {
+            fallback_used = true;
+            candidates = recent;
+        }
+    }
     let mut source_counts: HashMap<String, usize> = HashMap::new();
     let mut kind_counts: HashMap<String, usize> = HashMap::new();
     for item in &candidates {
@@ -41,17 +67,34 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem], day: NaiveDate, date_labe
     let kind_chart = count_chart(kind_counts, 6);
 
     let summary = if visible == 0 {
-        format!("No public writeups were published for {date_label}.")
+        format!("No public writeups were published for {date_label} or the preceding 7 days.")
+    } else if fallback_used {
+        format!(
+            "No writeups were published on {date_label}; the {visible} most recent from the past 7 days are shown instead."
+        )
     } else if hidden > 0 {
         format!("{visible} writeups published on {date_label} are shown and {hidden} lower-priority same-day items are hidden for conciseness.")
     } else {
         format!("{visible} writeups from {sources} sources were published on {date_label}; no older-day writeups are backfilled.")
     };
 
+    let window_mode = if fallback_used {
+        "recent-7d-fallback"
+    } else {
+        "local-day-only"
+    };
+    let count_label = if fallback_used {
+        format!("{visible} recent")
+    } else {
+        format!("{visible} today")
+    };
+
     json!({
         "enabled": true,
         "date": date_label,
-        "window_mode": "local-day-only",
+        "window_mode": window_mode,
+        "fallback": fallback_used,
+        "count_label": count_label,
         "source": "Dedicated writeup RSS feeds",
         "safe_mode": "summary and metadata only; no exploit steps; no code execution",
         "summary": summary,

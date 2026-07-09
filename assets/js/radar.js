@@ -106,7 +106,10 @@
       wells.forEach(function (well) {
         if (spare < 16) return;
         var hidden = well.scrollHeight - well.clientHeight;
-        var grow = Math.min(hidden, spare);
+        // Cap growth so a single list (e.g. the CVE queue) never balloons;
+        // a well may grow by at most half its natural height.
+        var cap = Math.max(160, Math.round(well.clientHeight * 0.5));
+        var grow = Math.min(hidden, spare, cap);
         // Inline important wins over stylesheet !important caps.
         well.style.setProperty("max-height", (well.clientHeight + grow) + "px", "important");
         well.setAttribute("data-balanced", "1");
