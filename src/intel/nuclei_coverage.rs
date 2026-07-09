@@ -102,6 +102,12 @@ pub(crate) fn fetch_nuclei_coverage(
     let mut covered = Vec::new();
     let mut missing = Vec::new();
     let mut severity_counts: HashMap<String, usize> = HashMap::new();
+    let mut missing_severity_counts: HashMap<String, usize> = HashMap::new();
+    let mut covered_critical = 0usize;
+    let mut covered_high = 0usize;
+    let mut missing_critical = 0usize;
+    let mut missing_high = 0usize;
+    let mut covered_template_matches = 0usize;
 
     for row in &dashboard_cves {
         let cve_id = value_str(row, "cve_id").to_string();
@@ -110,6 +116,12 @@ pub(crate) fn fetch_nuclei_coverage(
         if let Some(paths) = cve_to_paths.get(&cve_id) {
             let first_path = paths.first().cloned().unwrap_or_default();
             *severity_counts.entry(severity.clone()).or_insert(0) += 1;
+            covered_template_matches += paths.len();
+            match severity.to_ascii_uppercase().as_str() {
+                "CRITICAL" => covered_critical += 1,
+                "HIGH" => covered_high += 1,
+                _ => {}
+            }
             let score = nuclei_coverage_score(&severity, paths.len());
             covered.push(json!({
                 "cve_id": cve_id,
@@ -124,13 +136,21 @@ pub(crate) fn fetch_nuclei_coverage(
                 "bar_width": score.clamp(12, 100),
                 "safe_mode": "metadata only; template path only; no nuclei execution; no scan target"
             }));
-        } else if missing.len() < cfg.max_missing {
-            missing.push(json!({
-                "cve_id": cve_id,
-                "severity": severity,
-                "title": title,
-                "risk": nuclei_coverage_risk(&severity)
-            }));
+        } else {
+            *missing_severity_counts.entry(severity.clone()).or_insert(0) += 1;
+            match severity.to_ascii_uppercase().as_str() {
+                "CRITICAL" => missing_critical += 1,
+                "HIGH" => missing_high += 1,
+                _ => {}
+            }
+            if missing.len() < cfg.max_missing {
+                missing.push(json!({
+                    "cve_id": cve_id,
+                    "severity": severity,
+                    "title": title,
+                    "risk": nuclei_coverage_risk(&severity)
+                }));
+            }
         }
     }
 
@@ -160,16 +180,40 @@ pub(crate) fn fetch_nuclei_coverage(
     let summary = if cache_misses > 0 {
         "Offline mode: no previous cache for public nuclei-templates index; run online once to populate the cache for coverage lookup.".to_string()
     } else if dashboard_total == 0 {
-        "No active CVEs this run to assess Nuclei coverage.".to_string()
+        "No current-day CVEs to assess against public nuclei-template metadata.".to_string()
     } else if covered_cves == 0 {
-        format!("Of {dashboard_total} current CVEs, no matching template path found in the public nuclei-templates index, or the index/cache was limited.")
+        format!("No template path matched today's {dashboard_total} CVEs; this may indicate coverage gaps or a limited index/cache.")
     } else {
-        format!("{covered_cves} of {dashboard_total} current CVEs have template paths in the public nuclei-templates index; this is metadata coverage assessment only, no scan is executed.")
+        format!("{covered_cves}/{dashboard_total} current-day CVEs have public nuclei template metadata; {missing_cves} remain without a matched path.")
     };
+
+    let coverage_level = if dashboard_total == 0 {
+        "Idle"
+    } else if missing_critical > 0 {
+        "Critical gap"
+    } else if missing_high > 0 {
+        "High gap"
+    } else if missing_cves > 0 {
+        "Partial"
+    } else {
+        "Covered"
+    };
+    let coverage_risk = if missing_critical > 0 {
+        "high"
+    } else if missing_high > 0 || missing_cves > covered_cves {
+        "medium"
+    } else {
+        "watch"
+    };
+    let top_protocol = top_count_entry(&protocol_counts, "No protocol");
 
     let mut coverage_counts = HashMap::new();
     coverage_counts.insert("covered".to_string(), covered_cves);
     coverage_counts.insert("missing".to_string(), missing_cves);
+    let coverage_chart = count_chart(coverage_counts, 2);
+    let severity_chart = count_chart(severity_counts, 5);
+    let missing_severity_chart = count_chart(missing_severity_counts, 5);
+    let protocol_chart = count_chart(protocol_counts, 6);
 
     Ok(json!({
         "enabled": true,
@@ -178,6 +222,9 @@ pub(crate) fn fetch_nuclei_coverage(
         "source": "projectdiscovery/nuclei-templates path metadata",
         "mode": "template_path_coverage",
         "summary": summary,
+        "level": coverage_level,
+        "risk": coverage_risk,
+        "top_protocol": top_protocol,
         "safe_mode": "metadata only; no nuclei execution; no active scan; no target input; no exploit content",
         "last_updated": tehran_now().format("%Y-%m-%d %H:%M").to_string(),
         "totals": {
@@ -185,6 +232,11 @@ pub(crate) fn fetch_nuclei_coverage(
             "covered_cves": covered_cves,
             "missing_cves": missing_cves,
             "coverage_pct": coverage_pct,
+            "covered_critical": covered_critical,
+            "covered_high": covered_high,
+            "missing_critical": missing_critical,
+            "missing_high": missing_high,
+            "covered_template_matches": covered_template_matches,
             "indexed_cves": indexed_cves,
             "template_paths": indexed_template_paths,
             "tree_truncated": tree_truncated,
@@ -193,11 +245,20 @@ pub(crate) fn fetch_nuclei_coverage(
         },
         "covered": covered,
         "missing": missing,
-        "coverage_chart": count_chart(coverage_counts, 2),
-        "severity_chart": count_chart(severity_counts, 5),
-        "protocol_chart": count_chart(protocol_counts, 6),
+        "coverage_chart": coverage_chart,
+        "severity_chart": severity_chart,
+        "missing_severity_chart": missing_severity_chart,
+        "protocol_chart": protocol_chart,
         "errors": errors
     }))
+}
+
+pub(crate) fn top_count_entry(counts: &HashMap<String, usize>, fallback: &str) -> Value {
+    counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
+        .map(|(name, count)| json!({"name": truncate_chars(name, 36), "count": count}))
+        .unwrap_or_else(|| json!({"name": fallback, "count": 0}))
 }
 
 pub(crate) fn dashboard_cve_metadata(cves: &Value) -> Vec<Value> {

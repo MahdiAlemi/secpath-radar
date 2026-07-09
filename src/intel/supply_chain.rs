@@ -87,6 +87,9 @@ pub(crate) fn fetch_supply_chain_radar(
     let mut fixed = 0usize;
     let mut critical = 0usize;
     let mut high = 0usize;
+    let mut cve_linked = 0usize;
+    let mut epss_hot = 0usize;
+    let mut cvss_9_plus = 0usize;
 
     for advisory in &advisories {
         let ecosystem = advisory
@@ -116,6 +119,15 @@ pub(crate) fn fetch_supply_chain_radar(
         {
             fixed += 1;
         }
+        if !value_str(advisory, "cve_id").trim().is_empty() {
+            cve_linked += 1;
+        }
+        if advisory.get("epss").and_then(|v| v.as_f64()).unwrap_or(0.0) >= 0.10 {
+            epss_hot += 1;
+        }
+        if advisory.get("cvss").and_then(|v| v.as_f64()).unwrap_or(0.0) >= 9.0 {
+            cvss_9_plus += 1;
+        }
         match severity.as_str() {
             "critical" => critical += 1,
             "high" => high += 1,
@@ -124,6 +136,19 @@ pub(crate) fn fetch_supply_chain_radar(
     }
 
     let total = advisories.len();
+    let unfixed = total.saturating_sub(fixed);
+    let ecosystem_total = ecosystem_counts.len();
+    let top_ecosystem = supply_top_count_entry(&ecosystem_counts, "No ecosystem");
+    let top_package = supply_top_count_entry(&package_counts, "No package");
+    let spotlight = advisories
+        .first()
+        .map(supply_chain_spotlight)
+        .unwrap_or_else(|| json!({}));
+
+    let ecosystem_chart = count_chart_from_counts(ecosystem_counts, 8);
+    let severity_chart = count_chart_from_counts(severity_counts, 5);
+    let package_chart = count_chart_from_counts(package_counts, 8);
+
     let level = if critical > 0 || high >= 5 {
         "High"
     } else if high > 0 || total >= 12 {
@@ -153,12 +178,19 @@ pub(crate) fn fetch_supply_chain_radar(
             "critical": critical,
             "high": high,
             "fixed": fixed,
-            "ecosystems": ecosystem_counts.len()
+            "unfixed": unfixed,
+            "cve_linked": cve_linked,
+            "epss_hot": epss_hot,
+            "cvss_9_plus": cvss_9_plus,
+            "ecosystems": ecosystem_total
         },
+        "spotlight": spotlight,
+        "top_ecosystem": top_ecosystem,
+        "top_package": top_package,
         "advisories": advisories,
-        "ecosystem_chart": count_chart_from_counts(ecosystem_counts, 8),
-        "severity_chart": count_chart_from_counts(severity_counts, 5),
-        "package_chart": count_chart_from_counts(package_counts, 8),
+        "ecosystem_chart": ecosystem_chart,
+        "severity_chart": severity_chart,
+        "package_chart": package_chart,
         "source_health": {
             "cache_dir": config.intel.cache_dir.clone(),
             "refresh_hours": config.intel.refresh_hours,
@@ -282,6 +314,20 @@ pub(crate) fn map_github_advisory(
         format!("{}/{}", osv_base_url.trim_end_matches('/'), osv_id)
     };
 
+    let published_date = supply_date_prefix(&published);
+    let updated_date = supply_date_prefix(&updated);
+    let epss_pct = (epss * 100.0).round() as u64;
+    let fix_label = if fix_available {
+        format!("fixed in {patched}")
+    } else {
+        "no fixed version listed".to_string()
+    };
+    let package_label = if package == "unknown" {
+        ecosystem.clone()
+    } else {
+        format!("{ecosystem} / {package}")
+    };
+
     Some(json!({
         "ghsa_id": ghsa_id,
         "cve_id": cve_id,
@@ -294,15 +340,47 @@ pub(crate) fn map_github_advisory(
         "fix_available": fix_available,
         "published": published,
         "updated": updated,
+        "published_date": published_date,
+        "updated_date": updated_date,
         "html_url": html_url,
         "osv_url": osv_url,
         "identifiers": identifiers,
         "cvss": cvss,
         "epss": epss,
+        "epss_pct": epss_pct,
+        "fix_label": fix_label,
+        "package_label": package_label,
         "risk": risk,
         "rank_score": rank_score,
         "bar_width": 0,
     }))
+}
+
+pub(crate) fn supply_date_prefix(input: &str) -> String {
+    input.chars().take(10).collect::<String>()
+}
+
+pub(crate) fn supply_top_count_entry(counts: &HashMap<String, usize>, fallback: &str) -> Value {
+    counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
+        .map(|(name, count)| json!({"name": truncate_chars(name, 38), "count": count}))
+        .unwrap_or_else(|| json!({"name": fallback, "count": 0}))
+}
+
+pub(crate) fn supply_chain_spotlight(row: &Value) -> Value {
+    json!({
+        "title": truncate_chars(value_str(row, "summary"), 96),
+        "id": if value_str(row, "cve_id").trim().is_empty() { value_str(row, "ghsa_id") } else { value_str(row, "cve_id") },
+        "package": value_str(row, "package"),
+        "ecosystem": value_str(row, "ecosystem"),
+        "severity": value_str(row, "severity"),
+        "risk": value_str(row, "risk"),
+        "cvss": row.get("cvss").and_then(|v| v.as_f64()).unwrap_or(0.0),
+        "epss_pct": row.get("epss_pct").and_then(|v| v.as_u64()).unwrap_or(0),
+        "fix_label": value_str(row, "fix_label"),
+        "url": value_str(row, "html_url")
+    })
 }
 
 pub(crate) fn supply_chain_rank_score(
@@ -357,7 +435,10 @@ pub(crate) fn empty_supply_chain_radar(status: &str) -> Value {
         "summary": "Supply Chain Radar data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
-        "totals": {"advisories": 0, "critical": 0, "high": 0, "fixed": 0, "ecosystems": 0},
+        "totals": {"advisories": 0, "critical": 0, "high": 0, "fixed": 0, "unfixed": 0, "cve_linked": 0, "epss_hot": 0, "cvss_9_plus": 0, "ecosystems": 0},
+        "spotlight": {},
+        "top_ecosystem": {"name": "No ecosystem", "count": 0},
+        "top_package": {"name": "No package", "count": 0},
         "advisories": [],
         "ecosystem_chart": [],
         "severity_chart": [],

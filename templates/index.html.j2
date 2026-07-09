@@ -68,17 +68,6 @@
 </article>
 {% endmacro %}
 
-{% macro empty_pulse(id, title_en, provider, text) %}
-<section id="{{ id }}" class="panel is-empty">
-  <div class="panel-head">
-    <div><span class="eyebrow">{{ title_en }}</span><h2>{{ title_en }}</h2></div>
-    <span class="chip chip-idle">No data in this run</span>
-  </div>
-  <p class="empty-note">{{ text }}</p>
-  <div class="meta"><span>{{ provider }}</span></div>
-</section>
-{% endmacro %}
-
 <header class="topbar">
   <div class="brand"><img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" /><strong>SecPath Radar</strong><span class="brand-sub">Passive Cyber Threat Monitoring</span></div>
   <div class="topbar-meta">
@@ -91,16 +80,6 @@
   </div>
 </header>
 
-<nav class="anchor-nav" aria-label="Jump between clusters">
-  <a href="#breaking-news" class="is-active">News</a>
-  <a href="#poc-watch">PoCs</a>
-  <a href="#top-signals">Overview</a>
-  <a href="#cves">Vulnerabilities</a>
-  <a href="#global-news">All News</a>
-  <a href="#writeups">Writeups</a>
-  <a href="#sources">Sources</a>
-</nav>
-
 <main class="shell">
 
   <section class="kpi-strip" aria-label="Quick-decision metrics">
@@ -112,7 +91,8 @@
     <div class="kpi"><span>Nuclei Coverage</span><b>{{ brief.stats.nuclei_coverage_pct }}%</b><small>{{ brief.stats.nuclei_covered_cves }} CVE with template</small></div>
   </section>
 
-  <section class="top-layout" aria-label="Dashboard overview">
+  <section class="top-layout top-layout-columns" aria-label="Dashboard intelligence columns">
+    <div class="top-column top-column-breaking" aria-label="Breaking and vulnerability coverage">
     <section id="breaking-news" class="panel panel-breaking panel-breaking-col">
       <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><span class="chip chip-risk">{{ brief.breaking_news|length }}</span></div>
       {% if brief.breaking_news %}
@@ -124,6 +104,84 @@
       {% endif %}
     </section>
 
+      <section id="nuclei-coverage" class="panel panel-intel-card panel-nuclei-card risk-{{ brief.nuclei_coverage.risk }}">
+        <div class="panel-head">
+          <div><span class="eyebrow">Nuclei Coverage</span><h2>Template Coverage</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">{{ brief.nuclei_coverage.totals.coverage_pct }}%</span>
+            <span class="chip chip-muted">{{ brief.nuclei_coverage.level }}</span>
+          </div>
+        </div>
+        <div class="intel-metric-row">
+          <div><b>{{ brief.nuclei_coverage.totals.covered_cves }}</b><span>covered CVE</span></div>
+          <div><b>{{ brief.nuclei_coverage.totals.missing_cves }}</b><span>missing CVE</span></div>
+          <div><b>{{ brief.nuclei_coverage.totals.template_paths }}</b><span>template paths</span></div>
+        </div>
+        <div class="intel-meter"><b style="width: {{ brief.nuclei_coverage.totals.coverage_pct }}%"></b></div>
+        <p class="lede lede-tight">{{ brief.nuclei_coverage.summary }}</p>
+        <div class="intel-kv-row">
+          <span>Missing critical <b>{{ brief.nuclei_coverage.totals.missing_critical }}</b></span>
+          <span>Missing high <b>{{ brief.nuclei_coverage.totals.missing_high }}</b></span>
+          <span>Top protocol <b>{{ brief.nuclei_coverage.top_protocol.name }}</b></span>
+        </div>
+        {% if brief.nuclei_coverage.covered %}
+        <div class="intel-list-title">Matched templates</div>
+        {% for row in brief.nuclei_coverage.covered %}{% if loop.index <= 4 %}
+        <div class="intel-row risk-{{ row.risk }}">
+          <div><b>{{ row.cve_id }}</b><span>{{ row.protocol }} · {{ row.template_count }} template</span></div>
+          <small>{{ row.template_path_safe }}</small>
+        </div>
+        {% endif %}{% endfor %}
+        {% elif brief.nuclei_coverage.missing %}
+        <div class="intel-list-title">Coverage gaps</div>
+        {% for row in brief.nuclei_coverage.missing %}{% if loop.index <= 4 %}
+        <div class="intel-row risk-{{ row.risk }}">
+          <div><b>{{ row.cve_id }}</b><span>{{ row.severity }}</span></div>
+          <small>{{ row.title }}</small>
+        </div>
+        {% endif %}{% endfor %}
+        {% endif %}
+        <div class="meta"><span>{{ brief.nuclei_coverage.provider }}</span><span>metadata only · no scan</span></div>
+      </section>
+
+      {% if brief.supply_chain_radar.ok %}
+      <section id="supply-chain-radar" class="panel panel-intel-card panel-supply-card risk-{{ brief.supply_chain_radar.level|lower }}">
+        <div class="panel-head">
+          <div><span class="eyebrow">Supply Chain</span><h2>Supply Chain Advisories</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">{{ brief.supply_chain_radar.totals.advisories }} advisory</span>
+            <span class="chip chip-muted">{{ brief.supply_chain_radar.level }}</span>
+          </div>
+        </div>
+        <div class="intel-metric-row">
+          <div><b>{{ brief.supply_chain_radar.totals.high }}</b><span>high</span></div>
+          <div><b>{{ brief.supply_chain_radar.totals.fixed }}</b><span>fix listed</span></div>
+          <div><b>{{ brief.supply_chain_radar.totals.epss_hot }}</b><span>EPSS hot</span></div>
+        </div>
+        {% if brief.supply_chain_radar.spotlight.title %}
+        <article class="supply-spotlight risk-{{ brief.supply_chain_radar.spotlight.risk }}">
+          <div class="supply-titleline">
+            <a href="{{ brief.supply_chain_radar.spotlight.url }}" rel="noopener noreferrer" target="_blank">{{ brief.supply_chain_radar.spotlight.id }}</a>
+            <span class="tag">{{ brief.supply_chain_radar.spotlight.severity }}</span>
+          </div>
+          <p>{{ brief.supply_chain_radar.spotlight.title }}</p>
+          <div class="supply-meta"><span>{{ brief.supply_chain_radar.spotlight.ecosystem }} / {{ brief.supply_chain_radar.spotlight.package }}</span><span>CVSS {{ brief.supply_chain_radar.spotlight.cvss }}</span><span>EPSS {{ brief.supply_chain_radar.spotlight.epss_pct }}%</span></div>
+        </article>
+        {% endif %}
+        <div class="intel-kv-row">
+          <span>Top ecosystem <b>{{ brief.supply_chain_radar.top_ecosystem.name }}</b></span>
+          <span>Top package <b>{{ brief.supply_chain_radar.top_package.name }}</b></span>
+          <span>Unfixed <b>{{ brief.supply_chain_radar.totals.unfixed }}</b></span>
+        </div>
+        <div class="intel-list-title">Ecosystem mix</div>
+        {{ bars(brief.supply_chain_radar.ecosystem_chart, 5) }}
+        <div class="meta"><span>{{ brief.supply_chain_radar.provider }}</span><span>GitHub Advisory API + OSV links</span></div>
+      </section>
+      {% endif %}
+
+    </div>
+
+    <div class="top-column top-column-weekly" aria-label="Weekly and telemetry context">
     <section class="panel panel-top-card panel-weekly-right panel-weekly-top weekly-compact">
       <div class="panel-head">
         <div><span class="eyebrow">WEEKLY</span><h2>Week at a Glance</h2></div>
@@ -186,8 +244,51 @@
       </div>
     </section>
 
-    <div class="top-stack top-stack-vuln">
-      <section class="panel panel-top-card panel-cve-top{% if not brief.cves %} is-empty{% endif %}">
+      {% if brief.ioc_radar.ok %}
+      <section id="ioc-radar" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">IOC Radar</span><h2>Active Threats</h2></div><span class="chip">{{ brief.ioc_radar.totals.total }} IOC</span></div>
+        <p class="lede">{{ brief.ioc_radar.summary }}</p>
+        {{ bars(brief.ioc_radar.malware_chart, 5) }}
+        <div class="meta"><span>{{ brief.ioc_radar.provider }}</span><span>defanged</span></div>
+      </section>
+      {% endif %}
+
+      {% if brief.attack_pressure.ok %}
+      <section id="attack-pressure" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>Attack Pressure</h2></div><span class="chip">{{ brief.attack_pressure.level }}</span></div>
+        <p class="lede">{{ brief.attack_pressure.summary }}</p>
+        {% for p in brief.attack_pressure.top_ports %}{% if loop.index <= 8 %}
+        <div class="row risk-{{ p.risk }}">
+          <div class="row-head"><b>Port {{ p.port }} &middot; {{ p.service }}</b><span>{{ p.description }}</span></div>
+          <p class="note">{{ p.note }}</p>
+        </div>
+        {% endif %}{% endfor %}
+        <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
+      </section>
+      {% endif %}
+
+      {% if brief.attack_matrix.ok %}
+      <section id="attack-matrix" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>Attack Patterns</h2></div><span class="chip">{{ brief.attack_matrix.totals.techniques }} techniques</span></div>
+        <p class="lede">{{ brief.attack_matrix.summary }}</p>
+        {{ bars(brief.attack_matrix.rows, 8) }}
+        <div class="meta"><span>{{ brief.attack_matrix.provider }}</span></div>
+      </section>
+      {% endif %}
+
+      {% if brief.csaf_pulse.ok %}
+      <section id="csaf-pulse" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">CSAF</span><h2>Vendor Advisories</h2></div><span class="chip">{{ brief.csaf_pulse.totals.advisories }} advisory</span></div>
+        <p class="lede">{{ brief.csaf_pulse.summary }}</p>
+        {{ bars(brief.csaf_pulse.severity_chart, 5) }}
+        <div class="meta"><span>{{ brief.csaf_pulse.provider }}</span></div>
+      </section>
+      {% endif %}
+
+    </div>
+
+    <div class="top-column top-column-vuln" aria-label="Vulnerability exploitation stream">
+      <section id="cves" class="panel panel-top-card panel-cve-top{% if not brief.cves %} is-empty{% endif %}">
       <div class="panel-head">
         <div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div>
         <div class="panel-head-actions">
@@ -327,14 +428,34 @@
           <div class="vendor-legend"><span><i class="vendor-bar-cve"></i>CVE</span><span><i class="vendor-bar-poc"></i>PoC</span><span><i class="vendor-bar-news"></i>News</span></div>
         </div>
       </section>
-      {% else %}
-      <section id="vendor-watchlist" class="panel panel-top-card panel-vendor-top is-empty">
-        <div class="panel-head"><div><span class="eyebrow">Vendor Watchlist</span><h2>Vendor Watchlist</h2></div><span class="chip chip-idle">No data</span></div>
-        <p class="empty-note">{{ brief.vendor_watchlist.summary }}</p>
+      {% endif %}
+
+      {% if brief.greynoise_context.ok %}
+      <section id="greynoise-context" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">GreyNoise</span><h2>Infrastructure Context</h2></div><span class="chip">{{ brief.greynoise_context.totals.checked }} IP</span></div>
+        <p class="lede">{{ brief.greynoise_context.summary }}</p>
+        {% for c in brief.greynoise_context.contexts %}{% if loop.index <= 8 %}
+        <div class="row risk-{{ c.risk }}">
+          <div class="row-head"><b dir="ltr">{{ c.ip_safe }}</b><span>{{ c.classification }} &middot; {{ c.last_seen }}</span></div>
+          <p class="note">{{ c.note }}</p>
+        </div>
+        {% endif %}{% endfor %}
+        <div class="meta"><span>{{ brief.greynoise_context.provider }}</span><span>passive lookup</span></div>
       </section>
       {% endif %}
+
+      {% if brief.infrastructure_radar.ok %}
+      <section id="infrastructure-radar" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Infrastructure</span><h2>Suspicious Infrastructure</h2></div><span class="chip">{{ brief.infrastructure_radar.totals.hosts }} host</span></div>
+        <p class="lede">{{ brief.infrastructure_radar.summary }}</p>
+        {{ bars(brief.infrastructure_radar.port_chart, 5) }}
+        <div class="meta"><span>{{ brief.infrastructure_radar.provider }}</span><span>passive</span></div>
+      </section>
+      {% endif %}
+
     </div>
 
+    <div class="top-column top-column-news" aria-label="News and threat activity stream">
     <section id="global-news" class="panel panel-top-card panel-news-top{% if not brief.today_news %} is-empty{% endif %}">
         <div class="panel-head">
           <div><span class="eyebrow">TODAY</span><h2>All News Today</h2></div>
@@ -353,24 +474,62 @@
           {% endif %}
         </div>
       </section>
-  </section>
 
-  <section id="top-signals" class="cluster" aria-label="Top signals">
-    <div class="cluster-head"><span class="eyebrow">Top Signals</span><h2>Top Signals Today</h2></div>
-    <div class="triage-row">
-      {% for s in brief.top_signals %}{% if loop.index <= 5 %}
-      <a class="triage-card risk-{{ s.level }}" href="{{ s.anchor }}">
-        <div class="triage-top"><b>{{ s.title }}</b><span>{{ s.metric }}</span></div>
-        <p>{{ s.note }}</p>
-        <span class="bar-track"><b style="width: {{ s.bar_width }}%"></b></span>
-      </a>
-      {% endif %}{% endfor %}
-    </div>
-  </section>
+      {% if brief.botnet_c2_pulse.ok %}
+      <section id="botnet-c2-pulse" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Botnet C2</span><h2>C2 Infrastructure</h2></div><span class="chip">{{ brief.botnet_c2_pulse.totals.c2 }} C2</span></div>
+        <p class="lede">{{ brief.botnet_c2_pulse.summary }}</p>
+        {{ bars(brief.botnet_c2_pulse.family_chart, 5) }}
+        <div class="meta"><span>{{ brief.botnet_c2_pulse.provider }}</span></div>
+      </section>
+      {% endif %}
 
-  <section class="cluster cluster-news" aria-label="News &amp; Research">
-    <div class="cluster-head"><span class="eyebrow">Research</span><h2>Research &amp; Writeups</h2></div>
-      <section id="writeups-pulse" class="panel panel-wide">
+      {% if brief.phishing_pulse.ok %}
+      <section id="phishing-pulse" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Phishing</span><h2>Phishing</h2></div><span class="chip">{{ brief.phishing_pulse.totals.urls }} URL</span></div>
+        <p class="lede">{{ brief.phishing_pulse.summary }}</p>
+        {{ bars(brief.phishing_pulse.brand_chart, 5) }}
+        <div class="meta"><span>{{ brief.phishing_pulse.provider }}</span><span>defanged</span></div>
+      </section>
+      {% endif %}
+
+      {% if brief.malware_pulse.ok %}
+      <section id="malware-pulse" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Malware</span><h2>Malware Samples</h2></div><span class="chip">{{ brief.malware_pulse.totals.samples }} samples</span></div>
+        <p class="lede">{{ brief.malware_pulse.summary }}</p>
+        {{ bars(brief.malware_pulse.family_chart, 5) }}
+        <div class="meta"><span>{{ brief.malware_pulse.provider }}</span><span>hash-only</span></div>
+      </section>
+      {% endif %}
+
+      {% if brief.drop_pulse.ok %}
+      <section id="drop-pulse" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">DROP</span><h2>Hostile IP Ranges</h2></div><span class="chip">{{ brief.drop_pulse.totals.ranges }} ranges</span></div>
+        <p class="lede">{{ brief.drop_pulse.summary }}</p>
+        {{ bars(brief.drop_pulse.rir_chart, 5) }}
+        <div class="meta"><span>{{ brief.drop_pulse.provider }}</span><span>defanged</span></div>
+      </section>
+      {% endif %}
+
+      {% if brief.ics_ot_pulse.ok %}
+      <section id="ics-ot-pulse" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">ICS / OT</span><h2>ICS / OT</h2></div><span class="chip">{{ brief.ics_ot_pulse.totals.advisories }} advisory</span></div>
+        <p class="lede">{{ brief.ics_ot_pulse.summary }}</p>
+        {{ bars(brief.ics_ot_pulse.vendor_chart, 5) }}
+        <div class="meta"><span>{{ brief.ics_ot_pulse.provider }}</span></div>
+      </section>
+      {% endif %}
+
+      {% if brief.ransomware_pulse.ok %}
+      <section id="ransomware-pulse" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Ransomware</span><h2>Ransomware</h2></div><span class="chip">{{ brief.ransomware_pulse.totals.recent_7d }} in 7 days</span></div>
+        <p class="lede">{{ brief.ransomware_pulse.summary }}</p>
+        {{ bars(brief.ransomware_pulse.group_chart, 5) }}
+        <div class="meta"><span>{{ brief.ransomware_pulse.provider }}</span></div>
+      </section>
+      {% endif %}
+
+      <section id="writeups-pulse" class="panel panel-intel-card panel-wide">
         <div class="panel-head"><div><span class="eyebrow">Research</span><h2>Research</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} from {{ brief.writeups_pulse.totals.sources }} sources</span></div>
         <p class="lede">{{ brief.writeups_pulse.summary }}</p>
         <div class="grid grid-2 grid-inner">
@@ -383,189 +542,7 @@
           {% endif %}{% endfor %}
         </div>
       </section>
-  </section>
 
-  <section class="cluster" aria-label="Vulnerability &amp; Exploitation">
-    <div class="cluster-head"><span class="eyebrow">Vulnerability &amp; Exploitation</span><h2>Vulnerability &amp; Exploitation</h2></div>
-    <div class="grid grid-3">
-
-      <section id="nuclei-coverage" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Nuclei Coverage</span><h2>Template Coverage</h2></div><span class="chip">{{ brief.nuclei_coverage.totals.coverage_pct }}%</span></div>
-        <p class="lede">{{ brief.nuclei_coverage.summary }}</p>
-        {% for row in brief.nuclei_coverage.covered %}{% if loop.index <= 8 %}
-        <div class="row">
-          <div class="row-head"><b>{{ row.cve_id }}</b><span>{{ row.template_count }} template &middot; {{ row.protocol }}</span></div>
-          <p class="note">{{ row.note }}</p>
-        </div>
-        {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.nuclei_coverage.provider }}</span><span>metadata only</span></div>
-      </section>
-
-
-      {% if brief.supply_chain_radar.ok %}
-      <section id="supply-chain-radar" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Supply Chain</span><h2>Supply Chain</h2></div><span class="chip">{{ brief.supply_chain_radar.totals.advisories }} advisory</span></div>
-        <p class="lede">{{ brief.supply_chain_radar.summary }}</p>
-        {{ bars(brief.supply_chain_radar.ecosystem_chart, 5) }}
-        <div class="meta"><span>{{ brief.supply_chain_radar.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("supply-chain-radar", "Supply Chain", brief.supply_chain_radar.provider, brief.supply_chain_radar.summary) }}
-      {% endif %}
-    </div>
-  </section>
-
-  <section class="cluster" aria-label="Threat Telemetry">
-    <div class="cluster-head"><span class="eyebrow">Threat Telemetry</span><h2>Threat Telemetry</h2></div>
-    <div class="grid grid-3">
-
-      {% if brief.ioc_radar.ok %}
-      <section id="ioc-radar" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">IOC Radar</span><h2>Active Threats</h2></div><span class="chip">{{ brief.ioc_radar.totals.total }} IOC</span></div>
-        <p class="lede">{{ brief.ioc_radar.summary }}</p>
-        {{ bars(brief.ioc_radar.malware_chart, 5) }}
-        <div class="meta"><span>{{ brief.ioc_radar.provider }}</span><span>defanged</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("ioc-radar", "IOC Radar", brief.ioc_radar.provider, brief.ioc_radar.summary) }}
-      {% endif %}
-
-      {% if brief.attack_pressure.ok %}
-      <section id="attack-pressure" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>Attack Pressure</h2></div><span class="chip">{{ brief.attack_pressure.level }}</span></div>
-        <p class="lede">{{ brief.attack_pressure.summary }}</p>
-        {% for p in brief.attack_pressure.top_ports %}{% if loop.index <= 8 %}
-        <div class="row risk-{{ p.risk }}">
-          <div class="row-head"><b>Port {{ p.port }} &middot; {{ p.service }}</b><span>{{ p.description }}</span></div>
-          <p class="note">{{ p.note }}</p>
-        </div>
-        {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("attack-pressure", "Attack Pressure", brief.attack_pressure.provider, brief.attack_pressure.summary) }}
-      {% endif %}
-
-      {% if brief.attack_matrix.ok %}
-      <section id="attack-matrix" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>Attack Patterns</h2></div><span class="chip">{{ brief.attack_matrix.totals.techniques }} techniques</span></div>
-        <p class="lede">{{ brief.attack_matrix.summary }}</p>
-        {{ bars(brief.attack_matrix.rows, 8) }}
-        <div class="meta"><span>{{ brief.attack_matrix.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("attack-matrix", "ATT&CK Map", brief.attack_matrix.provider, brief.attack_matrix.summary) }}
-      {% endif %}
-
-      {% if brief.greynoise_context.ok %}
-      <section id="greynoise-context" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">GreyNoise</span><h2>Infrastructure Context</h2></div><span class="chip">{{ brief.greynoise_context.totals.checked }} IP</span></div>
-        <p class="lede">{{ brief.greynoise_context.summary }}</p>
-        {% for c in brief.greynoise_context.contexts %}{% if loop.index <= 8 %}
-        <div class="row risk-{{ c.risk }}">
-          <div class="row-head"><b dir="ltr">{{ c.ip_safe }}</b><span>{{ c.classification }} &middot; {{ c.last_seen }}</span></div>
-          <p class="note">{{ c.note }}</p>
-        </div>
-        {% endif %}{% endfor %}
-        <div class="meta"><span>{{ brief.greynoise_context.provider }}</span><span>passive lookup</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("greynoise-context", "GreyNoise", brief.greynoise_context.provider, brief.greynoise_context.summary) }}
-      {% endif %}
-
-      {% if brief.botnet_c2_pulse.ok %}
-      <section id="botnet-c2-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Botnet C2</span><h2>C2 Infrastructure</h2></div><span class="chip">{{ brief.botnet_c2_pulse.totals.c2 }} C2</span></div>
-        <p class="lede">{{ brief.botnet_c2_pulse.summary }}</p>
-        {{ bars(brief.botnet_c2_pulse.family_chart, 5) }}
-        <div class="meta"><span>{{ brief.botnet_c2_pulse.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("botnet-c2-pulse", "Botnet C2", brief.botnet_c2_pulse.provider, brief.botnet_c2_pulse.summary) }}
-      {% endif %}
-
-      {% if brief.phishing_pulse.ok %}
-      <section id="phishing-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Phishing</span><h2>Phishing</h2></div><span class="chip">{{ brief.phishing_pulse.totals.urls }} URL</span></div>
-        <p class="lede">{{ brief.phishing_pulse.summary }}</p>
-        {{ bars(brief.phishing_pulse.brand_chart, 5) }}
-        <div class="meta"><span>{{ brief.phishing_pulse.provider }}</span><span>defanged</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("phishing-pulse", "Phishing", brief.phishing_pulse.provider, brief.phishing_pulse.summary) }}
-      {% endif %}
-
-      {% if brief.malware_pulse.ok %}
-      <section id="malware-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Malware</span><h2>Malware Samples</h2></div><span class="chip">{{ brief.malware_pulse.totals.samples }} samples</span></div>
-        <p class="lede">{{ brief.malware_pulse.summary }}</p>
-        {{ bars(brief.malware_pulse.family_chart, 5) }}
-        <div class="meta"><span>{{ brief.malware_pulse.provider }}</span><span>hash-only</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("malware-pulse", "Malware", brief.malware_pulse.provider, brief.malware_pulse.summary) }}
-      {% endif %}
-
-      {% if brief.drop_pulse.ok %}
-      <section id="drop-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">DROP</span><h2>Hostile IP Ranges</h2></div><span class="chip">{{ brief.drop_pulse.totals.ranges }} ranges</span></div>
-        <p class="lede">{{ brief.drop_pulse.summary }}</p>
-        {{ bars(brief.drop_pulse.rir_chart, 5) }}
-        <div class="meta"><span>{{ brief.drop_pulse.provider }}</span><span>defanged</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("drop-pulse", "DROP", brief.drop_pulse.provider, brief.drop_pulse.summary) }}
-      {% endif %}
-
-      {% if brief.csaf_pulse.ok %}
-      <section id="csaf-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">CSAF</span><h2>Vendor Advisories</h2></div><span class="chip">{{ brief.csaf_pulse.totals.advisories }} advisory</span></div>
-        <p class="lede">{{ brief.csaf_pulse.summary }}</p>
-        {{ bars(brief.csaf_pulse.severity_chart, 5) }}
-        <div class="meta"><span>{{ brief.csaf_pulse.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("csaf-pulse", "CSAF", brief.csaf_pulse.provider, brief.csaf_pulse.summary) }}
-      {% endif %}
-
-      {% if brief.ics_ot_pulse.ok %}
-      <section id="ics-ot-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">ICS / OT</span><h2>ICS / OT</h2></div><span class="chip">{{ brief.ics_ot_pulse.totals.advisories }} advisory</span></div>
-        <p class="lede">{{ brief.ics_ot_pulse.summary }}</p>
-        {{ bars(brief.ics_ot_pulse.vendor_chart, 5) }}
-        <div class="meta"><span>{{ brief.ics_ot_pulse.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("ics-ot-pulse", "ICS / OT", brief.ics_ot_pulse.provider, brief.ics_ot_pulse.summary) }}
-      {% endif %}
-
-      {% if brief.infrastructure_radar.ok %}
-      <section id="infrastructure-radar" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Infrastructure</span><h2>Suspicious Infrastructure</h2></div><span class="chip">{{ brief.infrastructure_radar.totals.hosts }} host</span></div>
-        <p class="lede">{{ brief.infrastructure_radar.summary }}</p>
-        {{ bars(brief.infrastructure_radar.port_chart, 5) }}
-        <div class="meta"><span>{{ brief.infrastructure_radar.provider }}</span><span>passive</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("infrastructure-radar", "Infrastructure", brief.infrastructure_radar.provider, brief.infrastructure_radar.summary) }}
-      {% endif %}
-
-      {% if brief.ransomware_pulse.ok %}
-      <section id="ransomware-pulse" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Ransomware</span><h2>Ransomware</h2></div><span class="chip">{{ brief.ransomware_pulse.totals.recent_7d }} in 7 days</span></div>
-        <p class="lede">{{ brief.ransomware_pulse.summary }}</p>
-        {{ bars(brief.ransomware_pulse.group_chart, 5) }}
-        <div class="meta"><span>{{ brief.ransomware_pulse.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("ransomware-pulse", "Ransomware", brief.ransomware_pulse.provider, brief.ransomware_pulse.summary) }}
-      {% endif %}
-    </div>
-  </section>
-
-  <section id="sources" class="cluster" aria-label="About">
-    <div class="cluster-head"><span class="eyebrow">About</span><h2>About</h2></div>
-    <div class="grid grid-2">
       <section class="panel">
         <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
         <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
@@ -576,6 +553,7 @@
         <p class="note">SecPath Radar is a static, read-only dashboard for daily monitoring of the cyber threat landscape; no visitor data is collected.</p>
         <div class="meta"><span>Design &amp; Development: Mahdi Alemi</span><span>{{ brief.version }}</span></div>
       </section>
+
     </div>
   </section>
 

@@ -1017,3 +1017,316 @@ body { overflow-x: clip; overflow-wrap: break-word; }
 .breaking-scroll .item-head a { font-weight: 700; }
 .breaking-scroll .meta { margin-top: 2px; }
 .breaking-source { font-weight: 700; color: #5b9bd5; }
+
+/* ---------- Post-top intelligence board ---------- */
+.cluster-intel-board { gap: 10px; }
+.cluster-intel-board .cluster-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+.cluster-intel-board .cluster-head .eyebrow { color: var(--text-3); }
+.post-top-grid { align-items: start; }
+.post-top-grid > .panel,
+.panel-intel-card {
+  max-height: none;
+  overflow: visible;
+  background:
+    linear-gradient(180deg, rgba(94,159,232,0.035), transparent 120px),
+    var(--surface);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  padding: 10px 14px;
+  gap: 8px;
+}
+.post-top-grid > .panel .panel-head,
+.panel-intel-card .panel-head {
+  position: static;
+  top: auto;
+  z-index: auto;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+.panel-intel-card .panel-head .eyebrow { font-weight: 800; letter-spacing: 1.25px; }
+.panel-intel-card .panel-head h2 { font-size: 14px; }
+.panel-intel-card .lede-tight,
+.panel-intel-card .lede {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+.panel-intel-card .bars { gap: 4px; }
+.panel-intel-card .bar-row {
+  grid-template-columns: minmax(70px, 1fr) 1.6fr auto;
+  gap: 7px;
+  font-size: 11px;
+}
+.panel-intel-card .bar-track { height: 4px; }
+.panel-intel-card .meta { margin-top: 4px; }
+.panel-intel-card.risk-high,
+.panel-intel-card.risk-critical { border-top-color: var(--red); }
+.panel-intel-card.risk-medium { border-top-color: var(--amber); }
+.panel-intel-card.risk-watch,
+.panel-intel-card.risk-low { border-top-color: var(--green); }
+
+.intel-metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.intel-metric-row div {
+  padding: 6px 7px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+.intel-metric-row b {
+  display: block;
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1.15;
+}
+.intel-metric-row span {
+  display: block;
+  color: var(--text-3);
+  font-size: 9.5px;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.intel-meter {
+  height: 5px;
+  background: rgba(255,255,255,0.055);
+  overflow: hidden;
+}
+.intel-meter b {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.intel-kv-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.intel-kv-row span {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-3);
+  font-size: 10.5px;
+  line-height: 1.35;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.018);
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.intel-kv-row b { color: var(--text-2); font-weight: 800; }
+.intel-list-title {
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.intel-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+}
+.intel-row div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+.intel-row b {
+  font-size: 12px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.intel-row span {
+  color: var(--text-3);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.intel-row small {
+  color: var(--text-3);
+  font-size: 10.5px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.intel-row.risk-high b,
+.intel-row.risk-critical b { color: var(--red); }
+.intel-row.risk-medium b { color: var(--amber); }
+
+.panel-nuclei-card { border-top-color: var(--accent); }
+.panel-nuclei-card.risk-high .intel-meter b { background: var(--red); }
+.panel-nuclei-card.risk-medium .intel-meter b { background: var(--amber); }
+.panel-nuclei-card.risk-watch .intel-meter b { background: var(--green); }
+
+.panel-supply-card {
+  border-top-color: var(--amber);
+  background:
+    linear-gradient(180deg, rgba(234,194,107,0.045), transparent 130px),
+    var(--surface);
+}
+.panel-supply-card .panel-head .eyebrow,
+.panel-supply-card .intel-metric-row b { color: var(--amber); }
+.supply-spotlight {
+  padding: 8px 9px;
+  border: 1px solid rgba(234,194,107,0.22);
+  background: rgba(234,194,107,0.045);
+}
+.supply-spotlight.risk-high,
+.supply-spotlight.risk-critical {
+  border-color: rgba(233,115,102,0.28);
+  background: rgba(233,115,102,0.055);
+}
+.supply-titleline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  min-width: 0;
+}
+.supply-titleline a {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.supply-titleline a:hover { color: var(--amber); }
+.supply-spotlight p {
+  color: var(--text-2);
+  font-size: 11.5px;
+  line-height: 1.4;
+  margin-bottom: 5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.supply-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: 10.5px;
+}
+.supply-meta span {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .intel-metric-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- Phase 449: continuous four-column card stream ---------- */
+.anchor-nav { display: none !important; }
+.shell { gap: 10px; }
+
+.top-layout.top-layout-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 0.95fr) minmax(0, 1.16fr) minmax(0, 1.05fr);
+  gap: var(--gap);
+  align-items: start;
+}
+.top-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+.top-column > .panel {
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+}
+.top-column > .panel > .panel-head {
+  position: static;
+  top: auto;
+  z-index: auto;
+  background: transparent;
+}
+.top-layout.top-layout-columns #breaking-news,
+.top-layout.top-layout-columns .panel-weekly-top,
+.top-layout.top-layout-columns .top-stack-vuln,
+.top-layout.top-layout-columns .panel-news-top,
+.top-layout.top-layout-columns .panel-cve-top,
+.top-layout.top-layout-columns .panel-poc-top,
+.top-layout.top-layout-columns .panel-vendor-top,
+.top-layout.top-layout-columns .panel-intel-card,
+.top-layout.top-layout-columns .panel-wide {
+  grid-column: auto;
+  grid-row: auto;
+}
+.top-layout.top-layout-columns .panel-intel-card,
+.top-layout.top-layout-columns .top-column > .panel:not(.panel-breaking):not(.panel-top-card) {
+  background:
+    linear-gradient(180deg, rgba(94,159,232,0.035), transparent 120px),
+    var(--surface);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  padding: 10px 14px;
+  gap: 8px;
+}
+.top-layout.top-layout-columns .panel-intel-card .panel-head,
+.top-layout.top-layout-columns .top-column > .panel:not(.panel-breaking):not(.panel-top-card) .panel-head {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+.top-column-breaking .panel-nuclei-card { border-top-color: var(--amber); }
+.top-column-breaking .panel-supply-card { border-top-color: var(--green); }
+.top-column-weekly #ioc-radar,
+.top-column-weekly #attack-pressure,
+.top-column-weekly #attack-matrix,
+.top-column-weekly #csaf-pulse { border-top-color: var(--accent); }
+.top-column-vuln #greynoise-context,
+.top-column-vuln #infrastructure-radar { border-top-color: var(--green); }
+.top-column-news #botnet-c2-pulse,
+.top-column-news #phishing-pulse,
+.top-column-news #malware-pulse,
+.top-column-news #drop-pulse,
+.top-column-news #ics-ot-pulse,
+.top-column-news #ransomware-pulse { border-top-color: rgba(255,255,255,0.22); }
+.top-layout.top-layout-columns #writeups-pulse .grid-inner { grid-template-columns: 1fr; }
+.top-layout.top-layout-columns #writeups-pulse .item:nth-of-type(n+7) { display: none; }
+.top-layout.top-layout-columns .panel-intel-card .lede,
+.top-layout.top-layout-columns .panel-intel-card .lede-tight { margin-bottom: 2px; }
+
+@media (max-width: 1500px) {
+  .top-layout.top-layout-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .top-layout.top-layout-columns { grid-template-columns: 1fr; }
+}
+@media print {
+  .top-layout.top-layout-columns { grid-template-columns: repeat(2, 1fr); }
+}
+
