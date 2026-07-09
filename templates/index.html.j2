@@ -464,7 +464,7 @@
         </div>
         <div class="ai-briefing-body">
           <p class="ai-briefing-headline"> {{ brief.ai_briefing.headline }} </p>
-          {% if {{ brief.ai_briefing.narrative }} %}<p class="ai-briefing-narrative"> {{ brief.ai_briefing.narrative }} </p>{% endif %}
+          {% if brief.ai_briefing.narrative %}<p class="ai-briefing-narrative"> {{ brief.ai_briefing.narrative }} </p>{% endif %}
           {% if brief.ai_briefing.takeaways %}
           <ul class="ai-briefing-list">
             {% for line in brief.ai_briefing.takeaways %}<li>{{ line }}</li>{% endfor %}
