@@ -72,7 +72,11 @@ pub(crate) fn fetch_phishing_pulse(
     let brand_chart = phishing_brand_chart(&indicators, 8);
     let risk_chart = phishing_risk_chart(&indicators);
     let scheme_chart = phishing_scheme_chart(&indicators);
-    let top_brand = first_chart_name(&brand_chart);
+    let unknown_targets = indicators
+        .iter()
+        .filter(|item| item.brand_hint == "Unknown target")
+        .count();
+    let top_brand = first_non_unknown_chart_name(&brand_chart, "Unattributed targets");
     let top_tld = first_chart_name(&tld_chart);
     let spotlight = indicators.first().cloned();
     let level = if high >= 6 {
@@ -109,7 +113,8 @@ pub(crate) fn fetch_phishing_pulse(
             "deep_paths": deep_paths,
             "credential_targets": credential_targets,
             "tlds": tlds,
-            "brands": brands
+            "brands": brands,
+            "unknown_targets": unknown_targets
         },
         "insights": {
             "top_brand": top_brand,
@@ -352,6 +357,14 @@ pub(crate) fn phishing_scheme_chart(items: &[PhishingUrlIndicator]) -> Vec<Value
     count_chart_from_counts(counts, 4)
 }
 
+pub(crate) fn first_non_unknown_chart_name(rows: &[Value], fallback: &str) -> String {
+    rows.iter()
+        .filter_map(|row| row.get("name").and_then(|value| value.as_str()))
+        .find(|name| !name.trim().is_empty() && *name != "Unknown target")
+        .map(|name| name.to_string())
+        .unwrap_or_else(|| fallback.to_string())
+}
+
 pub(crate) fn first_chart_name(rows: &[Value]) -> String {
     rows.first()
         .and_then(|row| row.get("name"))
@@ -371,7 +384,7 @@ pub(crate) fn empty_phishing_pulse(status: &str) -> Value {
         "last_updated": "",
         "metadata_only": true,
         "defanged": true,
-        "totals": {"urls": 0, "high": 0, "http": 0, "https": 0, "deep_paths": 0, "credential_targets": 0, "tlds": 0, "brands": 0},
+        "totals": {"urls": 0, "high": 0, "http": 0, "https": 0, "deep_paths": 0, "credential_targets": 0, "tlds": 0, "brands": 0, "unknown_targets": 0},
         "insights": {"top_brand": "none", "top_tld": "none", "defanged": true, "passive_only": true},
         "spotlight": null,
         "urls": [],
@@ -380,4 +393,30 @@ pub(crate) fn empty_phishing_pulse(status: &str) -> Value {
         "risk_chart": [],
         "scheme_chart": []
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn top_brand_skips_unknown_when_better_target_exists() {
+        let rows = vec![
+            json!({"name": "Unknown target", "count": 8}),
+            json!({"name": "Microsoft/Cloud", "count": 2}),
+        ];
+        assert_eq!(
+            first_non_unknown_chart_name(&rows, "Unattributed targets"),
+            "Microsoft/Cloud"
+        );
+    }
+
+    #[test]
+    fn top_brand_falls_back_to_unattributed_targets() {
+        let rows = vec![json!({"name": "Unknown target", "count": 8})];
+        assert_eq!(
+            first_non_unknown_chart_name(&rows, "Unattributed targets"),
+            "Unattributed targets"
+        );
+    }
 }

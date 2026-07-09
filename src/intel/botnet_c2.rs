@@ -194,11 +194,7 @@ pub(crate) fn parse_feodo_c2_csv(text: &str) -> Vec<BotnetC2Indicator> {
             .get(ip_index + 2)
             .cloned()
             .unwrap_or_else(|| "unknown".to_string());
-        let malware = fields
-            .get(ip_index + 3)
-            .or_else(|| fields.last())
-            .map(|value| normalize_family(value))
-            .unwrap_or_else(|| "botnet".to_string());
+        let malware = botnet_family_from_fields(&fields, ip_index);
 
         out.push(BotnetC2Indicator {
             rank: out.len() + 1,
@@ -234,11 +230,7 @@ pub(crate) fn parse_sslbl_ja3_csv(text: &str) -> Vec<TlsThreatIndicator> {
         }
         let first_seen = fields.get(1).cloned().unwrap_or_default();
         let last_seen = fields.get(2).cloned().unwrap_or_default();
-        let reason = fields
-            .get(3)
-            .cloned()
-            .or_else(|| fields.get(2).cloned())
-            .unwrap_or_else(|| "malicious_tls".to_string());
+        let reason = tls_reason_from_fields(&fields, 3, "malicious JA3");
         out.push(TlsThreatIndicator {
             rank: out.len() + 1,
             indicator_type: "JA3".to_string(),
@@ -272,10 +264,7 @@ pub(crate) fn parse_sslbl_cert_csv(text: &str) -> Vec<TlsThreatIndicator> {
         if fingerprint.len() < 32 {
             continue;
         }
-        let reason = fields
-            .get(2)
-            .cloned()
-            .unwrap_or_else(|| "malicious_certificate".to_string());
+        let reason = tls_reason_from_fields(&fields, 2, "malicious certificate");
         out.push(TlsThreatIndicator {
             rank: out.len() + 1,
             indicator_type: "SSL cert".to_string(),
@@ -297,7 +286,7 @@ pub(crate) fn finalize_botnet_c2(items: &mut [BotnetC2Indicator]) {
     let total = items.len().max(1);
     for (idx, item) in items.iter_mut().enumerate() {
         item.rank = idx + 1;
-        item.malware = normalize_family(&item.malware);
+        item.malware = clean_threat_label(&item.malware, "Unattributed C2");
         item.ip_safe = defang_indicator(&item.ip);
         let mut score = 45 + ((total - idx) * 35 / total);
         if item.status.to_lowercase().contains("online") {
@@ -331,7 +320,7 @@ pub(crate) fn finalize_tls_threats(items: &mut [TlsThreatIndicator]) {
     let total = items.len().max(1);
     for (idx, item) in items.iter_mut().enumerate() {
         item.rank = idx + 1;
-        item.reason = normalize_family(&item.reason);
+        item.reason = clean_threat_label(&item.reason, "malicious TLS");
         item.fingerprint_safe = truncate_middle(&item.fingerprint, 18);
         let mut score = 40 + ((total - idx) * 35 / total);
         if is_named_malware_family(&item.reason) || item.reason.to_lowercase().contains("botnet") {
@@ -358,11 +347,133 @@ pub(crate) fn finalize_tls_threats(items: &mut [TlsThreatIndicator]) {
     });
 }
 
+pub(crate) fn botnet_family_from_fields(fields: &[String], ip_index: usize) -> String {
+    let mut candidate_indexes = Vec::new();
+    // Feodo blocklist columns are usually:
+    // first_seen_utc,dst_ip,dst_port,c2_status,last_online,malware.
+    // Prefer the malware column after last_online, then scan the tail defensively
+    // because cached/community CSV variants can add columns.
+    for idx in [ip_index + 4, ip_index + 3, fields.len().saturating_sub(1)] {
+        if idx < fields.len() && !candidate_indexes.contains(&idx) {
+            candidate_indexes.push(idx);
+        }
+    }
+    for idx in (ip_index + 2)..fields.len() {
+        if !candidate_indexes.contains(&idx) {
+            candidate_indexes.push(idx);
+        }
+    }
+    for idx in candidate_indexes {
+        if let Some(value) = fields.get(idx) {
+            let cleaned = clean_threat_label(value, "");
+            if !cleaned.is_empty() {
+                return cleaned;
+            }
+        }
+    }
+    "Unattributed C2".to_string()
+}
+
+pub(crate) fn tls_reason_from_fields(
+    fields: &[String],
+    preferred_idx: usize,
+    fallback: &str,
+) -> String {
+    let mut candidate_indexes = Vec::new();
+    if preferred_idx < fields.len() {
+        candidate_indexes.push(preferred_idx);
+    }
+    for idx in 1..fields.len() {
+        if !candidate_indexes.contains(&idx) {
+            candidate_indexes.push(idx);
+        }
+    }
+    for idx in candidate_indexes {
+        if let Some(value) = fields.get(idx) {
+            let cleaned = clean_threat_label(value, "");
+            if !cleaned.is_empty() {
+                return cleaned;
+            }
+        }
+    }
+    fallback.to_string()
+}
+
+pub(crate) fn clean_threat_label(value: &str, fallback: &str) -> String {
+    let cleaned = normalize_family(value);
+    if is_noise_threat_label(&cleaned) {
+        fallback.to_string()
+    } else {
+        cleaned
+    }
+}
+
+pub(crate) fn is_noise_threat_label(value: &str) -> bool {
+    let lower = value.trim().trim_matches('.').to_lowercase();
+    if lower.is_empty() {
+        return true;
+    }
+    if looks_like_date_or_timestamp(&lower) || looks_like_ipv4(&lower) {
+        return true;
+    }
+    let exact_noise = [
+        "unknown",
+        "-",
+        "n/a",
+        "na",
+        "none",
+        "online",
+        "offline",
+        "c2_status",
+        "last_online",
+        "first_seen",
+        "first_seen_utc",
+        "dst_ip",
+        "dst_port",
+        "malware",
+        "botnet",
+        "sslbl",
+        "ja3",
+        "ssl cert",
+        "certificate",
+        "malicious_tls",
+        "malicious tls",
+    ];
+    exact_noise.iter().any(|noise| lower == *noise)
+}
+
+pub(crate) fn looks_like_date_or_timestamp(value: &str) -> bool {
+    let trimmed = value.trim();
+    let date_part = trimmed.split_whitespace().next().unwrap_or(trimmed);
+    let parts = date_part.split('-').collect::<Vec<_>>();
+    parts.len() == 3
+        && parts[0].len() == 4
+        && parts[1].len() == 2
+        && parts[2].len() == 2
+        && parts
+            .iter()
+            .all(|part| part.chars().all(|ch| ch.is_ascii_digit()))
+}
+
 pub(crate) fn is_named_malware_family(value: &str) -> bool {
     let lower = value.to_lowercase();
     [
-        "emotet", "dridex", "trickbot", "qakbot", "qbot", "bazar", "icedid", "gozi", "ramnit",
-        "lokibot", "redline", "formbook",
+        "emotet",
+        "dridex",
+        "trickbot",
+        "qakbot",
+        "qbot",
+        "bazar",
+        "icedid",
+        "gozi",
+        "ramnit",
+        "lokibot",
+        "redline",
+        "formbook",
+        "heodo",
+        "pikabot",
+        "smokeloader",
+        "danabot",
     ]
     .iter()
     .any(|family| lower.contains(family))
@@ -393,7 +504,7 @@ pub(crate) fn count_chart_names(names: &[String], limit: usize) -> Vec<Value> {
     let mut counts: HashMap<String, usize> = HashMap::new();
     for name in names {
         let key = normalize_family(name);
-        if !key.trim().is_empty() && key != "unknown" && key != "-" {
+        if !is_noise_threat_label(&key) {
             *counts.entry(key).or_insert(0) += 1;
         }
     }
@@ -479,4 +590,37 @@ pub(crate) fn empty_botnet_c2_pulse(status: &str) -> Value {
         "port_chart": [],
         "tls_chart": []
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn feodo_parser_uses_malware_after_last_online_not_date() {
+        let line = "2026-07-08 01:02:03,1.2.3.4,443,online,2026-02-18,Heodo";
+        let rows = parse_feodo_c2_csv(line);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].malware, "Heodo");
+    }
+
+    #[test]
+    fn tls_reason_falls_back_when_only_dates_are_present() {
+        let fields = vec![
+            "0123456789abcdef0123456789abcdef".to_string(),
+            "2026-07-08".to_string(),
+            "2026-07-09".to_string(),
+        ];
+        assert_eq!(
+            tls_reason_from_fields(&fields, 3, "malicious JA3"),
+            "malicious JA3"
+        );
+    }
+
+    #[test]
+    fn noise_threat_label_detects_dates_and_status_words() {
+        assert!(is_noise_threat_label("2026-02-18"));
+        assert!(is_noise_threat_label("online"));
+        assert!(!is_noise_threat_label("Heodo"));
+    }
 }
