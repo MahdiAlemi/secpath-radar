@@ -53,10 +53,14 @@ pub(crate) fn fetch_infrastructure_radar(
             "source_url": "https://internetdb.shodan.io/",
             "cache_dir": config.intel.cache_dir.clone(),
             "refresh_hours": config.intel.refresh_hours,
-            "totals": {"candidates": 0, "hosts": 0, "high": 0, "vulns": 0},
+            "totals": {"candidates": 0, "hosts": 0, "high": 0, "vulns": 0, "ports": 0, "risky_ports": 0, "vuln_hosts": 0, "exposed_hosts": 0, "scanner_only": 0},
+            "spotlight": null,
             "hosts": [],
             "port_chart": [],
-            "risk_chart": []
+            "risky_port_chart": [],
+            "risk_chart": [],
+            "source_chart": [],
+            "tag_chart": []
         }));
     }
 
@@ -79,6 +83,17 @@ pub(crate) fn fetch_infrastructure_radar(
     let high_count = hosts.iter().filter(|host| host.risk == "high").count();
     let vuln_count = hosts.iter().map(|host| host.vuln_count).sum::<usize>();
     let total_ports = hosts.iter().map(|host| host.port_count).sum::<usize>();
+    let risky_port_count = hosts
+        .iter()
+        .flat_map(|host| host.ports.iter())
+        .filter(|port| is_risky_exposed_port(**port))
+        .count();
+    let vuln_host_count = hosts.iter().filter(|host| host.vuln_count > 0).count();
+    let exposed_host_count = hosts.iter().filter(|host| host.port_count > 0).count();
+    let scanner_only_count = hosts
+        .iter()
+        .filter(|host| host.source == "DShield Top IPs" && host.port_count == 0)
+        .count();
 
     let level = if high_count >= 4 || vuln_count >= 6 {
         "High"
@@ -95,7 +110,11 @@ pub(crate) fn fetch_infrastructure_radar(
     };
 
     let port_chart = infrastructure_port_chart(&hosts, 10);
+    let risky_port_chart = infrastructure_risky_port_chart(&hosts, 8);
     let risk_chart = infrastructure_risk_chart(&hosts);
+    let source_chart = infrastructure_source_chart(&hosts, 5);
+    let tag_chart = infrastructure_tag_chart(&hosts, 6);
+    let spotlight = hosts.first().cloned();
 
     Ok(json!({
         "enabled": true,
@@ -112,11 +131,19 @@ pub(crate) fn fetch_infrastructure_radar(
             "hosts": hosts.len(),
             "high": high_count,
             "vulns": vuln_count,
-            "ports": total_ports
+            "ports": total_ports,
+            "risky_ports": risky_port_count,
+            "vuln_hosts": vuln_host_count,
+            "exposed_hosts": exposed_host_count,
+            "scanner_only": scanner_only_count
         },
+        "spotlight": spotlight,
         "hosts": hosts,
         "port_chart": port_chart,
-        "risk_chart": risk_chart
+        "risky_port_chart": risky_port_chart,
+        "risk_chart": risk_chart,
+        "source_chart": source_chart,
+        "tag_chart": tag_chart
     }))
 }
 
@@ -546,7 +573,48 @@ pub(crate) fn infrastructure_port_chart(hosts: &[InfrastructureHost], limit: usi
     let mut counts: HashMap<String, usize> = HashMap::new();
     for host in hosts {
         for port in &host.ports {
-            *counts.entry(port.to_string()).or_insert(0) += 1;
+            let label = format!("{} {}", port, port_service_name(*port));
+            *counts.entry(label.trim().to_string()).or_insert(0) += 1;
+        }
+    }
+    count_chart_from_counts(counts, limit)
+}
+
+pub(crate) fn infrastructure_risky_port_chart(
+    hosts: &[InfrastructureHost],
+    limit: usize,
+) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for host in hosts {
+        for port in &host.ports {
+            if is_risky_exposed_port(*port) {
+                let label = format!("{} {}", port, port_service_name(*port));
+                *counts.entry(label.trim().to_string()).or_insert(0) += 1;
+            }
+        }
+    }
+    count_chart_from_counts(counts, limit)
+}
+
+pub(crate) fn infrastructure_source_chart(
+    hosts: &[InfrastructureHost],
+    limit: usize,
+) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for host in hosts {
+        *counts.entry(host.source.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, limit)
+}
+
+pub(crate) fn infrastructure_tag_chart(hosts: &[InfrastructureHost], limit: usize) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for host in hosts {
+        for tag in &host.tags {
+            let tag = truncate_chars(tag.trim(), 28);
+            if !tag.is_empty() && tag != "observed-scanner" {
+                *counts.entry(tag).or_insert(0) += 1;
+            }
         }
     }
     count_chart_from_counts(counts, limit)
@@ -583,6 +651,35 @@ pub(crate) fn count_chart_from_counts(
             })
         })
         .collect()
+}
+
+pub(crate) fn port_service_name(port: u16) -> &'static str {
+    match port {
+        21 => "FTP",
+        22 => "SSH",
+        23 => "Telnet",
+        25 => "SMTP",
+        53 => "DNS",
+        80 => "HTTP",
+        110 => "POP3",
+        139 => "NetBIOS",
+        143 => "IMAP",
+        443 => "HTTPS",
+        445 => "SMB",
+        1433 => "MSSQL",
+        1521 => "Oracle",
+        3306 => "MySQL",
+        3389 => "RDP",
+        5432 => "PostgreSQL",
+        5900 => "VNC",
+        6379 => "Redis",
+        8080 => "HTTP-alt",
+        8443 => "HTTPS-alt",
+        9200 => "Elasticsearch",
+        11211 => "Memcached",
+        27017 => "MongoDB",
+        _ => "",
+    }
 }
 
 pub(crate) fn is_risky_exposed_port(port: u16) -> bool {
@@ -627,10 +724,14 @@ pub(crate) fn empty_infrastructure_radar(status: &str) -> Value {
         "summary": "Suspicious Infrastructure data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
-        "totals": {"candidates": 0, "hosts": 0, "high": 0, "vulns": 0, "ports": 0},
+        "totals": {"candidates": 0, "hosts": 0, "high": 0, "vulns": 0, "ports": 0, "risky_ports": 0, "vuln_hosts": 0, "exposed_hosts": 0, "scanner_only": 0},
+        "spotlight": null,
         "hosts": [],
         "port_chart": [],
-        "risk_chart": []
+        "risky_port_chart": [],
+        "risk_chart": [],
+        "source_chart": [],
+        "tag_chart": []
     })
 }
 

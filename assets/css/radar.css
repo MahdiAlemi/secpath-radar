@@ -1330,3 +1330,131 @@ body { overflow-x: clip; overflow-wrap: break-word; }
   .top-layout.top-layout-columns { grid-template-columns: repeat(2, 1fr); }
 }
 
+
+/* ---------- Phase 451: enriched IOC / infrastructure / GreyNoise cards ---------- */
+.panel-ioc-radar,
+.panel-infra-card,
+.panel-greynoise-card {
+  background:
+    linear-gradient(180deg, rgba(94,159,232,0.045), transparent 140px),
+    var(--surface) !important;
+}
+.panel-ioc-radar { border-top-color: var(--accent) !important; }
+.panel-ioc-radar .panel-head .eyebrow,
+.panel-ioc-radar .intel-metric-row b { color: var(--accent); }
+.panel-infra-card { border-top-color: var(--green) !important; }
+.panel-infra-card .panel-head .eyebrow,
+.panel-infra-card .intel-metric-row b { color: var(--green); }
+.panel-greynoise-card { border-top-color: var(--green) !important; }
+.panel-greynoise-card.risk-high { border-top-color: var(--red) !important; }
+.panel-greynoise-card.risk-medium { border-top-color: var(--amber) !important; }
+.panel-greynoise-card .panel-head .eyebrow,
+.panel-greynoise-card .intel-metric-row b { color: var(--green); }
+.panel-greynoise-card.risk-high .panel-head .eyebrow,
+.panel-greynoise-card.risk-high .intel-metric-row b { color: var(--red); }
+.panel-greynoise-card.risk-medium .panel-head .eyebrow,
+.panel-greynoise-card.risk-medium .intel-metric-row b { color: var(--amber); }
+
+.intel-metric-row-compact div { padding: 5px 6px; }
+.intel-metric-row-compact b { font-size: 16px; }
+.intel-metric-row-compact span { font-size: 8.8px; letter-spacing: 0.35px; }
+.ioc-insight-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+.ioc-insight-strip span,
+.grey-verdict {
+  display: block;
+  min-width: 0;
+  color: var(--text-3);
+  font-size: 10.5px;
+  line-height: 1.35;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.018);
+  padding: 4px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ioc-insight-strip b,
+.grey-verdict b { color: var(--text-2); }
+.ioc-signal-row b,
+.infra-host-row b,
+.grey-row b { font-variant-numeric: tabular-nums; }
+.split-bars {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  padding-top: 2px;
+}
+.split-bars > div > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-3);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+}
+.split-bars .bars { gap: 3px; }
+.split-bars .bar-row {
+  grid-template-columns: minmax(54px, 1fr) 1.15fr auto;
+  gap: 5px;
+  font-size: 10px;
+}
+.infra-spotlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid rgba(114,188,143,0.24);
+  background: rgba(114,188,143,0.045);
+}
+.infra-spotlight span {
+  display: block;
+  color: var(--text-3);
+  font-size: 8.8px;
+  font-weight: 800;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+.infra-spotlight b {
+  display: block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12.5px;
+}
+.infra-spotlight strong {
+  color: var(--green);
+  font-size: 15px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.infra-spotlight.risk-high,
+.grey-spotlight.risk-high {
+  border-color: rgba(233,115,102,0.30);
+  background: rgba(233,115,102,0.060);
+}
+.infra-spotlight.risk-high strong,
+.grey-spotlight.risk-high strong { color: var(--red); }
+.infra-spotlight.risk-medium,
+.grey-spotlight.risk-medium {
+  border-color: rgba(234,194,107,0.28);
+  background: rgba(234,194,107,0.055);
+}
+.infra-spotlight.risk-medium strong,
+.grey-spotlight.risk-medium strong { color: var(--amber); }
+.grey-spotlight strong {
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+}
+.panel-ioc-radar .meta,
+.panel-infra-card .meta,
+.panel-greynoise-card .meta { margin-top: 2px; }

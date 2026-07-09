@@ -68,6 +68,27 @@ pub(crate) fn fetch_ioc_radar(
     let source_chart = ioc_count_chart(&all, |item| item.source.as_str(), 4);
     let high_count = all.iter().filter(|item| item.risk == "high").count();
     let watch_count = all.iter().filter(|item| item.risk == "watch").count();
+    let high_confidence_count = all.iter().filter(|item| item.confidence >= 85).count();
+    let network_indicator_count = all
+        .iter()
+        .filter(|item| matches!(item.indicator_type.as_str(), "url" | "domain" | "ip"))
+        .count();
+    let hash_indicator_count = all
+        .iter()
+        .filter(|item| item.indicator_type == "hash")
+        .count();
+    let distinct_families = distinct_ioc_values(&all, |item| item.malware.as_str());
+    let mut top_indicators = all.clone();
+    top_indicators.sort_by(|a, b| {
+        b.risk_score
+            .cmp(&a.risk_score)
+            .then_with(|| b.confidence.cmp(&a.confidence))
+            .then_with(|| a.indicator_safe.cmp(&b.indicator_safe))
+    });
+    top_indicators.truncate(6);
+    let top_family = first_chart_name(&malware_chart);
+    let top_type = first_chart_name(&type_chart);
+    let top_source = first_chart_name(&source_chart);
 
     let level = if high_count >= 12 {
         "High"
@@ -101,10 +122,22 @@ pub(crate) fn fetch_ioc_radar(
             "threatfox": threatfox.len(),
             "total": all.len(),
             "high": high_count,
-            "watch": watch_count
+            "watch": watch_count,
+            "high_confidence": high_confidence_count,
+            "network_indicators": network_indicator_count,
+            "hash_indicators": hash_indicator_count,
+            "families": distinct_families
+        },
+        "insights": {
+            "top_family": top_family,
+            "top_type": top_type,
+            "top_source": top_source,
+            "defanged": true,
+            "passive_only": true
         },
         "urlhaus": urlhaus,
         "threatfox": threatfox,
+        "top_indicators": top_indicators,
         "type_chart": type_chart,
         "malware_chart": malware_chart,
         "source_chart": source_chart
@@ -273,6 +306,27 @@ pub(crate) fn finalize_ioc_indicators(items: &mut [IocIndicator]) {
     }
 }
 
+pub(crate) fn first_chart_name(rows: &[Value]) -> String {
+    rows.first()
+        .and_then(|row| row.get("name"))
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("none")
+        .to_string()
+}
+
+pub(crate) fn distinct_ioc_values<F>(items: &[IocIndicator], key_fn: F) -> usize
+where
+    F: Fn(&IocIndicator) -> &str,
+{
+    items
+        .iter()
+        .map(|item| normalize_family(key_fn(item)).to_lowercase())
+        .filter(|value| !value.trim().is_empty() && value != "unknown" && value != "-")
+        .collect::<HashSet<_>>()
+        .len()
+}
+
 pub(crate) fn ioc_count_chart<F>(items: &[IocIndicator], key_fn: F, limit: usize) -> Vec<Value>
 where
     F: Fn(&IocIndicator) -> &str,
@@ -432,9 +486,11 @@ pub(crate) fn empty_ioc_radar(status: &str) -> Value {
         "summary": "IOC Radar data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
-        "totals": {"urlhaus": 0, "threatfox": 0, "total": 0, "high": 0, "watch": 0},
+        "totals": {"urlhaus": 0, "threatfox": 0, "total": 0, "high": 0, "watch": 0, "high_confidence": 0, "network_indicators": 0, "hash_indicators": 0, "families": 0},
+        "insights": {"top_family": "none", "top_type": "none", "top_source": "none", "defanged": true, "passive_only": true},
         "urlhaus": [],
         "threatfox": [],
+        "top_indicators": [],
         "type_chart": [],
         "malware_chart": [],
         "source_chart": []

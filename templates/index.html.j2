@@ -245,11 +245,33 @@
     </section>
 
       {% if brief.ioc_radar.ok %}
-      <section id="ioc-radar" class="panel panel-intel-card">
-        <div class="panel-head"><div><span class="eyebrow">IOC Radar</span><h2>Active Threats</h2></div><span class="chip">{{ brief.ioc_radar.totals.total }} IOC</span></div>
-        <p class="lede">{{ brief.ioc_radar.summary }}</p>
-        {{ bars(brief.ioc_radar.malware_chart, 5) }}
-        <div class="meta"><span>{{ brief.ioc_radar.provider }}</span><span>defanged</span></div>
+      <section id="ioc-radar" class="panel panel-intel-card panel-ioc-radar risk-{{ brief.ioc_radar.level|lower }}">
+        <div class="panel-head">
+          <div><span class="eyebrow">IOC Radar</span><h2>Active Threats</h2></div>
+          <div class="panel-head-actions"><span class="chip">{{ brief.ioc_radar.totals.total }} IOC</span><span class="chip chip-muted">{{ brief.ioc_radar.level }}</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>{{ brief.ioc_radar.totals.high }}</b><span>high risk</span></div>
+          <div><b>{{ brief.ioc_radar.totals.high_confidence }}</b><span>high confidence</span></div>
+          <div><b>{{ brief.ioc_radar.totals.families }}</b><span>families</span></div>
+        </div>
+        <div class="ioc-insight-strip">
+          <span>Top family <b>{{ brief.ioc_radar.insights.top_family }}</b></span>
+          <span>Type <b>{{ brief.ioc_radar.insights.top_type }}</b></span>
+          <span>Source <b>{{ brief.ioc_radar.insights.top_source }}</b></span>
+        </div>
+        <div class="intel-list-title">Highest signal indicators</div>
+        {% for row in brief.ioc_radar.top_indicators %}{% if loop.index <= 4 %}
+        <div class="intel-row ioc-signal-row risk-{{ row.risk }}">
+          <div><b dir="ltr">{{ row.indicator_safe }}</b><span>{{ row.risk_score }}/100</span></div>
+          <small>{{ row.source }} · {{ row.indicator_type }} · {{ row.malware }} · conf {{ row.confidence }}%</small>
+        </div>
+        {% endif %}{% endfor %}
+        <div class="split-bars">
+          <div><span>Malware mix</span>{{ bars(brief.ioc_radar.malware_chart, 3) }}</div>
+          <div><span>Indicator types</span>{{ bars(brief.ioc_radar.type_chart, 3) }}</div>
+        </div>
+        <div class="meta"><span>{{ brief.ioc_radar.provider }}</span><span>defanged · passive</span></div>
       </section>
       {% endif %}
 
@@ -431,25 +453,72 @@
       {% endif %}
 
       {% if brief.greynoise_context.ok %}
-      <section id="greynoise-context" class="panel panel-intel-card">
-        <div class="panel-head"><div><span class="eyebrow">GreyNoise</span><h2>Infrastructure Context</h2></div><span class="chip">{{ brief.greynoise_context.totals.checked }} IP</span></div>
-        <p class="lede">{{ brief.greynoise_context.summary }}</p>
-        {% for c in brief.greynoise_context.contexts %}{% if loop.index <= 8 %}
-        <div class="row risk-{{ c.risk }}">
-          <div class="row-head"><b dir="ltr">{{ c.ip_safe }}</b><span>{{ c.classification }} &middot; {{ c.last_seen }}</span></div>
-          <p class="note">{{ c.note }}</p>
+      <section id="greynoise-context" class="panel panel-intel-card panel-greynoise-card risk-{{ brief.greynoise_context.level|lower }}">
+        <div class="panel-head">
+          <div><span class="eyebrow">GreyNoise</span><h2>Scanner Context</h2></div>
+          <div class="panel-head-actions"><span class="chip">{{ brief.greynoise_context.totals.checked }} IP</span><span class="chip chip-muted">{{ brief.greynoise_context.level }}</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>{{ brief.greynoise_context.totals.malicious }}</b><span>malicious</span></div>
+          <div><b>{{ brief.greynoise_context.totals.noise }}</b><span>noise</span></div>
+          <div><b>{{ brief.greynoise_context.totals.riot }}</b><span>RIOT</span></div>
+        </div>
+        <div class="grey-verdict">{{ brief.greynoise_context.verdict }}</div>
+        {% if brief.greynoise_context.spotlight %}
+        <div class="infra-spotlight grey-spotlight risk-{{ brief.greynoise_context.spotlight.risk }}">
+          <div><span>Top context</span><b dir="ltr">{{ brief.greynoise_context.spotlight.ip_safe }}</b></div>
+          <strong>{{ brief.greynoise_context.spotlight.classification }}</strong>
+        </div>
+        {% endif %}
+        <div class="intel-list-title">Selected IP context</div>
+        {% for c in brief.greynoise_context.contexts %}{% if loop.index <= 5 %}
+        <div class="intel-row grey-row risk-{{ c.risk }}">
+          <div><b dir="ltr">{{ c.ip_safe }}</b><span>{{ c.score }}/100</span></div>
+          <small>{{ c.classification }}{% if c.noise %} · noise{% endif %}{% if c.riot %} · RIOT{% endif %} · {{ c.source }} · {{ c.last_seen }}</small>
         </div>
         {% endif %}{% endfor %}
+        <div class="split-bars">
+          <div><span>Classification</span>{{ bars(brief.greynoise_context.classification_chart, 3) }}</div>
+          <div><span>Lookup source</span>{{ bars(brief.greynoise_context.source_chart, 3) }}</div>
+        </div>
         <div class="meta"><span>{{ brief.greynoise_context.provider }}</span><span>passive lookup</span></div>
       </section>
       {% endif %}
 
       {% if brief.infrastructure_radar.ok %}
-      <section id="infrastructure-radar" class="panel panel-intel-card">
-        <div class="panel-head"><div><span class="eyebrow">Infrastructure</span><h2>Suspicious Infrastructure</h2></div><span class="chip">{{ brief.infrastructure_radar.totals.hosts }} host</span></div>
-        <p class="lede">{{ brief.infrastructure_radar.summary }}</p>
-        {{ bars(brief.infrastructure_radar.port_chart, 5) }}
-        <div class="meta"><span>{{ brief.infrastructure_radar.provider }}</span><span>passive</span></div>
+      <section id="infrastructure-radar" class="panel panel-intel-card panel-infra-card risk-{{ brief.infrastructure_radar.level|lower }}">
+        <div class="panel-head">
+          <div><span class="eyebrow">Infrastructure</span><h2>Exposure Radar</h2></div>
+          <div class="panel-head-actions"><span class="chip">{{ brief.infrastructure_radar.totals.hosts }} host</span><span class="chip chip-muted">{{ brief.infrastructure_radar.level }}</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>{{ brief.infrastructure_radar.totals.high }}</b><span>high risk</span></div>
+          <div><b>{{ brief.infrastructure_radar.totals.risky_ports }}</b><span>risky ports</span></div>
+          <div><b>{{ brief.infrastructure_radar.totals.vuln_hosts }}</b><span>vuln hosts</span></div>
+        </div>
+        {% if brief.infrastructure_radar.spotlight %}
+        <div class="infra-spotlight risk-{{ brief.infrastructure_radar.spotlight.risk }}">
+          <div><span>Top exposed</span><b dir="ltr">{{ brief.infrastructure_radar.spotlight.ip }}</b></div>
+          <strong>{{ brief.infrastructure_radar.spotlight.exposure_score }}/100</strong>
+        </div>
+        {% endif %}
+        <div class="intel-kv-row">
+          <span>Observed ports <b>{{ brief.infrastructure_radar.totals.ports }}</b></span>
+          <span>Exposed hosts <b>{{ brief.infrastructure_radar.totals.exposed_hosts }}</b></span>
+          <span>Scanner-only <b>{{ brief.infrastructure_radar.totals.scanner_only }}</b></span>
+        </div>
+        <div class="intel-list-title">Highest exposure hosts</div>
+        {% for host in brief.infrastructure_radar.hosts %}{% if loop.index <= 4 %}
+        <div class="intel-row infra-host-row risk-{{ host.risk }}">
+          <div><b dir="ltr">{{ host.ip }}</b><span>{{ host.exposure_score }}/100</span></div>
+          <small>{{ host.source }} · {{ host.reason }}{% if host.port_count > 0 %} · {{ host.port_count }} ports{% endif %}{% if host.vuln_count > 0 %} · {{ host.vuln_count }} vulns{% endif %}</small>
+        </div>
+        {% endif %}{% endfor %}
+        <div class="split-bars">
+          <div><span>Risky ports</span>{{ bars(brief.infrastructure_radar.risky_port_chart, 3) }}</div>
+          <div><span>Source mix</span>{{ bars(brief.infrastructure_radar.source_chart, 3) }}</div>
+        </div>
+        <div class="meta"><span>{{ brief.infrastructure_radar.provider }}</span><span>passive · no scan</span></div>
       </section>
       {% endif %}
 

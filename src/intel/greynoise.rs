@@ -61,10 +61,14 @@ pub(crate) fn fetch_greynoise_context(
             "summary": "No suitable IPs selected for GreyNoise context lookup in this run.",
             "last_updated": Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
             "passive_lookup": true,
-            "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0},
+            "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0, "actionable": 0, "quiet": 0},
+            "verdict": "No lookup candidates",
+            "spotlight": null,
             "contexts": [],
             "classification_chart": [],
-            "noise_chart": []
+            "noise_chart": [],
+            "risk_chart": [],
+            "source_chart": []
         }));
     }
 
@@ -105,6 +109,16 @@ pub(crate) fn fetch_greynoise_context(
         .filter(|row| row.classification == "malicious")
         .count();
     let checked = rows.len();
+    let actionable_count = rows
+        .iter()
+        .filter(|row| row.classification == "malicious" || row.noise)
+        .count();
+    let quiet_count = rows
+        .iter()
+        .filter(|row| !row.noise && !row.riot && row.classification != "malicious")
+        .count();
+    let spotlight = rows.first().cloned();
+    let verdict = greynoise_verdict(malicious_count, noise_count, riot_count, no_data, checked);
 
     let level = if malicious_count > 0 || noise_count >= 4 {
         "High"
@@ -138,11 +152,17 @@ pub(crate) fn fetch_greynoise_context(
             "malicious": malicious_count,
             "riot": riot_count,
             "no_data": no_data,
-            "errors": errors
+            "errors": errors,
+            "actionable": actionable_count,
+            "quiet": quiet_count
         },
+        "verdict": verdict,
+        "spotlight": spotlight,
         "contexts": rows,
         "classification_chart": greynoise_classification_chart(&rows),
-        "noise_chart": greynoise_noise_chart(&rows)
+        "noise_chart": greynoise_noise_chart(&rows),
+        "risk_chart": greynoise_risk_chart(&rows),
+        "source_chart": greynoise_source_chart(&rows)
     });
 
     if checked > 0 || errors == 0 {
@@ -388,10 +408,51 @@ pub(crate) fn greynoise_risk_score(
     }
 }
 
+pub(crate) fn greynoise_verdict(
+    malicious_count: usize,
+    noise_count: usize,
+    riot_count: usize,
+    no_data: usize,
+    checked: usize,
+) -> String {
+    if malicious_count > 0 {
+        format!(
+            "{} malicious IP(s) in selected infrastructure",
+            malicious_count
+        )
+    } else if noise_count > 0 {
+        format!("{} scanner/noise IP(s) observed", noise_count)
+    } else if riot_count > 0 {
+        format!("{} benign RIOT IP(s) identified", riot_count)
+    } else if checked == 0 {
+        "No lookup candidates".to_string()
+    } else if no_data >= checked {
+        "No GreyNoise context for selected IPs".to_string()
+    } else {
+        "No malicious GreyNoise classification in this run".to_string()
+    }
+}
+
 pub(crate) fn greynoise_classification_chart(rows: &[GreyNoiseContextRow]) -> Vec<Value> {
     let mut counts: HashMap<String, usize> = HashMap::new();
     for row in rows {
         *counts.entry(row.classification.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, 5)
+}
+
+pub(crate) fn greynoise_risk_chart(rows: &[GreyNoiseContextRow]) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for row in rows {
+        *counts.entry(row.risk.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, 4)
+}
+
+pub(crate) fn greynoise_source_chart(rows: &[GreyNoiseContextRow]) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for row in rows {
+        *counts.entry(row.source.clone()).or_insert(0) += 1;
     }
     count_chart_from_counts(counts, 5)
 }
@@ -420,9 +481,13 @@ pub(crate) fn empty_greynoise_context(status: &str) -> Value {
         "summary": "GreyNoise Context data was not available this run.",
         "last_updated": "",
         "passive_lookup": true,
-        "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0},
+        "totals": {"checked": 0, "noise": 0, "malicious": 0, "riot": 0, "no_data": 0, "errors": 0, "actionable": 0, "quiet": 0},
+        "verdict": "GreyNoise Context data was not available this run.",
+        "spotlight": null,
         "contexts": [],
         "classification_chart": [],
-        "noise_chart": []
+        "noise_chart": [],
+        "risk_chart": [],
+        "source_chart": []
     })
 }
