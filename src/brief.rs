@@ -43,7 +43,7 @@ pub(crate) fn build_brief(
     let daily_news_hidden = items.len().saturating_sub(daily_news_total);
     let effective_news_date = date_en.clone();
     let news_lanes = build_news_lanes(&global);
-    let writeups_pulse = build_writeups_pulse(&writeup_items);
+    let writeups_pulse = build_writeups_pulse(&writeup_items, requested_news_day, &date_en);
     let writeups_total = writeups_pulse
         .get("totals")
         .and_then(|value| value.get("writeups"))

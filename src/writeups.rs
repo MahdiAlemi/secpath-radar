@@ -2,15 +2,22 @@
 
 use crate::prelude::*;
 
-pub(crate) fn build_writeups_pulse(items: &[FeedItem]) -> Value {
-    let mut candidates: Vec<FeedItem> = items
+pub(crate) fn build_writeups_pulse(items: &[FeedItem], day: NaiveDate, date_label: &str) -> Value {
+    let qualified_candidates: Vec<FeedItem> = items
         .iter()
         .filter(|item| is_writeup_item(item))
         .cloned()
         .collect();
+    let total_candidates_all_days = qualified_candidates.len();
+
+    let mut candidates: Vec<FeedItem> = qualified_candidates
+        .into_iter()
+        .filter(|item| feed_item_is_local_day(item, day))
+        .collect();
     sort_news_latest_first(&mut candidates);
 
     let total_candidates = candidates.len();
+    let filtered_other_days = total_candidates_all_days.saturating_sub(total_candidates);
     let mut source_counts: HashMap<String, usize> = HashMap::new();
     let mut kind_counts: HashMap<String, usize> = HashMap::new();
     for item in &candidates {
@@ -34,22 +41,25 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem]) -> Value {
     let kind_chart = count_chart(kind_counts, 6);
 
     let summary = if visible == 0 {
-        "No new analytical writeups from available sources were seen in the current news window."
-            .to_string()
+        format!("No public writeups were published for {date_label}.")
     } else if hidden > 0 {
-        format!("{visible} analytical writeups shown and {hidden} lower-priority items hidden for conciseness; latest analyses are at the top.")
+        format!("{visible} writeups published on {date_label} are shown and {hidden} lower-priority same-day items are hidden for conciseness.")
     } else {
-        format!("{visible} analytical writeups from {sources} sources separated; this section distinguishes raw news from technical analysis.")
+        format!("{visible} writeups from {sources} sources were published on {date_label}; no older-day writeups are backfilled.")
     };
 
     json!({
         "enabled": true,
-        "source": "Dedicated research/writeup RSS feeds",
+        "date": date_label,
+        "window_mode": "local-day-only",
+        "source": "Dedicated writeup RSS feeds",
         "safe_mode": "summary and metadata only; no exploit steps; no code execution",
         "summary": summary,
         "totals": {
             "writeups": visible,
             "candidates": total_candidates,
+            "all_day_candidates": total_candidates_all_days,
+            "filtered_other_days": filtered_other_days,
             "hidden": hidden,
             "sources": sources,
             "kinds": kinds
@@ -64,11 +74,15 @@ pub(crate) fn empty_writeups_pulse(reason: &str) -> Value {
     json!({
         "enabled": false,
         "source": reason,
+        "date": "",
+        "window_mode": "local-day-only",
         "safe_mode": "summary and metadata only; no exploit steps; no code execution",
         "summary": "Writeups Pulse has no data for this run.",
         "totals": {
             "writeups": 0,
             "candidates": 0,
+            "all_day_candidates": 0,
+            "filtered_other_days": 0,
             "hidden": 0,
             "sources": 0,
             "kinds": 0

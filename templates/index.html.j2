@@ -103,7 +103,7 @@
     <div class="overview-card overview-risk risk-{{ brief.risk_level|lower }}"><span>Today Risk</span><b>{{ brief.executive_snapshot.score }}</b><small>{{ brief.risk_level }}</small></div>
     <div class="overview-card"><span>CVEs Today</span><b>{{ brief.stats.cves }}</b><small>{{ brief.stats.critical_cves }} Critical · {{ brief.stats.kev }} KEV</small></div>
     <div class="overview-card"><span>Exploit Watch</span><b>{{ brief.stats.poc_watch }}</b><small>PoC repos · {{ brief.stats.epss_rising }} EPSS↑</small></div>
-    <div class="overview-card"><span>News / Research</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} Breaking · {{ brief.stats.writeups }} Research</small></div>
+    <div class="overview-card"><span>News / Writeups</span><b>{{ brief.stats.daily_news }}</b><small>{{ brief.stats.breaking_news }} Breaking · {{ brief.stats.writeups }} Writeups</small></div>
     <div class="overview-card"><span>Threat Telemetry</span><b>{{ brief.stats.iocs }}</b><small>{{ brief.stats.botnet_c2 }} C2 · {{ brief.stats.phishing_urls }} Phishing</small></div>
     <div class="overview-card"><span>Templates</span><b>{{ brief.stats.nuclei_coverage_pct }}%</b><small>{{ brief.stats.nuclei_covered_cves }} CVE covered</small></div>
   </section>
@@ -585,10 +585,17 @@
         </div>
       </section>
 
-      <section id="writeups-pulse" class="panel panel-intel-card panel-wide panel-research-priority panel-column-fill">
-        <div class="panel-head"><div><span class="eyebrow">Research</span><h2>Research</h2></div><span class="chip">{{ brief.writeups_pulse.totals.writeups }} from {{ brief.writeups_pulse.totals.sources }} sources</span></div>
-        <p class="lede">{{ brief.writeups_pulse.summary }}</p>
-        <div class="grid grid-2 grid-inner">
+      <section id="writeups-pulse" class="panel panel-intel-card panel-wide panel-research-priority panel-column-fill{% if not brief.writeups_pulse.writeups %} is-empty{% endif %}">
+        <div class="panel-head">
+          <div><span class="eyebrow">WRITEUPS</span><h2>Writeups</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">{{ brief.writeups_pulse.totals.writeups }} today</span>
+            <span class="chip chip-muted">{{ brief.writeups_pulse.totals.sources }} sources</span>
+          </div>
+        </div>
+        {% if brief.writeups_pulse.writeups %}
+        <p class="lede">Current-day writeups from configured sources only. Older analyses are not backfilled into this panel.</p>
+        <div class="grid grid-2 grid-inner writeups-list">
           {% for w in brief.writeups_pulse.writeups %}{% if loop.index <= 20 %}
           <article class="item risk-{{ w.risk }}">
             <div class="item-head"><h3><a href="{{ w.url }}" rel="noopener noreferrer">{{ w.title }}</a></h3><span class="tag">{{ w.kind }}</span></div>
@@ -597,6 +604,9 @@
           </article>
           {% endif %}{% endfor %}
         </div>
+        {% else %}
+        <p class="empty-note">No current-day writeups found in configured writeup feeds for {{ brief.date_en }}.</p>
+        {% endif %}
       </section>
 
     </div>
