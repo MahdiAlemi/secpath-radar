@@ -287,9 +287,11 @@ fn main() -> Result<()> {
     if let Err(err) = write_daily_archive(&brief) {
         eprintln!("⚠️  daily archive skipped: {err:#}");
     }
-    match render_weekly_page(&args.template, &args.out) {
-        Ok(()) => println!("✅ rendered site/weekly.html"),
-        Err(err) => eprintln!("⚠️  weekly page skipped: {err:#}"),
+    let legacy_weekly = site_output_dir(&args.out).join("weekly.html");
+    if legacy_weekly.exists() {
+        if let Err(err) = fs::remove_file(&legacy_weekly) {
+            eprintln!("⚠️  legacy weekly.html cleanup skipped: {err:#}");
+        }
     }
     println!("✅ rendered {}", args.out.display());
     println!("✅ wrote data/latest_brief.json");

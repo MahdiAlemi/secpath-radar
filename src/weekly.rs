@@ -1,4 +1,4 @@
-//! Weekly digest built from daily archives, rendered to site/weekly.html.
+//! Weekly digest built from daily archives for the single-page dashboard panel.
 
 use crate::prelude::*;
 
@@ -190,17 +190,6 @@ pub(crate) fn build_weekly_brief(archives: &[Value]) -> Value {
         "top_cves": top_cves,
         "top_news": top_news
     })
-}
-
-pub(crate) fn render_weekly_page(template_path: &PathBuf, out_path: &PathBuf) -> Result<()> {
-    let weekly_template = template_path.with_file_name("weekly.html.j2");
-    if !weekly_template.exists() {
-        anyhow::bail!("weekly template not found: {}", weekly_template.display());
-    }
-    let archives = read_archive_series(ARCHIVE_DIR, WEEKLY_MAX_DAYS);
-    let weekly = build_weekly_brief(&archives);
-    let out = site_output_dir(out_path).join("weekly.html");
-    render_html(&weekly, &weekly_template, &out)
 }
 
 #[cfg(test)]
