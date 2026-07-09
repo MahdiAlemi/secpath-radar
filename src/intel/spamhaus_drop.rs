@@ -64,6 +64,21 @@ pub(crate) fn fetch_drop_pulse(
     let rir_chart = count_chart_names(&rir_names, 6);
     let rirs = rir_names.iter().collect::<HashSet<_>>().len();
     let big_ranges = ranges.iter().filter(|item| item.prefix_len <= 18).count();
+    let high = ranges.iter().filter(|item| item.risk == "high").count();
+    let medium = ranges.iter().filter(|item| item.risk == "medium").count();
+    let largest_est_ips = ranges.first().map(|item| item.est_ips).unwrap_or(0);
+    let largest_cidr_safe = ranges
+        .first()
+        .map(|item| item.cidr_safe.clone())
+        .unwrap_or_else(|| "none".to_string());
+    let top_rir = rir_chart
+        .first()
+        .and_then(|row| row.get("name"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let prefix_chart = drop_prefix_chart(&ranges);
+    let spotlight = ranges.first().cloned();
     ranges.truncate(cfg.max_ranges.max(1));
 
     let level = if total_ranges >= 900 || big_ranges >= 40 {
@@ -98,10 +113,21 @@ pub(crate) fn fetch_drop_pulse(
             "shown": ranges.len(),
             "rirs": rirs,
             "big_ranges": big_ranges,
-            "est_ips": total_ips
+            "high": high,
+            "medium": medium,
+            "est_ips": total_ips,
+            "est_ips_millions": total_ips / 1_000_000,
+            "largest_est_ips": largest_est_ips
         },
+        "insights": {
+            "top_rir": top_rir,
+            "largest_cidr": largest_cidr_safe,
+            "routing_note": if big_ranges > 0 { "Large blocked netblocks present" } else { "Mostly narrow netblocks" }
+        },
+        "spotlight": spotlight,
         "ranges": ranges,
-        "rir_chart": rir_chart
+        "rir_chart": rir_chart,
+        "prefix_chart": prefix_chart
     }))
 }
 
@@ -160,6 +186,23 @@ pub(crate) fn parse_drop_v4_jsonl(text: &str) -> Vec<DropRange> {
     out
 }
 
+pub(crate) fn drop_prefix_chart(items: &[DropRange]) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for item in items {
+        let band = if item.prefix_len <= 16 {
+            "/16 or wider"
+        } else if item.prefix_len <= 20 {
+            "/17–/20"
+        } else if item.prefix_len <= 24 {
+            "/21–/24"
+        } else {
+            "/25+"
+        };
+        *counts.entry(band.to_string()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, 5)
+}
+
 pub(crate) fn finalize_drop_ranges(items: &mut Vec<DropRange>) {
     items.sort_by(|a, b| b.est_ips.cmp(&a.est_ips).then_with(|| a.cidr.cmp(&b.cidr)));
     for (idx, item) in items.iter_mut().enumerate() {
@@ -191,9 +234,12 @@ pub(crate) fn empty_drop_pulse(status: &str) -> Value {
         "summary": "Spamhaus DROP data was not available this run.",
         "last_updated": "",
         "metadata_only": true,
-        "totals": {"ranges": 0, "shown": 0, "rirs": 0, "big_ranges": 0, "est_ips": 0},
+        "totals": {"ranges": 0, "shown": 0, "rirs": 0, "big_ranges": 0, "high": 0, "medium": 0, "est_ips": 0, "est_ips_millions": 0, "largest_est_ips": 0},
+        "insights": {"top_rir": "unknown", "largest_cidr": "none", "routing_note": "No DROP data"},
+        "spotlight": null,
         "ranges": [],
-        "rir_chart": []
+        "rir_chart": [],
+        "prefix_chart": []
     })
 }
 

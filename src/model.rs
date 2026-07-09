@@ -133,6 +133,7 @@ pub(crate) struct RansomwareVictim {
     pub(crate) recency_score: usize,
     pub(crate) risk: String,
     pub(crate) bar_width: usize,
+    pub(crate) critical_sector: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -213,6 +214,7 @@ pub(crate) struct IcsAdvisoryItem {
     pub(crate) vendor: String,
     pub(crate) equipment: String,
     pub(crate) sector: String,
+    pub(crate) deployment: String,
     pub(crate) cves: Vec<String>,
     pub(crate) cve_count: usize,
     pub(crate) cvss: f64,
@@ -221,4 +223,6 @@ pub(crate) struct IcsAdvisoryItem {
     pub(crate) score: usize,
     pub(crate) bar_width: usize,
     pub(crate) source: String,
+    pub(crate) remote_signal: bool,
+    pub(crate) critical_sector: bool,
 }

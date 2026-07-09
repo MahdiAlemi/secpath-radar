@@ -118,8 +118,23 @@ pub(crate) fn fetch_ics_ot_pulse(
         )
         .map(|value| first_list_value(&value))
         .unwrap_or_else(|| infer_ics_sector(&detail));
+        let deployment = extract_labeled_field(
+            &detail,
+            "COUNTRIES/AREAS DEPLOYED:",
+            &[
+                "COMPANY HEADQUARTERS LOCATION:",
+                "RESEARCHER",
+                "MITIGATIONS",
+                "VULNERABILITY OVERVIEW",
+            ],
+        )
+        .map(|value| first_list_value(&value))
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "Not listed".to_string());
         let cves = extract_cve_ids(&detail);
         let cvss = extract_cvss_score(&detail);
+        let remote_signal = has_ics_remote_signal(&detail);
+        let critical_sector = is_ics_critical_sector(&sector);
         let (risk, score) = ics_risk_from_detail(cvss, &detail);
         let rank = advisories.len() + 1;
         advisories.push(IcsAdvisoryItem {
@@ -129,6 +144,7 @@ pub(crate) fn fetch_ics_ot_pulse(
             vendor: truncate_chars(&vendor, 42),
             equipment: truncate_chars(&equipment, 58),
             sector: truncate_chars(&sector, 42),
+            deployment: truncate_chars(&deployment, 42),
             cve_count: cves.len(),
             cves,
             cvss,
@@ -137,6 +153,8 @@ pub(crate) fn fetch_ics_ot_pulse(
             score,
             bar_width: score.max(12).min(100),
             source: "CISA ICS Advisories".to_string(),
+            remote_signal,
+            critical_sector,
         });
     }
 
@@ -151,7 +169,28 @@ pub(crate) fn fetch_ics_ot_pulse(
     }
 
     let high = advisories.iter().filter(|item| item.risk == "high").count();
+    let medium = advisories
+        .iter()
+        .filter(|item| item.risk == "medium")
+        .count();
+    let remote = advisories.iter().filter(|item| item.remote_signal).count();
+    let critical_sectors = advisories
+        .iter()
+        .filter(|item| item.critical_sector)
+        .count();
+    let with_cve = advisories.iter().filter(|item| item.cve_count > 0).count();
+    let max_cvss = advisories
+        .iter()
+        .map(|item| item.cvss)
+        .fold(0.0_f64, f64::max);
     let cves_total: usize = advisories.iter().map(|item| item.cve_count).sum();
+    let top_vendor = top_count_key(&vendor_counts).unwrap_or_else(|| "Unknown vendor".to_string());
+    let top_sector = top_count_key(&sector_counts).unwrap_or_else(|| "ICS/OT".to_string());
+    let top_equipment = advisories
+        .first()
+        .map(|item| item.equipment.clone())
+        .unwrap_or_else(|| "No equipment listed".to_string());
+    let spotlight = advisories.first().cloned();
     let summary = if advisories.is_empty() {
         "No new ICS/OT advisories from CISA seen in the current cache this run.".to_string()
     } else if high > 0 {
@@ -168,10 +207,21 @@ pub(crate) fn fetch_ics_ot_pulse(
         "totals": {
             "advisories": advisories.len(),
             "high": high,
+            "medium": medium,
+            "remote": remote,
+            "critical_sectors": critical_sectors,
+            "with_cve": with_cve,
             "vendors": vendor_counts.len(),
             "sectors": sector_counts.len(),
-            "cves": cves_total
+            "cves": cves_total,
+            "max_cvss": format!("{max_cvss:.1}")
         },
+        "insights": {
+            "top_vendor": top_vendor,
+            "top_sector": top_sector,
+            "top_equipment": top_equipment
+        },
+        "spotlight": spotlight,
         "advisories": advisories,
         "vendor_chart": count_chart_from_counts(vendor_counts, 6),
         "sector_chart": count_chart_from_counts(sector_counts, 6),
@@ -327,6 +377,34 @@ pub(crate) fn extract_cvss_score(text: &str) -> f64 {
     0.0
 }
 
+pub(crate) fn has_ics_remote_signal(detail: &str) -> bool {
+    let lower = detail.to_lowercase();
+    lower.contains("exploitable remotely")
+        || lower.contains("remotely exploitable")
+        || lower.contains("remote attacker")
+        || lower.contains("network access")
+        || lower.contains("internet")
+        || lower.contains("remote access")
+}
+
+pub(crate) fn is_ics_critical_sector(sector: &str) -> bool {
+    let lower = sector.to_lowercase();
+    lower.contains("energy")
+        || lower.contains("water")
+        || lower.contains("transport")
+        || lower.contains("health")
+        || lower.contains("chemical")
+        || lower.contains("manufacturing")
+        || lower.contains("communications")
+}
+
+pub(crate) fn top_count_key(counts: &HashMap<String, usize>) -> Option<String> {
+    counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
+        .map(|(key, _)| key.clone())
+}
+
 pub(crate) fn ics_risk_from_detail(cvss: f64, detail: &str) -> (String, usize) {
     let lower = detail.to_lowercase();
     let mut score = if cvss >= 9.0 {
@@ -376,7 +454,9 @@ pub(crate) fn empty_ics_ot_pulse(reason: &str) -> Value {
         "reason": reason,
         "provider": "CISA ICS Advisories",
         "summary": "ICS/OT Advisory Pulse data was not available this run.",
-        "totals": {"advisories": 0, "high": 0, "vendors": 0, "sectors": 0, "cves": 0},
+        "totals": {"advisories": 0, "high": 0, "medium": 0, "remote": 0, "critical_sectors": 0, "with_cve": 0, "vendors": 0, "sectors": 0, "cves": 0, "max_cvss": "0.0"},
+        "insights": {"top_vendor": "Unknown vendor", "top_sector": "ICS/OT", "top_equipment": "No equipment listed"},
+        "spotlight": null,
         "advisories": [],
         "vendor_chart": [],
         "sector_chart": [],

@@ -10,6 +10,13 @@ pub(crate) struct CsafAdvisory {
     pub(crate) severity: String,
     pub(crate) released: String,
     pub(crate) cve_count: usize,
+    pub(crate) cves: Vec<String>,
+    pub(crate) product_count: usize,
+    pub(crate) products: Vec<String>,
+    pub(crate) remediation_count: usize,
+    pub(crate) fixed_count: usize,
+    pub(crate) cwe_count: usize,
+    pub(crate) max_cvss: f64,
     pub(crate) url: String,
     pub(crate) risk: String,
     pub(crate) score: usize,
@@ -95,11 +102,41 @@ pub(crate) fn fetch_csaf_pulse(
         .filter(|item| item.severity == "important")
         .count();
     let cves_total = advisories.iter().map(|item| item.cve_count).sum::<usize>();
+    let remediation_total = advisories
+        .iter()
+        .map(|item| item.remediation_count)
+        .sum::<usize>();
+    let fixed_total = advisories
+        .iter()
+        .map(|item| item.fixed_count)
+        .sum::<usize>();
+    let product_total = advisories
+        .iter()
+        .map(|item| item.product_count)
+        .sum::<usize>();
+    let cwe_total = advisories.iter().map(|item| item.cwe_count).sum::<usize>();
+    let high_cvss = advisories
+        .iter()
+        .filter(|item| item.max_cvss >= 7.0)
+        .count();
+    let max_cvss = advisories
+        .iter()
+        .map(|item| item.max_cvss)
+        .fold(0.0_f64, f64::max);
     let severity_names = advisories
         .iter()
         .map(|item| item.severity.clone())
         .collect::<Vec<_>>();
     let severity_chart = count_chart_names(&severity_names, 5);
+    let mut product_names = Vec::new();
+    let mut cve_names = Vec::new();
+    for item in &advisories {
+        product_names.extend(item.products.iter().cloned());
+        cve_names.extend(item.cves.iter().cloned());
+    }
+    let product_chart = count_chart_names(&product_names, 6);
+    let cve_chart = count_chart_names(&cve_names, 6);
+    let spotlight = advisories.first().cloned();
 
     let level = if critical > 0 {
         "High"
@@ -133,10 +170,25 @@ pub(crate) fn fetch_csaf_pulse(
             "advisories": advisories.len(),
             "critical": critical,
             "important": important,
-            "cves": cves_total
+            "important_plus": critical + important,
+            "cves": cves_total,
+            "remediations": remediation_total,
+            "fixed_products": fixed_total,
+            "products": product_total,
+            "cwes": cwe_total,
+            "high_cvss": high_cvss,
+            "max_cvss": format!("{max_cvss:.1}")
         },
+        "insights": {
+            "top_product": product_chart.first().and_then(|row| row.get("name")).and_then(|value| value.as_str()).unwrap_or("Unknown product").to_string(),
+            "top_cve": cve_chart.first().and_then(|row| row.get("name")).and_then(|value| value.as_str()).unwrap_or("No CVE listed").to_string(),
+            "fix_signal": if fixed_total > 0 { "Fix metadata present" } else { "Fix metadata not listed" }
+        },
+        "spotlight": spotlight,
         "advisories": advisories,
-        "severity_chart": severity_chart
+        "severity_chart": severity_chart,
+        "product_chart": product_chart,
+        "cve_chart": cve_chart
     }))
 }
 
@@ -194,11 +246,44 @@ pub(crate) fn parse_csaf_document(doc: &Value) -> Option<CsafAdvisory> {
         .chars()
         .take(10)
         .collect::<String>();
-    let cve_count = doc
+    let vulnerabilities = doc
         .get("vulnerabilities")
         .and_then(|value| value.as_array())
-        .map(|arr| arr.len())
-        .unwrap_or(0);
+        .cloned()
+        .unwrap_or_default();
+    let cves = extract_csaf_vulnerability_cves(&vulnerabilities);
+    let cve_count = cves.len().max(vulnerabilities.len());
+    let remediation_count = vulnerabilities
+        .iter()
+        .map(|vuln| {
+            vuln.get("remediations")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.len())
+                .unwrap_or(0)
+        })
+        .sum::<usize>();
+    let fixed_count = vulnerabilities
+        .iter()
+        .map(count_csaf_fixed_products)
+        .sum::<usize>();
+    let cwe_count = vulnerabilities
+        .iter()
+        .map(|vuln| {
+            vuln.get("cwes")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.len())
+                .unwrap_or(0)
+        })
+        .sum::<usize>();
+    let max_cvss = vulnerabilities
+        .iter()
+        .map(extract_csaf_max_cvss)
+        .fold(0.0_f64, f64::max);
+    let mut products = collect_csaf_product_names(doc);
+    products.sort();
+    products.dedup();
+    let product_count = products.len();
+    products.truncate(4);
     let url = if id.starts_with("RH") {
         format!("https://access.redhat.com/errata/{id}")
     } else {
@@ -212,11 +297,88 @@ pub(crate) fn parse_csaf_document(doc: &Value) -> Option<CsafAdvisory> {
         severity,
         released,
         cve_count,
+        cves,
+        product_count,
+        products,
+        remediation_count,
+        fixed_count,
+        cwe_count,
+        max_cvss,
         url,
         risk: "watch".to_string(),
         score: 0,
         bar_width: 0,
     })
+}
+
+pub(crate) fn extract_csaf_vulnerability_cves(vulnerabilities: &[Value]) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for vuln in vulnerabilities {
+        if let Some(cve) = vuln.get("cve").and_then(|value| value.as_str()) {
+            let cve = cve.trim().to_ascii_uppercase();
+            if cve.starts_with("CVE-") && seen.insert(cve.clone()) {
+                out.push(cve);
+            }
+        }
+    }
+    out
+}
+
+pub(crate) fn count_csaf_fixed_products(vuln: &Value) -> usize {
+    vuln.pointer("/product_status/fixed")
+        .and_then(|value| value.as_array())
+        .map(|arr| arr.len())
+        .unwrap_or(0)
+}
+
+pub(crate) fn extract_csaf_max_cvss(vuln: &Value) -> f64 {
+    let mut best = 0.0_f64;
+    if let Some(scores) = vuln.get("scores").and_then(|value| value.as_array()) {
+        for score in scores {
+            for key in ["cvss_v4", "cvss_v3", "cvss_v2"] {
+                if let Some(base) = score
+                    .get(key)
+                    .and_then(|value| value.get("baseScore"))
+                    .and_then(|value| value.as_f64())
+                {
+                    best = best.max(base);
+                }
+            }
+        }
+    }
+    best
+}
+
+pub(crate) fn collect_csaf_product_names(doc: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    collect_csaf_product_names_inner(doc.get("product_tree").unwrap_or(&Value::Null), &mut out);
+    out.into_iter()
+        .map(|value| truncate_chars(&clean_text(&value), 46))
+        .filter(|value| !value.is_empty())
+        .collect()
+}
+
+fn collect_csaf_product_names_inner(value: &Value, out: &mut Vec<String>) {
+    match value {
+        Value::Object(map) => {
+            if let Some(name) = map.get("name").and_then(|value| value.as_str()) {
+                let cleaned = clean_text(name);
+                if !cleaned.is_empty() && !cleaned.eq_ignore_ascii_case("Red Hat") {
+                    out.push(cleaned);
+                }
+            }
+            for child in map.values() {
+                collect_csaf_product_names_inner(child, out);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                collect_csaf_product_names_inner(item, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 pub(crate) fn csaf_severity_score(severity: &str) -> usize {
@@ -258,9 +420,13 @@ pub(crate) fn empty_csaf_pulse(status: &str) -> Value {
         "summary": "CSAF Advisory Pulse data was not available this run.",
         "last_updated": "",
         "metadata_only": true,
-        "totals": {"advisories": 0, "critical": 0, "important": 0, "cves": 0},
+        "totals": {"advisories": 0, "critical": 0, "important": 0, "important_plus": 0, "cves": 0, "remediations": 0, "fixed_products": 0, "products": 0, "cwes": 0, "high_cvss": 0, "max_cvss": "0.0"},
+        "insights": {"top_product": "Unknown product", "top_cve": "No CVE listed", "fix_signal": "No CSAF data"},
+        "spotlight": null,
         "advisories": [],
-        "severity_chart": []
+        "severity_chart": [],
+        "product_chart": [],
+        "cve_chart": []
     })
 }
 

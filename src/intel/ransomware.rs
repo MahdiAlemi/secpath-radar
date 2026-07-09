@@ -101,6 +101,9 @@ pub(crate) fn fetch_ransomware_pulse(
     let mut activity_counts = HashMap::new();
     let mut recent_24h = 0usize;
     let mut recent_7d = 0usize;
+    let mut high = 0usize;
+    let mut critical_sectors = 0usize;
+    let mut unknown_country = 0usize;
 
     for victim in &victims {
         *group_counts.entry(victim.group.clone()).or_insert(0) += 1;
@@ -121,8 +124,24 @@ pub(crate) fn fetch_ransomware_pulse(
         if victim.recency_score >= 55 {
             recent_7d += 1;
         }
+        if victim.risk == "high" {
+            high += 1;
+        }
+        if victim.critical_sector {
+            critical_sectors += 1;
+        }
+        if victim.country == "unknown" {
+            unknown_country += 1;
+        }
     }
 
+    let top_group =
+        top_ransomware_count(&group_counts).unwrap_or_else(|| "Unknown group".to_string());
+    let top_country =
+        top_ransomware_count(&country_counts).unwrap_or_else(|| "Unknown country".to_string());
+    let top_sector =
+        top_ransomware_count(&sector_counts).unwrap_or_else(|| "Unknown sector".to_string());
+    let spotlight = victims.first().cloned();
     let total = victims.len();
     let level = if recent_24h >= 3 || total >= 20 {
         "High"
@@ -153,8 +172,17 @@ pub(crate) fn fetch_ransomware_pulse(
             "countries": country_counts.len(),
             "sectors": sector_counts.len(),
             "recent_24h": recent_24h,
-            "recent_7d": recent_7d
+            "recent_7d": recent_7d,
+            "high": high,
+            "critical_sectors": critical_sectors,
+            "unknown_country": unknown_country
         },
+        "insights": {
+            "top_group": top_group,
+            "top_country": top_country,
+            "top_sector": top_sector
+        },
+        "spotlight": spotlight,
         "victims": victims,
         "group_chart": count_chart_from_counts(group_counts, 8),
         "country_chart": count_chart_from_counts(country_counts, 8),
@@ -235,7 +263,15 @@ pub(crate) fn map_ransomware_victim(row: &Value) -> Option<RansomwareVictim> {
         recency_score,
         risk,
         bar_width: 12,
+        critical_sector,
     })
+}
+
+pub(crate) fn top_ransomware_count(counts: &HashMap<String, usize>) -> Option<String> {
+    counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
+        .map(|(key, _)| key.clone())
 }
 
 pub(crate) fn first_text(value: &Value, keys: &[&str]) -> Option<String> {
@@ -349,7 +385,9 @@ pub(crate) fn empty_ransomware_pulse(status: &str) -> Value {
         "summary": "Ransomware Pulse data was not available this run.",
         "last_updated": "",
         "refresh_hours": 1,
-        "totals": {"victims": 0, "groups": 0, "countries": 0, "sectors": 0, "recent_24h": 0, "recent_7d": 0},
+        "totals": {"victims": 0, "groups": 0, "countries": 0, "sectors": 0, "recent_24h": 0, "recent_7d": 0, "high": 0, "critical_sectors": 0, "unknown_country": 0},
+        "insights": {"top_group": "Unknown group", "top_country": "Unknown country", "top_sector": "Unknown sector"},
+        "spotlight": null,
         "victims": [],
         "group_chart": [],
         "country_chart": [],
