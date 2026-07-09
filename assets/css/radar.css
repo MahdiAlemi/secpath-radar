@@ -1895,3 +1895,206 @@ body { overflow-x: clip; overflow-wrap: break-word; }
 @media print {
   .topbar-redesign, .footer-redesign { display: none !important; }
 }
+
+
+/* ---------- Phase 461: readable news/writeup density without empty stretch ---------- */
+/* Do not make news/breaking panels artificially tall just to balance columns; use the real content first. */
+.top-layout-balanced #breaking-news.panel-column-fill,
+.top-layout-balanced #global-news.panel-column-fill {
+  flex: 0 0 auto;
+}
+.top-layout-balanced #breaking-news .breaking-scroll,
+.top-layout-balanced #global-news .news-top-list {
+  flex: 0 0 auto;
+  max-height: 560px;
+  overflow-y: auto;
+}
+.top-layout-balanced #global-news .top-card-body,
+.top-layout-balanced #breaking-news {
+  min-height: 0;
+}
+/* Let important news breathe: titles and summaries should use the available space instead of leaving empty card area. */
+.news-top-titleline {
+  align-items: flex-start;
+}
+.news-top-titleline a {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.news-top-card .news-excerpt {
+  -webkit-line-clamp: 3;
+  line-height: 1.45;
+}
+.top-layout-balanced #global-news .news-top-card {
+  padding: 13px 0;
+}
+.breaking-scroll .item-head a {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.breaking-scroll .news-excerpt {
+  -webkit-line-clamp: 3;
+  line-height: 1.45;
+}
+.top-layout-balanced .breaking-scroll .item {
+  padding: 13px 0;
+}
+/* Writeups are first-class content, not a generic research bucket. Give them enough text to fill the card usefully. */
+.top-layout-balanced .top-column-vuln #writeups-pulse .panel-head .eyebrow { color: var(--green); }
+.top-layout-balanced .top-column-vuln #writeups-pulse .panel-head h2::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: 7px;
+  background: var(--green);
+  opacity: 0.75;
+}
+.top-layout-balanced #writeups-pulse .lede {
+  font-size: 11.6px;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.top-layout-balanced #writeups-pulse .grid-inner.writeups-list {
+  gap: 8px;
+}
+.top-layout-balanced #writeups-pulse .item:nth-of-type(n+9) { display: none; }
+.top-layout-balanced #writeups-pulse .item p {
+  -webkit-line-clamp: 4;
+  line-height: 1.45;
+}
+.top-layout-balanced #writeups-pulse .item-head h3 a {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
+/* ---------- Phase 462: keep balanced rectangle while enforcing daily writeups ---------- */
+/* Keep the far-view rectangle: fill columns vertically, but distribute spare room into cards rather than leaving empty scroll wells. */
+.top-layout-balanced .top-column {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+.top-layout-balanced .panel-column-fill {
+  flex: 1 1 0;
+  min-height: 0;
+}
+.top-layout-balanced #breaking-news.panel-column-fill,
+.top-layout-balanced #global-news.panel-column-fill,
+.top-layout-balanced #writeups-pulse.panel-column-fill {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+}
+.top-layout-balanced #breaking-news .breaking-scroll,
+.top-layout-balanced #global-news .news-top-list,
+.top-layout-balanced #writeups-pulse .grid-inner.writeups-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.top-layout-balanced #breaking-news .breaking-scroll .item,
+.top-layout-balanced #global-news .news-top-card,
+.top-layout-balanced #writeups-pulse .grid-inner.writeups-list .item {
+  flex: 1 0 auto;
+}
+.top-layout-balanced #global-news .news-top-card,
+.top-layout-balanced .breaking-scroll .item,
+.top-layout-balanced #writeups-pulse .item {
+  min-height: 86px;
+}
+.top-layout-balanced #global-news .news-excerpt,
+.top-layout-balanced .breaking-scroll .news-excerpt {
+  -webkit-line-clamp: 4;
+}
+.top-layout-balanced #writeups-pulse .empty-note {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  min-height: 180px;
+}
+@media (max-width: 1500px) {
+  .top-layout-balanced .panel-column-fill { flex: 0 0 auto; }
+}
+
+
+/* ---------- Phase 463: remove artificial blank wells while keeping column rhythm ---------- */
+/* Daily panels should not stretch a tiny item set into a large empty-looking box.
+   The column remains dense because following panels sit directly underneath. */
+.top-layout-balanced #breaking-news.panel-column-fill,
+.top-layout-balanced #global-news.panel-column-fill,
+.top-layout-balanced #writeups-pulse.panel-column-fill {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+}
+.top-layout-balanced #breaking-news,
+.top-layout-balanced #global-news,
+.top-layout-balanced #writeups-pulse {
+  height: auto !important;
+}
+.top-layout-balanced #breaking-news .breaking-scroll,
+.top-layout-balanced #global-news .news-top-list {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+}
+.top-layout-balanced #breaking-news .breaking-scroll {
+  max-height: 430px !important;
+}
+.top-layout-balanced #global-news .news-top-list {
+  max-height: 650px !important;
+}
+.top-layout-balanced #breaking-news .breaking-scroll .item,
+.top-layout-balanced #global-news .news-top-card {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+}
+.top-layout-balanced .breaking-scroll .item {
+  padding: 12px 0 !important;
+}
+.top-layout-balanced .breaking-scroll .item + .item,
+.top-layout-balanced #global-news .news-top-card + .news-top-card {
+  border-top: 1px solid var(--border) !important;
+}
+.top-layout-balanced .breaking-scroll .news-excerpt,
+.top-layout-balanced #global-news .news-excerpt {
+  -webkit-line-clamp: 3 !important;
+}
+.top-layout-balanced #writeups-pulse .grid-inner.writeups-list {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+}
+.top-layout-balanced #writeups-pulse .grid-inner.writeups-list .item,
+.top-layout-balanced #writeups-pulse .item {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+}
+.top-layout-balanced #writeups-pulse .empty-note {
+  flex: 0 0 auto !important;
+  display: block !important;
+  min-height: 0 !important;
+  padding: 12px !important;
+  border: 1px dashed var(--border) !important;
+  background: rgba(255,255,255,0.025) !important;
+}
+.top-layout-balanced #writeups-pulse.is-empty {
+  opacity: 0.92;
+}
