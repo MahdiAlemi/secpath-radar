@@ -42,6 +42,22 @@ pub(crate) fn fetch_phishing_pulse(
     finalize_phishing_indicators(&mut indicators);
 
     let high = indicators.iter().filter(|item| item.risk == "high").count();
+    let http_count = indicators
+        .iter()
+        .filter(|item| item.scheme == "http")
+        .count();
+    let https_count = indicators
+        .iter()
+        .filter(|item| item.scheme == "https")
+        .count();
+    let deep_paths = indicators
+        .iter()
+        .filter(|item| item.path_depth >= 4)
+        .count();
+    let credential_targets = indicators
+        .iter()
+        .filter(|item| item.brand_hint == "Credential Harvest")
+        .count();
     let tlds = indicators
         .iter()
         .map(|item| item.tld.clone())
@@ -55,6 +71,10 @@ pub(crate) fn fetch_phishing_pulse(
     let tld_chart = phishing_tld_chart(&indicators, 8);
     let brand_chart = phishing_brand_chart(&indicators, 8);
     let risk_chart = phishing_risk_chart(&indicators);
+    let scheme_chart = phishing_scheme_chart(&indicators);
+    let top_brand = first_chart_name(&brand_chart);
+    let top_tld = first_chart_name(&tld_chart);
+    let spotlight = indicators.first().cloned();
     let level = if high >= 6 {
         "High"
     } else if indicators.len() >= 10 {
@@ -84,13 +104,25 @@ pub(crate) fn fetch_phishing_pulse(
         "totals": {
             "urls": indicators.len(),
             "high": high,
+            "http": http_count,
+            "https": https_count,
+            "deep_paths": deep_paths,
+            "credential_targets": credential_targets,
             "tlds": tlds,
             "brands": brands
         },
+        "insights": {
+            "top_brand": top_brand,
+            "top_tld": top_tld,
+            "defanged": true,
+            "passive_only": true
+        },
+        "spotlight": spotlight,
         "urls": indicators,
         "tld_chart": tld_chart,
         "brand_chart": brand_chart,
         "risk_chart": risk_chart,
+        "scheme_chart": scheme_chart,
     }))
 }
 
@@ -312,6 +344,23 @@ pub(crate) fn phishing_risk_chart(items: &[PhishingUrlIndicator]) -> Vec<Value> 
     count_chart_from_counts(counts, 4)
 }
 
+pub(crate) fn phishing_scheme_chart(items: &[PhishingUrlIndicator]) -> Vec<Value> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for item in items {
+        *counts.entry(item.scheme.clone()).or_insert(0) += 1;
+    }
+    count_chart_from_counts(counts, 4)
+}
+
+pub(crate) fn first_chart_name(rows: &[Value]) -> String {
+    rows.first()
+        .and_then(|row| row.get("name"))
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("none")
+        .to_string()
+}
+
 pub(crate) fn empty_phishing_pulse(status: &str) -> Value {
     json!({
         "enabled": status != "disabled",
@@ -322,10 +371,13 @@ pub(crate) fn empty_phishing_pulse(status: &str) -> Value {
         "last_updated": "",
         "metadata_only": true,
         "defanged": true,
-        "totals": {"urls": 0, "high": 0, "tlds": 0, "brands": 0},
+        "totals": {"urls": 0, "high": 0, "http": 0, "https": 0, "deep_paths": 0, "credential_targets": 0, "tlds": 0, "brands": 0},
+        "insights": {"top_brand": "none", "top_tld": "none", "defanged": true, "passive_only": true},
+        "spotlight": null,
         "urls": [],
         "tld_chart": [],
         "brand_chart": [],
-        "risk_chart": []
+        "risk_chart": [],
+        "scheme_chart": []
     })
 }

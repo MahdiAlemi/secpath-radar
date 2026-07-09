@@ -72,13 +72,29 @@ pub(crate) fn fetch_botnet_c2_pulse(
 
     let c2_high = c2.iter().filter(|item| item.risk == "high").count();
     let tls_high = tls.iter().filter(|item| item.risk == "high").count();
+    let online_count = c2
+        .iter()
+        .filter(|item| item.status.to_lowercase().contains("online"))
+        .count();
+    let web_port_count = c2
+        .iter()
+        .filter(|item| matches!(item.port, 80 | 443 | 8080 | 8443))
+        .count();
+    let ja3_count = tls
+        .iter()
+        .filter(|item| item.indicator_type == "JA3")
+        .count();
+    let cert_count = tls
+        .iter()
+        .filter(|item| item.indicator_type == "SSL cert")
+        .count();
     let family_names = c2
         .iter()
         .map(|item| item.malware.clone())
         .collect::<Vec<_>>();
     let port_names = c2
         .iter()
-        .map(|item| item.port.to_string())
+        .map(|item| port_label(item.port))
         .collect::<Vec<_>>();
     let tls_reason_names = tls
         .iter()
@@ -87,6 +103,11 @@ pub(crate) fn fetch_botnet_c2_pulse(
     let family_chart = count_chart_names(&family_names, 7);
     let port_chart = count_chart_names(&port_names, 6);
     let tls_chart = count_chart_names(&tls_reason_names, 6);
+    let top_family = first_chart_name(&family_chart);
+    let top_port = first_chart_name(&port_chart);
+    let top_tls_reason = first_chart_name(&tls_chart);
+    let spotlight_c2 = c2.first().cloned();
+    let spotlight_tls = tls.first().cloned();
 
     let level = if c2_high >= 8 || tls_high >= 10 {
         "High"
@@ -118,9 +139,24 @@ pub(crate) fn fetch_botnet_c2_pulse(
             "c2": c2.len(),
             "tls": tls.len(),
             "high": c2_high + tls_high,
+            "c2_high": c2_high,
+            "tls_high": tls_high,
+            "online": online_count,
+            "web_ports": web_port_count,
+            "ja3": ja3_count,
+            "certs": cert_count,
             "families": family_chart.len(),
             "ports": port_chart.len()
         },
+        "insights": {
+            "top_family": top_family,
+            "top_port": top_port,
+            "top_tls_reason": top_tls_reason,
+            "metadata_only": true,
+            "passive_only": true
+        },
+        "spotlight_c2": spotlight_c2,
+        "spotlight_tls": spotlight_tls,
         "c2": c2,
         "tls": tls,
         "family_chart": family_chart,
@@ -382,6 +418,30 @@ pub(crate) fn count_chart_names(names: &[String], limit: usize) -> Vec<Value> {
         .collect()
 }
 
+pub(crate) fn first_chart_name(rows: &[Value]) -> String {
+    rows.first()
+        .and_then(|row| row.get("name"))
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("none")
+        .to_string()
+}
+
+pub(crate) fn port_label(port: u16) -> String {
+    match port {
+        80 => "80 HTTP".to_string(),
+        443 => "443 HTTPS".to_string(),
+        8080 => "8080 HTTP-alt".to_string(),
+        8443 => "8443 HTTPS-alt".to_string(),
+        22 => "22 SSH".to_string(),
+        25 => "25 SMTP".to_string(),
+        53 => "53 DNS".to_string(),
+        3389 => "3389 RDP".to_string(),
+        0 => "unknown".to_string(),
+        _ => port.to_string(),
+    }
+}
+
 pub(crate) fn empty_botnet_c2_pulse(status: &str) -> Value {
     json!({
         "enabled": status != "disabled",
@@ -395,9 +455,24 @@ pub(crate) fn empty_botnet_c2_pulse(status: &str) -> Value {
             "c2": 0,
             "tls": 0,
             "high": 0,
+            "c2_high": 0,
+            "tls_high": 0,
+            "online": 0,
+            "web_ports": 0,
+            "ja3": 0,
+            "certs": 0,
             "families": 0,
             "ports": 0
         },
+        "insights": {
+            "top_family": "none",
+            "top_port": "none",
+            "top_tls_reason": "none",
+            "metadata_only": true,
+            "passive_only": true
+        },
+        "spotlight_c2": null,
+        "spotlight_tls": null,
         "c2": [],
         "tls": [],
         "family_chart": [],

@@ -322,7 +322,12 @@ where
     items
         .iter()
         .map(|item| normalize_family(key_fn(item)).to_lowercase())
-        .filter(|value| !value.trim().is_empty() && value != "unknown" && value != "-")
+        .filter(|value| {
+            !value.trim().is_empty()
+                && value != "unknown"
+                && value != "-"
+                && !is_noise_ioc_family(value)
+        })
         .collect::<HashSet<_>>()
         .len()
 }
@@ -334,7 +339,7 @@ where
     let mut counts: HashMap<String, usize> = HashMap::new();
     for item in items {
         let key = normalize_family(key_fn(item));
-        if !key.trim().is_empty() && key != "unknown" && key != "-" {
+        if !key.trim().is_empty() && key != "unknown" && key != "-" && !is_noise_ioc_family(&key) {
             *counts.entry(key).or_insert(0) += 1;
         }
     }
@@ -403,7 +408,21 @@ pub(crate) fn first_useful_tag(tags: &[String]) -> Option<String> {
         .find(|tag| {
             !matches!(
                 tag.to_lowercase().as_str(),
-                "elf" | "exe" | "payload" | "malware" | "download"
+                "elf"
+                    | "exe"
+                    | "dll"
+                    | "payload"
+                    | "malware"
+                    | "download"
+                    | "dropper"
+                    | "windows"
+                    | "linux"
+                    | "32-bit"
+                    | "64-bit"
+                    | "x86"
+                    | "x64"
+                    | "x86-64"
+                    | "pe32"
             )
         })
         .map(|tag| normalize_family(tag))
@@ -458,6 +477,48 @@ pub(crate) fn normalize_family(value: &str) -> String {
     } else {
         truncate_chars(cleaned.trim(), 36)
     }
+}
+
+pub(crate) fn is_noise_ioc_family(value: &str) -> bool {
+    let lower = value.trim().to_lowercase();
+    if lower.is_empty() {
+        return true;
+    }
+    let exact_noise = [
+        "unknown",
+        "unclassified",
+        "malware",
+        "payload",
+        "download",
+        "dropper",
+        "exe",
+        "dll",
+        "elf",
+        "apk",
+        "jar",
+        "js",
+        "vbs",
+        "ps1",
+        "bat",
+        "lnk",
+        "windows",
+        "linux",
+        "32-bit",
+        "64-bit",
+        "x86",
+        "x64",
+        "x86-64",
+        "pe32",
+        "portable executable",
+    ];
+    if exact_noise.iter().any(|noise| lower == *noise) {
+        return true;
+    }
+    lower.contains("32-bit")
+        || lower.contains("64-bit")
+        || lower.contains("architecture")
+        || lower.contains("filetype")
+        || lower.contains("malware printable")
 }
 
 pub(crate) fn non_empty_or(value: String, fallback: &str) -> String {

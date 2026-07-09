@@ -1458,3 +1458,79 @@ body { overflow-x: clip; overflow-wrap: break-word; }
 .panel-ioc-radar .meta,
 .panel-infra-card .meta,
 .panel-greynoise-card .meta { margin-top: 2px; }
+
+/* ---------- Phase 452: Botnet / Phishing / Malware enrichment cards ---------- */
+.panel-botnet-card,
+.panel-phishing-card,
+.panel-malware-card {
+  background:
+    linear-gradient(180deg, rgba(234,194,107,0.035), transparent 130px),
+    var(--surface) !important;
+}
+.panel-botnet-card { border-top-color: var(--red) !important; }
+.panel-phishing-card { border-top-color: var(--amber) !important; }
+.panel-malware-card { border-top-color: rgba(255,255,255,0.24) !important; }
+.panel-botnet-card .panel-head .eyebrow,
+.panel-botnet-card .threat-metric-row b { color: var(--red); }
+.panel-phishing-card .panel-head .eyebrow,
+.panel-phishing-card .threat-metric-row b { color: var(--amber); }
+.panel-malware-card .panel-head .eyebrow,
+.panel-malware-card .threat-metric-row b { color: var(--text); }
+.threat-metric-row { margin-bottom: 1px; }
+.threat-spotlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(255,255,255,0.026);
+}
+.threat-spotlight span {
+  display: block;
+  color: var(--text-3);
+  font-size: 8.8px;
+  font-weight: 800;
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+}
+.threat-spotlight b {
+  display: block;
+  max-width: 175px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12px;
+}
+.threat-spotlight strong {
+  color: var(--text-2);
+  font-size: 10.5px;
+  line-height: 1.1;
+  text-align: right;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.threat-spotlight.risk-high {
+  border-color: rgba(233,115,102,0.30);
+  background: rgba(233,115,102,0.060);
+}
+.threat-spotlight.risk-high strong { color: var(--red); }
+.threat-spotlight.risk-medium {
+  border-color: rgba(234,194,107,0.28);
+  background: rgba(234,194,107,0.055);
+}
+.threat-spotlight.risk-medium strong { color: var(--amber); }
+.threat-kv-row { gap: 4px; }
+.threat-kv-row span { font-size: 10px; padding: 2px 5px; }
+.threat-bars { gap: 6px; }
+.threat-bars > div > span { margin-bottom: 3px; }
+.threat-bars .bar-row { grid-template-columns: minmax(58px, 1fr) 1fr auto; }
+.panel-botnet-card .bar-track b { background: var(--red); }
+.panel-phishing-card .bar-track b { background: var(--amber); }
+.panel-malware-card .bar-track b { background: rgba(255,255,255,0.56); }
+.panel-botnet-card .meta,
+.panel-phishing-card .meta,
+.panel-malware-card .meta { margin-top: 2px; }
