@@ -2098,3 +2098,19 @@ body { overflow-x: clip; overflow-wrap: break-word; }
 .top-layout-balanced #writeups-pulse.is-empty {
   opacity: 0.92;
 }
+
+/* ---------- Phase 470: AI executive briefing + rectangular silhouette ---------- */
+.panel-ai-briefing { border-top-color: var(--accent) !important; }
+.chip-ai { border-color: rgba(94, 159, 232, 0.45); color: var(--accent); background: var(--accent-soft); }
+.ai-briefing-body { display: flex; flex-direction: column; }
+.ai-briefing-headline { margin: 2px 0 4px; font-size: 14.5px; font-weight: 600; line-height: 1.45; color: var(--text); }
+.ai-briefing-narrative { margin: 0 0 6px; font-size: 12.5px; line-height: 1.55; color: var(--text-2); }
+.ai-briefing-list { margin: 4px 0 2px; padding-inline-start: 16px; display: grid; gap: 4px; }
+.ai-briefing-list li { font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.ai-briefing-watch { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border); }
+.ai-briefing-watch-label { display: block; margin-bottom: 3px; font-size: 10.5px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-3); }
+
+/* Equalize the four dashboard columns so the page silhouette forms a rectangle.
+   Panels keep their natural height; assets/js/radar.js reveals hidden scrollable
+   list content in shorter columns, so boxes only grow when they have data to show. */
+.top-layout.top-layout-columns.top-layout-balanced { align-items: stretch; }

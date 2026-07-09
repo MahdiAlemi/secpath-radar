@@ -3,52 +3,135 @@
 
 # SecPath Radar
 
-**رصد غیرفعال امنیت سایبری** · داشبورد استاتیک، فارسی‌محور و read-only
+**Passive cyber threat monitoring** — a static, read-only intelligence dashboard built in Rust
 
-Rust · Static HTML/CSS/JS · No framework · MIT
+`Rust` · `Static HTML/CSS/JS` · `No framework` · `MIT`
 
 </div>
 
 ---
 
-<div dir="rtl">
+## What is it?
 
-## چیست؟
+SecPath Radar is an observation-first radar for the daily threat landscape: vulnerabilities, security news, IOCs, and public threat telemetry — rendered into a single static page. No active scanning, no visitor tracking, no server-side code.
 
-یک «رادار مشاهده‌محور» برای رصد روزانه فضای تهدید: آسیب‌پذیری‌ها، اخبار، IOCها و تله‌متری عمومی تهدید — همه در یک صفحه استاتیک، بدون اسکن فعال و بدون جمع‌آوری داده از بازدیدکننده.
+Every run collects from public sources, scores and aggregates the results, optionally polishes the top items with an AI editorial layer, and renders everything to plain HTML/CSS/JS plus a small JSON API and RSS feed.
 
-## روال کار
+## Highlights
 
-1. **جمع‌آوری** — خبرخوان‌های امنیتی، NVD، CISA KEV، EPSS و منابع عمومی تله‌متری (URLhaus، ThreatFox، DShield و ...)
-2. **پردازش** — امتیازدهی ریسک، انباشت روزانه و ترجمه/خلاصه‌سازی فارسی (با فلگ اختیاری `--ai` از Gemini هم استفاده می‌شود)
-3. **رندر** — خروجی استاتیک در `site/` (داشبورد، جمع‌بندی هفتگی، RSS و API ساده JSON)
-4. **اجرای خودکار** — GitHub Actions هر ۳ ساعت + روزی یک اجرا با AI؛ خروجی در برنچ `radar-output`
+- **~185 public sources** — security news RSS, research write-ups, NVD, CISA KEV, EPSS, CISA Vulnrichment, and 15 threat-intel feeds (DShield, URLhaus, ThreatFox, Shodan InternetDB, GitHub Advisories, ransomware.live, Feodo Tracker, SSLBL, GreyNoise, OpenPhish, CISA ICS, MalwareBazaar, Spamhaus DROP, Red Hat CSAF, nuclei templates, PoC watch)
+- **CVE triage engine** — CVSS + EPSS + KEV-aware risk scoring with layered fallbacks when a source is down
+- **AI editorial layer (optional)** — Gemini rewrites the top news/CVE items into concise, defensive editorial notes and produces a daily **Executive Briefing** panel; everything is schema-locked, sanitized, and cached per item
+- **Resilient by design** — two-layer disk cache with stale fallback, `--offline` mode, and graceful degradation: if a source or the AI fails, the page still renders
+- **Static output** — `site/index.html`, `feed.xml`, and JSON endpoints under `site/api/`; host it anywhere (GitHub Pages, any static host, or just open the file)
 
-## اجرا
-
-</div>
+## Quick start
 
 ```bash
-cargo run -- --full        # full fetch + render into site/
-cargo run -- --full --ai   # with Gemini polish (needs GEMINI_API_KEY)
+# 1. Full pipeline: fetch news + CVEs + intel, then render into site/
+cargo run --release -- --full
+
+# 2. Same, with the Gemini editorial layer
+#    (needs GEMINI_API_KEY in the environment or in .env)
+cargo run --release -- --full --ai
+
+# 3. Render-only from the last saved brief (no network)
+cargo run --release -- --offline
 ```
 
-<div dir="rtl">
+Open `site/index.html` directly in a browser — no server needed.
 
-خروجی را مستقیم از `site/index.html` باز کنید؛ به هیچ سروری نیاز نیست.
+## CLI flags
 
-## اصول
+| Flag | Effect |
+| --- | --- |
+| `--full` | Fetch news + CVEs + intel sources, then render |
+| `--fetch` | Fetch news only |
+| `--cves` | Fetch CVE data only |
+| `--offline` | No network; use cached/stale data only |
+| `--refresh-cache` | Ignore HTTP cache TTLs and refetch |
+| `--ai` | Enable the Gemini editorial layer |
+| `--refresh-ai` | Regenerate AI output even when cached |
+| `--no-ai` | Force-disable AI for this run |
+| `--input <file>` | Render from a specific brief JSON |
+| `--template <dir>` | Override the template directory |
+| `--out <dir>` | Override the output directory (default `site/`) |
+| `--config <file>` | Override the config file (default `config.yaml`) |
 
-- فقط مشاهده: بدون اسکن فعال، بدون فرم و ورودی، بدون ردیابی بازدیدکننده
-- HTML/CSS/JS جدا و بدون فریم‌ورک؛ دوزبانه (فارسی/انگلیسی) و تم روشن/تیره
-- کلید Gemini فقط از env/Secrets خوانده می‌شود و هرگز کامیت نمی‌شود
+## Configuration
 
-## مشارکت
+Everything lives in `config.yaml`:
 
-چیزی کم است یا ایده‌ای دارید؟ یک [Issue](../../issues) باز کنید.
+- **Feeds** — news and write-up sources with per-feed tags
+- **HTTP** — timeouts, cache TTL, and an optional proxy for restricted networks
+- **Gemini** — model, API URL, temperature, cache directory, and how many top items get editorial treatment (`max_global_news`, `max_cves`)
 
-## لایسنس
+Secrets are read from the environment first, then from a local `.env` file (which is git-ignored):
 
-[MIT](LICENSE) © Mahdi Alemi
+```bash
+GEMINI_API_KEY=...      # required only for --ai
+GREYNOISE_API_KEY=...   # optional, enriches GreyNoise context
+GITHUB_TOKEN=...        # optional, raises GitHub API rate limits
+```
+
+## The AI layer
+
+The AI layer is an *editor*, not an author. With `--ai`, the pipeline makes at most **three batched Gemini calls per run**:
+
+1. **News batch** — rewrites the top news items (title, summary, why it matters, ops note) and the priority alert
+2. **CVE batch** — same treatment for the top CVEs, plus a recommended action
+3. **Executive briefing** — one schema-locked call that turns the day's top items into a headline, a short narrative, key takeaways, and 24-hour watch items, rendered as a dedicated dashboard panel and exposed in the JSON API
+
+Safety and cost controls:
+
+- **Schema-locked responses** — Gemini must return JSON matching a strict response schema; a single repair pass fixes truncated output
+- **Sanitized merge** — only whitelisted editorial fields are accepted; URLs, CVE IDs, scores, and sources can never be overwritten by the model
+- **Per-item content cache** — each item's editorial output is cached by content hash under `data/cache/ai/`; unchanged items never trigger a new call, so steady-state runs use zero to three calls
+- **Graceful degradation** — if the AI call fails or the key is missing, the dashboard renders fully without AI content and records the reason in `ai_status`
+
+## Outputs
+
+| Path | Contents |
+| --- | --- |
+| `site/index.html` | The dashboard |
+| `site/feed.xml` | RSS feed of the day's items |
+| `site/api/summary.json` | Compact machine-readable summary |
+| `site/api/brief.json` | Full brief (news, CVEs, intel, weekly, trend, AI briefing) |
+| `data/latest_brief.json` | Last full pipeline state (input for `--offline`) |
+| `snapshots/` | Daily archive and history snapshots |
+
+## CI
+
+`.github/workflows/radar.yml` runs format checks, tests, and a full render on demand (`workflow_dispatch`), with an optional AI input toggle. The workflow **never deploys or publishes** — it only verifies that the pipeline builds and renders. A persistent cache for `data/cache` keeps HTTP, intel, and AI editorial caches warm between runs, which keeps Gemini usage well inside free-tier limits even on frequent schedules.
+
+## Design principles
+
+1. **Passive only** — collect from public feeds and APIs; never scan, probe, or touch third-party systems
+2. **Read-only output** — a static page with no forms, no accounts, no analytics, and no visitor data collection
+3. **Fail soft** — every source has a fallback or a stale-cache path; a broken feed degrades one panel, not the page
+4. **Defensive language** — AI output is constrained to defensive guidance; no exploit detail ever ships to the page
+
+## Project structure
+
+```
+src/            # Rust pipeline (fetch, score, aggregate, render)
+src/intel/      # 15 threat-intel source modules
+templates/      # minijinja HTML templates
+assets/         # CSS/JS/logo copied into site/ at render time
+config.yaml     # feeds, HTTP, and AI configuration
+site/           # generated static output
+data/           # runtime state and caches (git-ignored)
+snapshots/      # daily JSON archives
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+<div align="center">
+
+Design & development: <strong>Mahdi Alemi</strong>
 
 </div>

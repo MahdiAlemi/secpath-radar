@@ -63,7 +63,21 @@ pub(crate) fn enhance_brief_with_gemini(
         &mut pending_cves,
     );
 
-    if pending_news.is_empty() && pending_cves.is_empty() && !alert_needed {
+    let briefing_input = build_briefing_input(&edited);
+    let briefing_key = briefing_cache_key(&config.gemini.model, &briefing_input);
+    let mut briefing_needed = briefing_input_has_content(&briefing_input);
+    if briefing_needed && !refresh_ai {
+        if let Some(cached) = read_item_cache(config, &briefing_key) {
+            let clean = sanitize_briefing(&cached);
+            if briefing_is_usable(&clean) {
+                edited["ai_briefing"] = clean;
+                cache_hits += 1;
+                briefing_needed = false;
+            }
+        }
+    }
+
+    if pending_news.is_empty() && pending_cves.is_empty() && !alert_needed && !briefing_needed {
         let cache_hit = cache_hits > 0;
         let edited = mark_ai_status(
             edited,
@@ -175,6 +189,38 @@ pub(crate) fn enhance_brief_with_gemini(
             Err(err) => {
                 eprintln!("⚠️  Gemini CVE batch failed: {err:#}");
                 errors.push(format!("cve batch: {err:#}"));
+            }
+        }
+    }
+
+    if briefing_needed {
+        match build_briefing_prompt(&briefing_input) {
+            Ok(prompt) => match run_gemini_batch(
+                &client,
+                &url,
+                &api_key,
+                &prompt,
+                config.gemini.temperature,
+                &gemini_briefing_schema(),
+            ) {
+                Ok((value, calls)) => {
+                    calls_used = calls_used.saturating_add(calls);
+                    let clean = sanitize_briefing(&value);
+                    if briefing_is_usable(&clean) {
+                        let _ = write_item_cache(config, &briefing_key, &clean);
+                        edited["ai_briefing"] = clean;
+                        items_generated += 1;
+                    } else {
+                        errors.push("briefing batch: response was empty after sanitize".to_string());
+                    }
+                }
+                Err(err) => {
+                    eprintln!("⚠️  Gemini briefing batch failed: {err:#}");
+                    errors.push(format!("briefing batch: {err:#}"));
+                }
+            },
+            Err(err) => {
+                errors.push(format!("briefing prompt: {err:#}"));
             }
         }
     }
@@ -819,6 +865,148 @@ pub(crate) fn get_env_or_dotenv(key: &str) -> Option<String> {
     None
 }
 
+const BRIEFING_PROMPT_RULES: &str = r#"You are the executive-briefing layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
+
+Input JSON contains today's date, an optional "priority_alert", top news items in "news", and top vulnerabilities in "cves".
+
+Hard rules:
+- Base every statement only on the provided input. Do not invent facts, sources, URLs, CVEs, exploitation status, victim names, attribution, or numbers.
+- Write in plain English for a global audience of security leaders.
+- Use defensive language only. No exploit chains, payloads, bypass steps, or unauthorized access guidance.
+- headline: one line capturing today's overall threat picture, max 90 characters; not a full sentence.
+- narrative: 2-3 sentences, max 420 characters, summarizing the most important developments and their operational impact.
+- takeaways: 3-4 strings, each max 160 characters, concrete defensive priorities (patching, monitoring, hardening) drawn from the input.
+- watch_items: 0-3 strings, each max 140 characters, developments worth monitoring over the next 24 hours.
+- If the input is thin or unclear, keep a cautious tone and note that monitoring continues.
+- Return valid JSON only, matching the response schema. Never stop mid-string."#;
+
+pub(crate) fn build_briefing_input(brief: &Value) -> Value {
+    let news: Vec<Value> = brief
+        .get("global_news")
+        .and_then(|v| v.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .take(6)
+                .map(|item| {
+                    json!({
+                        "title": clip_field(item, "title", 200),
+                        "summary": clip_field(item, "summary", 400),
+                        "source": clip_field(item, "source", 60)
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let cves: Vec<Value> = brief
+        .get("cves")
+        .and_then(|v| v.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .take(6)
+                .map(|item| {
+                    json!({
+                        "cve_id": item.get("cve_id").cloned().unwrap_or(Value::Null),
+                        "title": clip_field(item, "title", 200),
+                        "cvss": item.get("cvss").cloned().unwrap_or(Value::Null),
+                        "kev": item.get("kev").cloned().unwrap_or(Value::Null),
+                        "severity": item.get("severity").cloned().unwrap_or(Value::Null)
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    json!({
+        "date": clip_field(brief, "date_en", 40),
+        "priority_alert": compact_alert(&brief["priority_alert"]),
+        "news": news,
+        "cves": cves
+    })
+}
+
+pub(crate) fn briefing_input_has_content(input: &Value) -> bool {
+    let has_items = |key: &str| {
+        input
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|items| !items.is_empty())
+            .unwrap_or(false)
+    };
+    has_items("news") || has_items("cves")
+}
+
+pub(crate) fn briefing_cache_key(model: &str, input: &Value) -> String {
+    let raw = format!(
+        "{}\n{}\nbriefing\n{}",
+        AI_PROMPT_VERSION,
+        model,
+        serde_json::to_string(input).unwrap_or_default()
+    );
+    let mut hasher = DefaultHasher::new();
+    raw.hash(&mut hasher);
+    format!("briefing-{:016x}.json", hasher.finish())
+}
+
+pub(crate) fn build_briefing_prompt(input: &Value) -> Result<String> {
+    Ok(format!(
+        "{}\n\nInput JSON:\n{}",
+        BRIEFING_PROMPT_RULES,
+        serde_json::to_string_pretty(input)?
+    ))
+}
+
+pub(crate) fn gemini_briefing_schema() -> Value {
+    json!({
+        "type": "OBJECT",
+        "properties": {
+            "headline": {"type": "STRING"},
+            "narrative": {"type": "STRING"},
+            "takeaways": {"type": "ARRAY", "items": {"type": "STRING"}},
+            "watch_items": {"type": "ARRAY", "items": {"type": "STRING"}}
+        },
+        "required": ["headline", "narrative", "takeaways"]
+    })
+}
+
+pub(crate) fn sanitize_briefing(value: &Value) -> Value {
+    let mut clean = serde_json::Map::new();
+    let Some(obj) = value.as_object() else {
+        return Value::Object(clean);
+    };
+    for key in ["headline", "narrative"] {
+        if let Some(Value::String(text)) = obj.get(key) {
+            let trimmed = text.trim();
+            if !trimmed.is_empty() {
+                clean.insert(key.to_string(), json!(truncate_chars(trimmed, 600)));
+            }
+        }
+    }
+    for key in ["takeaways", "watch_items"] {
+        if let Some(Value::Array(items)) = obj.get(key) {
+            let texts: Vec<String> = items
+                .iter()
+                .filter_map(|v| v.as_str())
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .take(4)
+                .map(|s| truncate_chars(s, 220))
+                .collect();
+            if !texts.is_empty() {
+                clean.insert(key.to_string(), json!(texts));
+            }
+        }
+    }
+    Value::Object(clean)
+}
+
+pub(crate) fn briefing_is_usable(value: &Value) -> bool {
+    value
+        .as_object()
+        .map(|obj| obj.contains_key("headline") && obj.contains_key("narrative"))
+        .unwrap_or(false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -866,6 +1054,23 @@ mod tests {
 
         let cve = sanitize_editorial("cve", &json!({"recommended_action": "Apply patch"}));
         assert_eq!(cve["recommended_action"], "Apply patch");
+    }
+
+    #[test]
+    fn sanitize_briefing_keeps_only_expected_fields() {
+        let raw = json!({
+            "headline": " Global patching pressure rises ",
+            "narrative": "Several vendors shipped fixes.",
+            "takeaways": ["Patch now", "", 42],
+            "watch_items": ["Watch KEV updates"],
+            "url": "https://evil.example"
+        });
+        let clean = sanitize_briefing(&raw);
+        assert_eq!(clean["headline"], "Global patching pressure rises");
+        assert_eq!(clean["takeaways"], json!(["Patch now"]));
+        assert!(clean.get("url").is_none());
+        assert!(briefing_is_usable(&clean));
+        assert!(!briefing_is_usable(&json!({"headline": "x"})));
     }
 
     #[test]
