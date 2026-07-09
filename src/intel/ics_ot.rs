@@ -116,7 +116,7 @@ pub(crate) fn fetch_ics_ot_pulse(
                 "MITIGATIONS",
             ],
         )
-        .map(|value| first_list_value(&value))
+        .map(|value| clean_ics_sector_label(&value))
         .unwrap_or_else(|| infer_ics_sector(&detail));
         let deployment = extract_labeled_field(
             &detail,
@@ -185,7 +185,14 @@ pub(crate) fn fetch_ics_ot_pulse(
         .fold(0.0_f64, f64::max);
     let cves_total: usize = advisories.iter().map(|item| item.cve_count).sum();
     let top_vendor = top_count_key(&vendor_counts).unwrap_or_else(|| "Unknown vendor".to_string());
-    let top_sector = top_count_key(&sector_counts).unwrap_or_else(|| "ICS/OT".to_string());
+    let meaningful_sector_counts = filtered_ics_sector_counts(&sector_counts);
+    let generic_sector_labels = sector_counts
+        .iter()
+        .filter(|(sector, _)| is_generic_ics_sector_label(sector))
+        .map(|(_, count)| *count)
+        .sum::<usize>();
+    let top_sector =
+        top_count_key(&meaningful_sector_counts).unwrap_or_else(|| "Sector not listed".to_string());
     let top_equipment = advisories
         .first()
         .map(|item| item.equipment.clone())
@@ -212,7 +219,8 @@ pub(crate) fn fetch_ics_ot_pulse(
             "critical_sectors": critical_sectors,
             "with_cve": with_cve,
             "vendors": vendor_counts.len(),
-            "sectors": sector_counts.len(),
+            "sectors": meaningful_sector_counts.len(),
+            "generic_sector_labels": generic_sector_labels,
             "cves": cves_total,
             "max_cvss": format!("{max_cvss:.1}")
         },
@@ -224,7 +232,7 @@ pub(crate) fn fetch_ics_ot_pulse(
         "spotlight": spotlight,
         "advisories": advisories,
         "vendor_chart": count_chart_from_counts(vendor_counts, 6),
-        "sector_chart": count_chart_from_counts(sector_counts, 6),
+        "sector_chart": count_chart_from_counts(meaningful_sector_counts, 6),
         "risk_chart": count_chart_from_counts(severity_counts, 4),
         "safe_mode": "metadata only; no active scan; no exploit content"
     }))
@@ -337,6 +345,46 @@ pub(crate) fn first_list_value(value: &str) -> String {
         .to_string()
 }
 
+pub(crate) fn clean_ics_sector_label(value: &str) -> String {
+    let cleaned = first_list_value(value)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if is_generic_ics_sector_label(&cleaned) {
+        "Sector not listed".to_string()
+    } else {
+        truncate_chars(&cleaned, 42)
+    }
+}
+
+pub(crate) fn is_generic_ics_sector_label(value: &str) -> bool {
+    let lower = value.trim().to_ascii_lowercase();
+    lower.is_empty()
+        || lower == "ics"
+        || lower == "ot"
+        || lower == "ics/ot"
+        || lower == "industrial"
+        || lower == "industrial control systems"
+        || lower == "critical infrastructure"
+        || lower == "multiple"
+        || lower == "multiple sectors"
+        || lower == "all sectors"
+        || lower == "not listed"
+        || lower == "sector not listed"
+        || lower == "unknown"
+        || lower == "unknown sector"
+}
+
+pub(crate) fn filtered_ics_sector_counts(
+    counts: &HashMap<String, usize>,
+) -> HashMap<String, usize> {
+    counts
+        .iter()
+        .filter(|(sector, _)| !is_generic_ics_sector_label(sector))
+        .map(|(sector, count)| (sector.clone(), *count))
+        .collect()
+}
+
 pub(crate) fn infer_ics_sector(text: &str) -> String {
     let lower = text.to_lowercase();
     let pairs = [
@@ -354,7 +402,7 @@ pub(crate) fn infer_ics_sector(text: &str) -> String {
             return label.to_string();
         }
     }
-    "ICS/OT".to_string()
+    "Sector not listed".to_string()
 }
 
 pub(crate) fn extract_cvss_score(text: &str) -> f64 {
@@ -454,8 +502,8 @@ pub(crate) fn empty_ics_ot_pulse(reason: &str) -> Value {
         "reason": reason,
         "provider": "CISA ICS Advisories",
         "summary": "ICS/OT Advisory Pulse data was not available this run.",
-        "totals": {"advisories": 0, "high": 0, "medium": 0, "remote": 0, "critical_sectors": 0, "with_cve": 0, "vendors": 0, "sectors": 0, "cves": 0, "max_cvss": "0.0"},
-        "insights": {"top_vendor": "Unknown vendor", "top_sector": "ICS/OT", "top_equipment": "No equipment listed"},
+        "totals": {"advisories": 0, "high": 0, "medium": 0, "remote": 0, "critical_sectors": 0, "with_cve": 0, "vendors": 0, "sectors": 0, "generic_sector_labels": 0, "cves": 0, "max_cvss": "0.0"},
+        "insights": {"top_vendor": "Unknown vendor", "top_sector": "Sector not listed", "top_equipment": "No equipment listed"},
         "spotlight": null,
         "advisories": [],
         "vendor_chart": [],
@@ -463,4 +511,31 @@ pub(crate) fn empty_ics_ot_pulse(reason: &str) -> Value {
         "risk_chart": [],
         "safe_mode": "metadata only; no active scan; no exploit content"
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ics_sector_cleanup_drops_generic_labels() {
+        assert_eq!(clean_ics_sector_label("ICS/OT"), "Sector not listed");
+        assert_eq!(
+            clean_ics_sector_label("Multiple Sectors"),
+            "Sector not listed"
+        );
+        assert_eq!(clean_ics_sector_label("Energy, Water"), "Energy");
+    }
+
+    #[test]
+    fn ics_inference_uses_real_sector_or_not_listed() {
+        assert_eq!(
+            infer_ics_sector("remote access in water facilities"),
+            "Water/Wastewater"
+        );
+        assert_eq!(
+            infer_ics_sector("generic advisory text"),
+            "Sector not listed"
+        );
+    }
 }

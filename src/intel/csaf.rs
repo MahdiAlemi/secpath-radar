@@ -280,6 +280,11 @@ pub(crate) fn parse_csaf_document(doc: &Value) -> Option<CsafAdvisory> {
         .map(extract_csaf_max_cvss)
         .fold(0.0_f64, f64::max);
     let mut products = collect_csaf_product_names(doc);
+    if products.is_empty() {
+        if let Some(inferred) = infer_csaf_product_from_title(&title) {
+            products.push(inferred);
+        }
+    }
     products.sort();
     products.dedup();
     let product_count = products.len();
@@ -354,9 +359,98 @@ pub(crate) fn collect_csaf_product_names(doc: &Value) -> Vec<String> {
     let mut out = Vec::new();
     collect_csaf_product_names_inner(doc.get("product_tree").unwrap_or(&Value::Null), &mut out);
     out.into_iter()
-        .map(|value| truncate_chars(&clean_text(&value), 46))
-        .filter(|value| !value.is_empty())
+        .filter_map(|value| clean_csaf_product_label(&value))
         .collect()
+}
+
+pub(crate) fn clean_csaf_product_label(value: &str) -> Option<String> {
+    let cleaned = clean_text(value)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if cleaned.is_empty() || is_noisy_csaf_product_label(&cleaned) {
+        return None;
+    }
+    Some(truncate_chars(&cleaned, 46))
+}
+
+pub(crate) fn is_noisy_csaf_product_label(value: &str) -> bool {
+    let lower = value.trim().to_ascii_lowercase();
+    if lower.is_empty() {
+        return true;
+    }
+    let exact_noise = [
+        "x86_64",
+        "x86-64",
+        "amd64",
+        "i386",
+        "i686",
+        "aarch64",
+        "arm64",
+        "ppc64le",
+        "s390x",
+        "src",
+        "source",
+        "noarch",
+        "debug",
+        "baseos",
+        "appstream",
+        "optional",
+        "supplementary",
+        "codeready builder",
+        "client",
+        "server",
+        "workstation",
+        "common",
+        "eus",
+        "aus",
+        "tus",
+        "e4s",
+        "sap",
+        "rt",
+        "nfv",
+    ];
+    if exact_noise.iter().any(|noise| lower == *noise) {
+        return true;
+    }
+    if lower
+        .chars()
+        .all(|ch| ch.is_ascii_digit() || ch == '.' || ch == '-' || ch == '_')
+    {
+        return true;
+    }
+    false
+}
+
+pub(crate) fn infer_csaf_product_from_title(title: &str) -> Option<String> {
+    let lower = title.to_ascii_lowercase();
+    let pairs = [
+        ("openshift", "OpenShift"),
+        ("enterprise linux", "Red Hat Enterprise Linux"),
+        ("rhel", "Red Hat Enterprise Linux"),
+        ("kernel", "Linux kernel"),
+        ("openjdk", "OpenJDK"),
+        ("java", "OpenJDK"),
+        ("openssl", "OpenSSL"),
+        ("firefox", "Firefox"),
+        ("thunderbird", "Thunderbird"),
+        ("python", "Python"),
+        ("node.js", "Node.js"),
+        ("nodejs", "Node.js"),
+        ("ansible", "Ansible"),
+        ("satellite", "Satellite"),
+        ("jboss", "JBoss"),
+        ("quarkus", "Quarkus"),
+        ("container", "Containers"),
+        ("ceph", "Ceph"),
+        ("openstack", "OpenStack"),
+    ];
+    for (needle, label) in pairs {
+        if lower.contains(needle) {
+            return Some(label.to_string());
+        }
+    }
+    None
 }
 
 fn collect_csaf_product_names_inner(value: &Value, out: &mut Vec<String>) {
@@ -451,5 +545,28 @@ mod tests {
         assert!(csaf_severity_score("critical") > csaf_severity_score("important"));
         assert!(csaf_severity_score("important") > csaf_severity_score("moderate"));
         assert!(csaf_severity_score("unknown") < csaf_severity_score("low"));
+    }
+
+    #[test]
+    fn csaf_product_cleanup_drops_architecture_noise() {
+        assert!(clean_csaf_product_label("amd64").is_none());
+        assert!(clean_csaf_product_label("x86_64").is_none());
+        assert_eq!(
+            clean_csaf_product_label("Red Hat Enterprise Linux 9").as_deref(),
+            Some("Red Hat Enterprise Linux 9")
+        );
+    }
+
+    #[test]
+    fn csaf_product_inference_uses_title_when_tree_is_generic() {
+        assert_eq!(
+            infer_csaf_product_from_title("Important: kernel security update").as_deref(),
+            Some("Linux kernel")
+        );
+        assert_eq!(
+            infer_csaf_product_from_title("Moderate: OpenShift Container Platform update")
+                .as_deref(),
+            Some("OpenShift")
+        );
     }
 }
