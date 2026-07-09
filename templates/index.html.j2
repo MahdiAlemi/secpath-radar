@@ -49,19 +49,20 @@
 </article>
 {% endmacro %}
 
-{% macro news_stream_card(item, index) %}
+{% macro news_stream_card(item) %}
 <article class="news-top-card">
-  <div class="news-top-index">{{ index }}</div>
   <div class="news-top-main">
     <div class="news-top-titleline">
       <a href="{{ item.url }}" rel="noopener noreferrer" target="_blank">{{ item.title }}</a>
       {% if item.is_new %}<span class="tag tag-new">New</span>{% endif %}
     </div>
     {% if item.summary %}<p class="news-excerpt">{{ item.summary }}</p>{% endif %}
-    <div class="meta news-top-meta">
+    <div class="meta news-top-source-line">
       <span class="news-source">{{ item.source }}</span>
-      <span>{{ item.published_time_local }} Tehran · {{ item.published_time_utc }}</span>
       {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
+    </div>
+    <div class="meta news-top-time-line">
+      <span>{{ item.published_time_local }} Tehran · {{ item.published_time_utc }} · {{ item.published_date_local }}</span>
     </div>
   </div>
 </article>
@@ -266,6 +267,62 @@
         {% endif %}
       </div>
     </section>
+
+      {% if brief.vendor_watchlist.ok %}
+      <section id="vendor-watchlist" class="panel panel-top-card panel-vendor-top">
+        <div class="panel-head">
+          <div><span class="eyebrow">Vendor Watchlist</span><h2>Vendor Watchlist</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip chip-vendor">{{ brief.vendor_watchlist.totals.vendors }} vendors</span>
+            <span class="chip chip-muted">{{ brief.vendor_watchlist.totals.cves }} CVE</span>
+          </div>
+        </div>
+        <div class="top-card-body">
+          {% if brief.vendor_watchlist.spotlight %}
+          <div class="vendor-spotlight level-{{ brief.vendor_watchlist.spotlight.level }}">
+            <div>
+              <span class="vendor-spot-kicker">Top exposure</span>
+              <strong>{{ brief.vendor_watchlist.spotlight.vendor }}</strong>
+            </div>
+            <span>{{ brief.vendor_watchlist.spotlight.driver }}</span>
+          </div>
+          {% endif %}
+          <div class="vendor-mini-stats" aria-label="Vendor watchlist totals">
+            <div><b>{{ brief.vendor_watchlist.totals.critical }}</b><span>Critical</span></div>
+            <div><b>{{ brief.vendor_watchlist.totals.kev }}</b><span>KEV</span></div>
+            <div><b>{{ brief.vendor_watchlist.totals.pocs }}</b><span>PoC</span></div>
+          </div>
+          <div class="vendor-top-list" aria-label="Vendor exposure rows">
+            {% for row in brief.vendor_watchlist.rows %}
+            <article class="vendor-card level-{{ row.level }}">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>{{ row.vendor }}</strong>
+                  <span class="tag tag-vendor">{{ row.level_label }}</span>
+                </div>
+                <div class="vendor-footprint">{{ row.footprint }}</div>
+                <div class="vendor-bars" aria-label="Signal mix for {{ row.vendor }}">
+                  {% if row.cves > 0 %}<span class="vendor-bar-cve" style="width: {{ row.cve_width }}%"></span>{% endif %}
+                  {% if row.pocs > 0 %}<span class="vendor-bar-poc" style="width: {{ row.poc_width }}%"></span>{% endif %}
+                  {% if row.news > 0 %}<span class="vendor-bar-news" style="width: {{ row.news_width }}%"></span>{% endif %}
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>{{ row.signal }}</strong>
+                <span>{{ row.primary_driver }}</span>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+          <div class="vendor-legend"><span><i class="vendor-bar-cve"></i>CVE</span><span><i class="vendor-bar-poc"></i>PoC</span><span><i class="vendor-bar-news"></i>News</span></div>
+        </div>
+      </section>
+      {% else %}
+      <section id="vendor-watchlist" class="panel panel-top-card panel-vendor-top is-empty">
+        <div class="panel-head"><div><span class="eyebrow">Vendor Watchlist</span><h2>Vendor Watchlist</h2></div><span class="chip chip-idle">No data</span></div>
+        <p class="empty-note">{{ brief.vendor_watchlist.summary }}</p>
+      </section>
+      {% endif %}
     </div>
 
     <section id="global-news" class="panel panel-top-card panel-news-top{% if not brief.today_news %} is-empty{% endif %}">
@@ -279,7 +336,7 @@
         <div class="top-card-body">
           {% if brief.today_news %}
           <div class="news-top-list" aria-label="News published today only">
-            {% for item in brief.today_news %}{{ news_stream_card(item, loop.index) }}{% endfor %}
+            {% for item in brief.today_news %}{{ news_stream_card(item) }}{% endfor %}
           </div>
           {% else %}
           <p class="empty-note">No news items were published for {{ brief.date_en }}.</p>
@@ -344,17 +401,6 @@
       </section>
       {% else %}
       {{ empty_pulse("supply-chain-radar", "Supply Chain", brief.supply_chain_radar.provider, brief.supply_chain_radar.summary) }}
-      {% endif %}
-
-      {% if brief.vendor_watchlist.ok %}
-      <section id="vendor-watchlist" class="panel">
-        <div class="panel-head"><div><span class="eyebrow">Vendor Watchlist</span><h2>Vendor Watchlist</h2></div><span class="chip">{{ brief.vendor_watchlist.totals.vendors }} vendors</span></div>
-        <p class="lede">{{ brief.vendor_watchlist.summary }}</p>
-        {{ bars(brief.vendor_watchlist.rows, 8) }}
-        <div class="meta"><span>{{ brief.vendor_watchlist.provider }}</span></div>
-      </section>
-      {% else %}
-      {{ empty_pulse("vendor-watchlist", "Vendor Watchlist", brief.vendor_watchlist.provider, brief.vendor_watchlist.summary) }}
       {% endif %}
     </div>
   </section>
