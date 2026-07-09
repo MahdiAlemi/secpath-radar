@@ -456,11 +456,11 @@
     </div>
 
     <div class="top-column top-column-vuln" aria-label="Vulnerability exploitation and research stream">
-      {% if brief.ai_briefing and {{ brief.ai_briefing.headline }} %}
+      {% if brief.ai_briefing and brief.ai_briefing.headline %}
       <section id="ai-briefing" class="panel panel-top-card panel-ai-briefing">
         <div class="panel-head">
           <div><span class="eyebrow">AI BRIEFING</span><h2>Executive Briefing</h2></div>
-          <span class="chip chip-ai">{% if brief.ai_status and {{ brief.ai_status.model }} %} {{ brief.ai_status.model }} {% else %}AI{% endif %}</span>
+          <span class="chip chip-ai">{% if brief.ai_status and brief.ai_status.model %} {{ brief.ai_status.model }} {% else %}AI{% endif %}</span>
         </div>
         <div class="ai-briefing-body">
           <p class="ai-briefing-headline"> {{ brief.ai_briefing.headline }} </p>
