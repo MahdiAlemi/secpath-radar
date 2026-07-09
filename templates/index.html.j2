@@ -124,54 +124,64 @@
       {% endif %}
     </section>
 
-    <section class="panel panel-top-card panel-weekly-right panel-weekly-top">
-      <div class="panel-head"><div><span class="eyebrow">WEEKLY</span><h2>Week at a Glance</h2></div><span class="chip">{{ brief.weekly.totals.days }}d</span></div>
-      <div class="wr-section wr-section-primary">
-        <div class="wr-stats">
-          <div class="wr-stat"><b>{{ brief.weekly.totals.cves }}</b><span>CVEs</span></div>
-          <div class="wr-stat"><b>{{ brief.weekly.totals.news }}</b><span>News</span></div>
-          <div class="wr-stat"><b>{{ brief.weekly.totals.kev }}</b><span>KEV</span></div>
-        </div>
-        <p class="wr-text">{{ brief.weekly.summary }}</p>
+    <section class="panel panel-top-card panel-weekly-right panel-weekly-top weekly-compact">
+      <div class="panel-head">
+        <div><span class="eyebrow">WEEKLY</span><h2>Week at a Glance</h2></div>
+        <span class="chip">{{ brief.weekly.totals.days }}d</span>
       </div>
 
-      <div class="wr-section">
-        <div class="wr-head"><h3>Daily Breakdown</h3></div>
-        {% for row in brief.weekly.daily_rows %}
-        <div class="wr-row"><span class="wr-row-label">{{ row.label }}</span><span class="wr-row-val">{{ row.cves }}C &middot; {{ row.news }}N</span></div>
-        {% endfor %}
+      <div class="weekly-hero">
+        <div class="weekly-total weekly-total-primary"><b>{{ brief.weekly.totals.cves }}</b><span>CVEs</span></div>
+        <div class="weekly-total"><b>{{ brief.weekly.totals.news }}</b><span>News</span></div>
+        <div class="weekly-total"><b>{{ brief.weekly.totals.kev }}</b><span>KEV</span></div>
       </div>
-
-      <div class="wr-section">
-        <div class="wr-head"><h3>Today</h3></div>
-        <div class="wr-stats">
-          <div class="wr-stat"><b class="c-red">{{ brief.stats.breaking_news }}</b><span>Breaking</span></div>
-          <div class="wr-stat"><b class="c-amber">{{ brief.stats.epss_rising }}</b><span>EPSS&uarr;</span></div>
-          <div class="wr-stat"><b>{{ brief.stats.poc_watch }}</b><span>PoC</span></div>
-        </div>
-      </div>
-
-      <div class="wr-section">
-        <div class="wr-head"><h3>60-Second</h3><span class="chip">{{ brief.executive_snapshot.score }}/100</span></div>
-        {% for card in brief.executive_snapshot.risk_cards %}
-        <div class="wr-row"><span class="wr-row-label">{{ card.title }}</span><span class="wr-row-val">{{ card.metric }}</span></div>
-        {% endfor %}
-      </div>
-
-      <div class="wr-section">
-        <div class="wr-head"><h3>Trend</h3><span class="chip">{{ brief.trend_pulse.totals.runs }}r</span></div>
-        {% if brief.trend_pulse.ok %}
-        <div class="trend-grid">
-          {% for row in brief.trend_pulse.rows %}{% if loop.index <= 10 %}
-          <div class="tg-row delta-{{ row.direction }}">
-            <span class="tg-label">{{ row.label }}</span>
-            <svg class="tg-spark" viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="{{ row.spark }}" vector-effect="non-scaling-stroke"/></svg>
-            <span class="tg-count">{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</span>
+      <div class="weekly-block weekly-days">
+        <div class="weekly-block-title"><span>Daily Breakdown</span></div>
+        <div class="weekly-day-strip">
+          {% for row in brief.weekly.daily_rows %}
+          <div class="weekly-day">
+            <b>{{ row.label }}</b>
+            <span><strong>{{ row.cves }}</strong> CVE</span>
+            <span><strong>{{ row.news }}</strong> News</span>
           </div>
-          {% endif %}{% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="weekly-two-up">
+        <div class="weekly-block weekly-today">
+          <div class="weekly-block-title"><span>Today</span></div>
+          <div class="weekly-pill-row">
+            <span><b class="c-red">{{ brief.stats.breaking_news }}</b> Breaking</span>
+            <span><b class="c-amber">{{ brief.stats.epss_rising }}</b> EPSS&uarr;</span>
+            <span><b>{{ brief.stats.poc_watch }}</b> PoC</span>
+          </div>
+        </div>
+
+        <div class="weekly-block weekly-snapshot">
+          <div class="weekly-block-title"><span>60-Second</span><b>{{ brief.executive_snapshot.score }}/100</b></div>
+          <div class="weekly-risk-list">
+            {% for card in brief.executive_snapshot.risk_cards %}
+            <div class="weekly-risk-row"><span>{{ card.title }}</span><b>{{ card.metric }}</b></div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="weekly-block weekly-trend">
+        <div class="weekly-block-title"><span>Trend</span><b>{{ brief.trend_pulse.totals.runs }}r</b></div>
+        {% if brief.trend_pulse.ok %}
+        <div class="weekly-trend-list">
+          {% for row in brief.trend_pulse.rows %}
+          <div class="weekly-trend-row delta-{{ row.direction }}">
+            <span>{{ row.label }}</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="{{ row.spark }}" vector-effect="non-scaling-stroke"/></svg>
+            <b>{% if row.delta > 0 %}+{% endif %}{{ row.delta }}</b>
+          </div>
+          {% endfor %}
         </div>
         {% else %}
-        <p class="wr-text">{{ brief.trend_pulse.summary }}</p>
+        <p class="weekly-summary weekly-summary-muted">{{ brief.trend_pulse.summary }}</p>
         {% endif %}
       </div>
     </section>
