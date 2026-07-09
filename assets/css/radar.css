@@ -1621,3 +1621,159 @@ body { overflow-x: clip; overflow-wrap: break-word; }
 .panel-ics-card .meta,
 .panel-drop-card .meta,
 .panel-ransomware-card .meta { margin-top: 2px; }
+
+/* ---------- Phase 456: column ranking and final polish pass ---------- */
+.top-layout.top-layout-columns {
+  grid-template-columns: minmax(0, 0.98fr) minmax(0, 1.02fr) minmax(0, 1.16fr) minmax(0, 1.03fr);
+  gap: 9px;
+}
+.top-column { gap: 9px; }
+.top-layout.top-layout-columns .panel-intel-card,
+.top-layout.top-layout-columns .top-column > .panel:not(.panel-breaking):not(.panel-top-card) {
+  padding: 9px 12px;
+  gap: 7px;
+}
+.top-layout.top-layout-columns .panel-intel-card .panel-head,
+.top-layout.top-layout-columns .top-column > .panel:not(.panel-breaking):not(.panel-top-card) .panel-head {
+  padding-bottom: 7px;
+}
+.top-column-breaking #csaf-pulse { border-top-color: var(--accent) !important; }
+.top-column-weekly #ioc-radar { border-top-color: var(--accent) !important; }
+.top-column-weekly #greynoise-context,
+.top-column-weekly #infrastructure-radar { border-top-color: var(--green) !important; }
+.top-column-weekly #attack-pressure,
+.top-column-weekly #attack-matrix { border-top-color: rgba(255,255,255,0.20) !important; }
+.top-column-vuln #vendor-watchlist { border-top-color: var(--accent); }
+.top-column-news #ics-ot-pulse { border-top-color: var(--amber) !important; }
+.top-column-news #ransomware-pulse,
+.top-column-news #drop-pulse { border-top-color: var(--red) !important; }
+.panel-meta-card {
+  border-top-color: rgba(255,255,255,0.16) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.018), transparent 90px),
+    var(--surface) !important;
+}
+.panel-meta-card .panel-head h2 { font-size: 13px; }
+.panel-meta-card .note {
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+}
+.panel-meta-card .meta { margin-top: 3px; }
+.top-layout.top-layout-columns #writeups-pulse .grid-inner { gap: 7px; }
+.top-layout.top-layout-columns #writeups-pulse .item {
+  padding: 7px 8px;
+  background: rgba(255,255,255,0.018);
+}
+.top-layout.top-layout-columns #writeups-pulse .item p {
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.intel-kv-row,
+.threat-kv-row { align-items: stretch; }
+.intel-kv-row span,
+.threat-kv-row span { min-width: 0; }
+.intel-kv-row b,
+.threat-kv-row b { white-space: nowrap; }
+.split-bars .bar-row span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 1500px) {
+  .top-layout.top-layout-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .top-layout.top-layout-columns { grid-template-columns: 1fr; }
+}
+
+
+/* ---------- Phase 457: balanced rectangle layout + research emphasis ---------- */
+.top-layout.top-layout-columns.top-layout-balanced {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 9px;
+}
+.top-layout-balanced .top-column {
+  align-self: stretch;
+  height: 100%;
+}
+.top-layout-balanced .panel-column-fill {
+  flex: 1 1 auto;
+}
+.top-layout-balanced #breaking-news.panel-column-fill,
+.top-layout-balanced #global-news.panel-column-fill,
+.top-layout-balanced #writeups-pulse.panel-column-fill {
+  display: flex;
+  flex-direction: column;
+}
+.top-layout-balanced #breaking-news .breaking-scroll,
+.top-layout-balanced #global-news .news-top-list,
+.top-layout-balanced #writeups-pulse .grid-inner {
+  flex: 1 1 auto;
+}
+.top-layout-balanced .news-top-list { max-height: 600px; }
+.top-layout-balanced .breaking-scroll { max-height: 720px; }
+.top-layout-balanced .top-column-vuln #writeups-pulse {
+  border-top-color: var(--green) !important;
+  background:
+    linear-gradient(180deg, rgba(76, 217, 151, 0.055), transparent 150px),
+    var(--surface) !important;
+}
+.top-layout-balanced .top-column-vuln #writeups-pulse .panel-head .eyebrow { color: var(--green); }
+.top-layout-balanced .top-column-vuln #writeups-pulse .chip {
+  color: var(--green);
+  border-color: rgba(76,217,151,0.28);
+  background: rgba(76,217,151,0.07);
+}
+.top-layout-balanced #writeups-pulse .lede {
+  color: var(--text-2);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+.top-layout-balanced #writeups-pulse .grid-inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  margin-top: 6px;
+}
+.top-layout-balanced #writeups-pulse .item:nth-of-type(n+7) { display: block; }
+.top-layout-balanced #writeups-pulse .item:nth-of-type(n+11) { display: none; }
+.top-layout-balanced #writeups-pulse .item {
+  border: 1px solid rgba(255,255,255,0.065);
+  background: rgba(255,255,255,0.02);
+}
+.top-layout-balanced #writeups-pulse .item-head h3 a {
+  font-weight: 800;
+  line-height: 1.35;
+}
+.top-layout-balanced #writeups-pulse .item p {
+  -webkit-line-clamp: 2;
+}
+.top-column-breaking #drop-pulse { border-top-color: var(--red) !important; }
+.top-column-weekly #ics-ot-pulse { border-top-color: var(--amber) !important; }
+.top-column-news #ransomware-pulse { border-top-color: var(--red) !important; }
+.top-column-news #attack-pressure,
+.top-column-news #attack-matrix { border-top-color: rgba(255,255,255,0.20) !important; }
+.top-layout-balanced .panel-data-card,
+.top-layout-balanced .panel-project-card {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+.top-layout-balanced .panel-data-card .note,
+.top-layout-balanced .panel-project-card .note {
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (max-width: 1500px) {
+  .top-layout.top-layout-columns.top-layout-balanced { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .top-layout.top-layout-columns.top-layout-balanced { grid-template-columns: 1fr; }
+}
