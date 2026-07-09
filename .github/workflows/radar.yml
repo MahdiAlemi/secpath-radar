@@ -1,6 +1,10 @@
 name: SecPath Radar CI
 
 on:
+  schedule:
+    # Run every 2 hours. With the persistent data cache, a normal run needs
+    # at most 3 Gemini calls, far below free-tier limits.
+    - cron: "0 */2 * * *"
   workflow_dispatch:
     inputs:
       ai:
@@ -47,7 +51,7 @@ jobs:
       - name: Decide run mode
         id: mode
         run: |
-          if [ "${{ inputs.ai }}" = "true" ]; then
+          if [ "${{ inputs.ai }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ]; then
             echo "flags=--full --ai" >> "$GITHUB_OUTPUT"
           else
             echo "flags=--full" >> "$GITHUB_OUTPUT"
