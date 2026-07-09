@@ -211,7 +211,8 @@ pub(crate) fn enhance_brief_with_gemini(
                         edited["ai_briefing"] = clean;
                         items_generated += 1;
                     } else {
-                        errors.push("briefing batch: response was empty after sanitize".to_string());
+                        errors
+                            .push("briefing batch: response was empty after sanitize".to_string());
                     }
                 }
                 Err(err) => {
