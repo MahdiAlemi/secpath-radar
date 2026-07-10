@@ -39,11 +39,56 @@ pub(crate) fn fetch_and_score(
         }
     }
 
-    deduped.sort_by(|a, b| b.risk_score.cmp(&a.risk_score));
-    deduped.truncate(config.fetch.max_total_items);
+    let dashboard_day = tehran_now().date_naive();
+    deduped = retain_current_day_before_cap(deduped, dashboard_day, config.fetch.max_total_items);
+    let current_day_kept = deduped
+        .iter()
+        .filter(|item| feed_item_is_local_day(item, dashboard_day))
+        .count();
 
-    eprintln!("✅ fetched+deduped RSS: {} items", deduped.len());
+    eprintln!(
+        "✅ fetched+deduped RSS: {} items ({} for Tehran day {})",
+        deduped.len(),
+        current_day_kept,
+        dashboard_day
+    );
     Ok((deduped, failures))
+}
+
+/// Keep all available items for the current Tehran dashboard day before applying
+/// the global RSS cap. Previously the feed pool was sorted only by risk and then
+/// truncated, so fresh low-risk stories could be discarded in favor of older
+/// high-risk stories before the daily filter ran.
+pub(crate) fn retain_current_day_before_cap(
+    items: Vec<FeedItem>,
+    day: NaiveDate,
+    cap: usize,
+) -> Vec<FeedItem> {
+    if cap == 0 {
+        return Vec::new();
+    }
+
+    let (mut current_day, mut older_or_undated): (Vec<_>, Vec<_>) = items
+        .into_iter()
+        .partition(|item| feed_item_is_local_day(item, day));
+
+    sort_news_latest_first(&mut current_day);
+    older_or_undated.sort_by(|a, b| {
+        b.risk_score
+            .cmp(&a.risk_score)
+            .then_with(|| feed_item_timestamp(b).cmp(&feed_item_timestamp(a)))
+            .then_with(|| a.source.cmp(&b.source))
+            .then_with(|| a.title.cmp(&b.title))
+    });
+
+    if current_day.len() >= cap {
+        current_day.truncate(cap);
+        return current_day;
+    }
+
+    let remaining = cap - current_day.len();
+    current_day.extend(older_or_undated.into_iter().take(remaining));
+    current_day
 }
 
 pub(crate) fn fetch_writeup_feeds(
@@ -268,5 +313,58 @@ pub(crate) fn category_label(category: &str) -> &'static str {
         "malware_incident" => "Malware/Incident",
         "ai_security" => "AI Security",
         _ => "General",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn feed_item(title: &str, published: &str, risk_score: i64) -> FeedItem {
+        FeedItem {
+            title: title.to_string(),
+            summary: String::new(),
+            source: "test".to_string(),
+            url: format!("https://example.test/{title}"),
+            published: published.to_string(),
+            risk_score,
+            category: "general".to_string(),
+            tags: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn current_day_items_survive_global_cap_even_with_lower_risk() {
+        let day = NaiveDate::from_ymd_opt(2026, 7, 10).expect("valid date");
+        let items = vec![
+            feed_item("old-critical", "2026-07-09T12:00:00+00:00", 10),
+            feed_item("old-high", "2026-07-09T11:00:00+00:00", 9),
+            feed_item("today-low", "2026-07-10T04:00:00+00:00", 1),
+        ];
+
+        let kept = retain_current_day_before_cap(items, day, 2);
+
+        assert_eq!(kept.len(), 2);
+        assert_eq!(kept[0].title, "today-low");
+        assert!(kept.iter().any(|item| item.title == "old-critical"));
+    }
+
+    #[test]
+    fn current_day_overflow_keeps_latest_items() {
+        let day = NaiveDate::from_ymd_opt(2026, 7, 10).expect("valid date");
+        let items = vec![
+            feed_item("today-oldest", "2026-07-09T20:31:00+00:00", 10),
+            feed_item("today-middle", "2026-07-10T01:00:00+00:00", 1),
+            feed_item("today-latest", "2026-07-10T06:00:00+00:00", 1),
+        ];
+
+        let kept = retain_current_day_before_cap(items, day, 2);
+
+        assert_eq!(
+            kept.iter()
+                .map(|item| item.title.as_str())
+                .collect::<Vec<_>>(),
+            vec!["today-latest", "today-middle"]
+        );
     }
 }
