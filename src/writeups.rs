@@ -2,6 +2,9 @@
 
 use crate::prelude::*;
 
+const WRITEUP_VISIBLE_LIMIT: usize = 20;
+const WRITEUP_FALLBACK_DAYS: i64 = 7;
+
 pub(crate) fn build_writeups_pulse(items: &[FeedItem], day: NaiveDate, date_label: &str) -> Value {
     let qualified_candidates: Vec<FeedItem> = items
         .iter()
@@ -31,14 +34,14 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem], day: NaiveDate, date_labe
                 parse_feed_item_local_time(item)
                     .map(|dt| {
                         let age = day.signed_duration_since(dt.date_naive()).num_days();
-                        (1..=7).contains(&age)
+                        (1..=WRITEUP_FALLBACK_DAYS).contains(&age)
                     })
                     .unwrap_or(false)
             })
             .cloned()
             .collect();
         sort_news_latest_first(&mut recent);
-        recent.truncate(6);
+        recent.truncate(WRITEUP_VISIBLE_LIMIT);
         if !recent.is_empty() {
             fallback_used = true;
             candidates = recent;
@@ -55,7 +58,7 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem], day: NaiveDate, date_labe
 
     let writeups: Vec<Value> = candidates
         .iter()
-        .take(12)
+        .take(WRITEUP_VISIBLE_LIMIT)
         .enumerate()
         .map(|(idx, item)| writeup_item_value(idx + 1, item))
         .collect();
@@ -67,10 +70,10 @@ pub(crate) fn build_writeups_pulse(items: &[FeedItem], day: NaiveDate, date_labe
     let kind_chart = count_chart(kind_counts, 6);
 
     let summary = if visible == 0 {
-        format!("No public writeups were published for {date_label} or the preceding 7 days.")
+        format!("No public writeups were published for {date_label} or the preceding {WRITEUP_FALLBACK_DAYS} days.")
     } else if fallback_used {
         format!(
-            "No writeups were published on {date_label}; the {visible} most recent from the past 7 days are shown instead."
+            "No writeups were published on {date_label}; the {visible} most recent from the past {WRITEUP_FALLBACK_DAYS} days are shown instead."
         )
     } else if hidden > 0 {
         format!("{visible} writeups published on {date_label} are shown and {hidden} lower-priority same-day items are hidden for conciseness.")
@@ -172,32 +175,22 @@ pub(crate) fn is_writeup_item(item: &FeedItem) -> bool {
     let source = item.source.to_ascii_lowercase();
     let title = item.title.to_ascii_lowercase();
     let summary = item.summary.to_ascii_lowercase();
-    let text = format!(
-        "{title} {summary} {}",
-        item.tags.join(" ").to_ascii_lowercase()
-    );
-
-    // Writeups now come from a dedicated source list, not from the Daily News feed.
-    // This guard keeps the panel focused on analysis/research and prevents normal
-    // news, newsletters, patch roundups, and product updates from leaking in.
-    let dedicated_writeup_source = [
-        "the dfir report",
-        "portswigger research",
-        "unit 42",
-        "cisco talos",
-        "projectdiscovery research",
-        "projectdiscovery blog",
-        "zero day initiative research",
-        "securelist",
-        "google cloud threat intelligence",
-        "microsoft security blog",
-        "cloudflare security research",
-        "rapid7 research",
-    ];
-    let dedicated_writeup_source = dedicated_writeup_source
+    let content_tags = item
+        .tags
         .iter()
-        .any(|needle| source.contains(needle));
+        .filter(|tag| !tag.eq_ignore_ascii_case("Writeup Source"))
+        .map(|tag| tag.to_ascii_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let text = format!("{title} {summary} {content_tags}");
 
+    // Every entry fetched through `writeup_sources` is tagged at ingestion time.
+    // Trust that dedicated pipeline instead of maintaining a second, incomplete
+    // source allow-list that silently rejected most configured feeds.
+    let dedicated_writeup_source = item
+        .tags
+        .iter()
+        .any(|tag| tag.eq_ignore_ascii_case("Writeup Source"));
     if !dedicated_writeup_source {
         return false;
     }
@@ -266,22 +259,10 @@ pub(crate) fn is_writeup_item(item: &FeedItem) -> bool {
     .iter()
     .any(|needle| text.contains(needle));
 
-    let research_source_allows_depth = [
-        "the dfir report",
-        "portswigger research",
-        "unit 42",
-        "cisco talos",
-        "securelist",
-        "google cloud threat intelligence",
-    ]
-    .iter()
-    .any(|needle| source.contains(needle));
-
     let technical_depth_signal = [
         "ioc",
         "yara",
         "sigma",
-        "rule",
         "reverse engineer",
         "loader",
         "payload",
@@ -298,17 +279,88 @@ pub(crate) fn is_writeup_item(item: &FeedItem) -> bool {
         "proof-of-concept",
         "vulnerability analysis",
         "cve-",
+        "zero-day",
         "apt",
         "threat actor",
         "malware",
         "ransomware",
         "phishing kit",
         "detection",
+        "bug bounty",
+        "hackerone",
+        "bugcrowd",
+        "responsible disclosure",
+        "vulnerability disclosure",
+        "idor",
+        "ssrf",
+        "xss",
+        "sql injection",
+        "account takeover",
+        "subdomain takeover",
+        "oauth",
+        "cors",
+        "request smuggling",
+        "race condition",
+        "business logic",
+        "graphql",
+        "jwt",
+        "postmessage",
+        "prototype pollution",
+        "cache poisoning",
+        "cache deception",
+        "immunefi",
     ]
     .iter()
     .any(|needle| text.contains(needle));
 
-    explicit_analysis_marker || (research_source_allows_depth && technical_depth_signal)
+    // A few feeds intentionally mix research with corporate/product content.
+    // Keep those high precision. The remaining entries originate from the
+    // explicitly curated writeup source list and are accepted by default.
+    let mixed_content_source = source.starts_with("medium ")
+        || [
+            "microsoft security blog",
+            "cloudflare security research",
+            "projectdiscovery research",
+            "projectdiscovery blog",
+            "github bug bounty",
+        ]
+        .iter()
+        .any(|needle| source.contains(needle));
+
+    let topical_feed_name = [
+        "bug bounty",
+        "hackerone",
+        "bugcrowd",
+        "vulnerability disclosure",
+        "responsible disclosure",
+        "idor",
+        "ssrf",
+        "subdomain takeover",
+        "information disclosure",
+        "web cache poisoning",
+        "account takeover",
+        "prototype pollution",
+        "postmessage",
+        "request smuggling",
+        "web cache deception",
+        "oauth",
+        "graphql",
+        "jwt",
+        "cors",
+        "dom xss",
+        "blind xss",
+        "race condition",
+        "business logic",
+        "immunefi",
+    ]
+    .iter()
+    .any(|needle| source.contains(needle));
+
+    if mixed_content_source {
+        explicit_analysis_marker || technical_depth_signal || topical_feed_name
+    } else {
+        true
+    }
 }
 
 pub(crate) fn writeup_kind(item: &FeedItem) -> &'static str {
@@ -379,4 +431,98 @@ pub(crate) fn writeup_score(item: &FeedItem) -> usize {
         score += 7;
     }
     score.clamp(12, 100)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn feed_item(source: &str, title: &str, summary: &str, published: &str) -> FeedItem {
+        FeedItem {
+            title: title.to_string(),
+            summary: summary.to_string(),
+            source: source.to_string(),
+            url: format!(
+                "https://example.test/{}/{}",
+                source.replace(' ', "-"),
+                title.replace(' ', "-")
+            ),
+            published: published.to_string(),
+            risk_score: 3,
+            category: "general".to_string(),
+            tags: vec!["Writeup Source".to_string()],
+        }
+    }
+
+    #[test]
+    fn curated_writeup_source_is_not_blocked_by_old_allow_list() {
+        let item = feed_item(
+            "Assetnote Research",
+            "A new path through a complex application",
+            "Detailed security research from the team.",
+            "2026-07-10T08:00:00+00:00",
+        );
+
+        assert!(is_writeup_item(&item));
+    }
+
+    #[test]
+    fn normal_news_item_without_writeup_pipeline_tag_is_rejected() {
+        let mut item = feed_item(
+            "Assetnote Research",
+            "Technical analysis",
+            "Detailed findings.",
+            "2026-07-10T08:00:00+00:00",
+        );
+        item.tags.clear();
+
+        assert!(!is_writeup_item(&item));
+    }
+
+    #[test]
+    fn generic_mixed_feed_post_is_rejected() {
+        let item = feed_item(
+            "Cloudflare Security Research",
+            "Cloudflare joins a public resilience pledge",
+            "An organizational announcement.",
+            "2026-07-10T08:00:00+00:00",
+        );
+
+        assert!(!is_writeup_item(&item));
+    }
+
+    #[test]
+    fn topical_medium_feed_is_accepted() {
+        let item = feed_item(
+            "Medium IDOR",
+            "How I found access to another tenant",
+            "A bug bounty finding with impact and remediation details.",
+            "2026-07-10T08:00:00+00:00",
+        );
+
+        assert!(is_writeup_item(&item));
+    }
+
+    #[test]
+    fn writeups_panel_uses_all_twenty_supported_cards() {
+        let day = NaiveDate::from_ymd_opt(2026, 7, 10).expect("valid date");
+        let items = (0..25)
+            .map(|idx| {
+                feed_item(
+                    "watchTowr Labs",
+                    &format!("Research item {idx}"),
+                    "Technical research details.",
+                    &format!("2026-07-10T{:02}:00:00+00:00", idx % 20),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let pulse = build_writeups_pulse(&items, day, "2026-07-10");
+
+        assert_eq!(
+            pulse["totals"]["writeups"].as_u64(),
+            Some(WRITEUP_VISIBLE_LIMIT as u64)
+        );
+        assert_eq!(pulse["writeups"].as_array().map(Vec::len), Some(20));
+    }
 }

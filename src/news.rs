@@ -137,13 +137,19 @@ pub(crate) fn fetch_writeup_feeds(
         }
     }
 
+    let deduped_before_quality_filter = deduped.len();
+    deduped.retain(is_writeup_item);
     sort_news_latest_first(&mut deduped);
-    let max_writeups = (config.fetch.max_total_items / 2).max(24).min(60);
+
+    let qualified_before_cap = deduped.len();
+    let max_writeups = (config.fetch.max_total_items / 2).max(80).min(240);
     deduped.truncate(max_writeups);
 
     eprintln!(
-        "✅ fetched+deduped writeup feeds: {} items from {} sources",
+        "✅ fetched+qualified writeup feeds: {} items ({} qualified before cap; {} deduped fetched) from {} sources",
         deduped.len(),
+        qualified_before_cap,
+        deduped_before_quality_filter,
         config.writeup_sources.len().saturating_sub(failures.len())
     );
     Ok((deduped, failures))
