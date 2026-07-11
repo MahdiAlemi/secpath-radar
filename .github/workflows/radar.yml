@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 1
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Restore last known state
         shell: bash
@@ -87,15 +87,18 @@ jobs:
             echo "flags=--full" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build, collect, render, and run quality gates
+      - name: Build release binary without secrets
+        run: cargo build --release --locked
+
+      - name: Collect, render, and run quality gates
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GREYNOISE_API_KEY: ${{ secrets.GREYNOISE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
           RUST_BACKTRACE: "1"
-        run: cargo run --release --locked -- ${{ steps.mode.outputs.flags }}
+        run: ./target/release/secpath-radar ${{ steps.mode.outputs.flags }}
 
-      - name: Stage validated publication bundle
+      - name: Stage public Pages and operational publication bundles
         shell: bash
         run: |
           set -euo pipefail
@@ -105,40 +108,56 @@ jobs:
           test -s site/api/summary.json
           test -s data/latest_brief.json
 
-          rm -rf _bundle radar-bundle.tar.gz
-          mkdir -p _bundle/state
-          cp -a site/. _bundle/
-          printf '%s\n' 'radar.secpath.space' > _bundle/CNAME
-          touch _bundle/.nojekyll
+          rm -rf _pages _publication radar-publication.tar.gz
+          mkdir -p _pages _publication/state
+
+          # Public GitHub Pages artifact: rendered site only.
+          cp -a site/. _pages/
+          printf '%s\n' 'radar.secpath.space' > _pages/CNAME
+          touch _pages/.nojekyll
+
+          # Operational branch bundle: public site plus state required by the next run.
+          cp -a site/. _publication/
+          printf '%s\n' 'radar.secpath.space' > _publication/CNAME
+          touch _publication/.nojekyll
 
           if [ -d data/cache ]; then
-            mkdir -p _bundle/state/cache
-            cp -a data/cache/. _bundle/state/cache/
+            mkdir -p _publication/state/cache
+            cp -a data/cache/. _publication/state/cache/
           fi
           if [ -d data/day_state ]; then
-            mkdir -p _bundle/state/day_state
-            cp -a data/day_state/. _bundle/state/day_state/
+            mkdir -p _publication/state/day_state
+            cp -a data/day_state/. _publication/state/day_state/
           fi
           if [ -d snapshots ]; then
-            mkdir -p _bundle/state/snapshots
-            cp -a snapshots/. _bundle/state/snapshots/
+            mkdir -p _publication/state/snapshots
+            cp -a snapshots/. _publication/state/snapshots/
           fi
-          cp -a data/latest_brief.json _bundle/state/latest_brief.json
+          cp -a data/latest_brief.json _publication/state/latest_brief.json
 
-          tar -C _bundle -czf radar-bundle.tar.gz .
+          # Security invariants: internal state must never enter the Pages artifact.
+          test ! -e _pages/state
+          test ! -e _pages/.env
+          test ! -e _pages/data
+          test -s _pages/index.html
+          test -s _pages/feed.xml
+          test -s _pages/api/brief.json
+          test -s _publication/state/latest_brief.json
+
+          tar -C _publication -czf radar-publication.tar.gz .
 
       - name: Upload validated bundle
         uses: actions/upload-artifact@v7
         with:
           name: radar-publication-${{ github.run_id }}
-          path: radar-bundle.tar.gz
+          path: radar-publication.tar.gz
           if-no-files-found: error
           retention-days: 1
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: _bundle
+          path: _pages
 
   publish:
     name: Publish validated output
@@ -162,7 +181,7 @@ jobs:
           set -euo pipefail
           rm -rf _pub
           mkdir -p _pub
-          tar -xzf radar-bundle.tar.gz -C _pub
+          tar -xzf radar-publication.tar.gz -C _pub
 
           test -s _pub/index.html
           test -s _pub/feed.xml
