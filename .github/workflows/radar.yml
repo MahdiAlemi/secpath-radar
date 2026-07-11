@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
+      actions: read
       contents: read
 
     steps:
@@ -33,33 +34,167 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Restore last known state
+      - name: Restore encrypted private state
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RADAR_STATE_KEY: ${{ secrets.RADAR_STATE_KEY }}
         run: |
           set -euo pipefail
-          rm -rf _out
 
-          if git fetch --no-tags origin radar-output --depth=1; then
-            git worktree add --detach _out origin/radar-output
-            mkdir -p data/cache data/day_state snapshots
-
-            if [ -d _out/state/cache ]; then
-              cp -a _out/state/cache/. data/cache/
-            fi
-            if [ -d _out/state/day_state ]; then
-              cp -a _out/state/day_state/. data/day_state/
-            fi
-            if [ -d _out/state/snapshots ]; then
-              cp -a _out/state/snapshots/. snapshots/
-            fi
-            if [ -s _out/state/latest_brief.json ]; then
-              cp -a _out/state/latest_brief.json data/latest_brief.json
-            fi
-
-            git worktree remove --force _out
-          else
-            echo "::notice::radar-output does not exist yet; starting without restored state"
+          if [ -z "${RADAR_STATE_KEY:-}" ]; then
+            echo "::error::Missing RADAR_STATE_KEY repository secret"
+            exit 1
           fi
+
+          validate_state_archive() {
+            local archive="$1"
+            local manifest
+            manifest="$(mktemp)"
+
+            if ! tar -tzf "$archive" > "$manifest"; then
+              rm -f "$manifest"
+              return 1
+            fi
+
+            if ! tar -tvzf "$archive" | awk '
+              {
+                type = substr($1, 1, 1)
+                if (type != "-" && type != "d") {
+                  exit 1
+                }
+              }
+            '; then
+              echo "::warning::State archive contains a non-file/non-directory entry"
+              rm -f "$manifest"
+              return 1
+            fi
+
+            while IFS= read -r entry; do
+              entry="${entry#./}"
+              entry="${entry%/}"
+              [ -z "$entry" ] && continue
+
+              case "$entry" in
+                data/cache|data/cache/*|data/day_state|data/day_state/*|data/latest_brief.json|snapshots|snapshots/*)
+                  ;;
+                *)
+                  echo "::warning::Unexpected path in state archive: $entry"
+                  rm -f "$manifest"
+                  return 1
+                  ;;
+              esac
+
+              case "/$entry/" in
+                *"/../"*|*"/./"*)
+                  echo "::warning::Unsafe path in state archive: $entry"
+                  rm -f "$manifest"
+                  return 1
+                  ;;
+              esac
+            done < "$manifest"
+
+            rm -f "$manifest"
+            return 0
+          }
+
+          rm -rf _state-download _legacy-out _state-artifact.zip radar-state.tar.gz
+          mkdir -p data/cache data/day_state snapshots
+          restored=0
+
+          mapfile -t artifact_ids < <(
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=radar-private-state&per_page=100" \
+              --jq '.artifacts | map(select(.expired == false)) | sort_by(.created_at) | reverse | .[].id'
+          )
+
+          for artifact_id in "${artifact_ids[@]:0:5}"; do
+            rm -rf _state-download _state-artifact.zip radar-state.tar.gz
+            mkdir -p _state-download
+
+            if ! curl --fail --location --silent --show-error \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
+              --output _state-artifact.zip; then
+              echo "::warning::Could not download state artifact ${artifact_id}; trying an older copy"
+              continue
+            fi
+
+            if ! unzip -q _state-artifact.zip -d _state-download; then
+              echo "::warning::Could not unpack state artifact ${artifact_id}; trying an older copy"
+              continue
+            fi
+
+            if [ ! -s _state-download/radar-state.tar.gz.gpg ]; then
+              echo "::warning::State artifact ${artifact_id} has no encrypted payload; trying an older copy"
+              continue
+            fi
+
+            if ! printf '%s' "$RADAR_STATE_KEY" | gpg \
+              --batch \
+              --yes \
+              --no-tty \
+              --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              --output radar-state.tar.gz \
+              --decrypt _state-download/radar-state.tar.gz.gpg; then
+              echo "::warning::Could not decrypt state artifact ${artifact_id}; trying an older copy"
+              continue
+            fi
+
+            if ! validate_state_archive radar-state.tar.gz; then
+              echo "::warning::State artifact ${artifact_id} failed validation; trying an older copy"
+              continue
+            fi
+
+            tar -xzf radar-state.tar.gz
+            restored=1
+            echo "::notice::Restored encrypted state artifact ${artifact_id}"
+            break
+          done
+
+          # One-time migration path from the old public radar-output state.
+          if [ "$restored" -eq 0 ]; then
+            echo "::notice::No usable encrypted state artifact found; checking legacy radar-output state"
+            rm -rf _legacy-out
+
+            if git fetch --no-tags origin radar-output --depth=1; then
+              git worktree add --detach _legacy-out origin/radar-output
+              migrated=0
+
+              if [ -d _legacy-out/state/cache ]; then
+                cp -a _legacy-out/state/cache/. data/cache/
+                migrated=1
+              fi
+              if [ -d _legacy-out/state/day_state ]; then
+                cp -a _legacy-out/state/day_state/. data/day_state/
+                migrated=1
+              fi
+              if [ -d _legacy-out/state/snapshots ]; then
+                cp -a _legacy-out/state/snapshots/. snapshots/
+                migrated=1
+              fi
+              if [ -s _legacy-out/state/latest_brief.json ]; then
+                cp -a _legacy-out/state/latest_brief.json data/latest_brief.json
+                migrated=1
+              fi
+
+              git worktree remove --force _legacy-out
+
+              if [ "$migrated" -eq 1 ]; then
+                echo "::notice::Migrated legacy state from radar-output; the validated run will store it encrypted"
+              else
+                echo "::notice::Legacy radar-output contains no state; starting fresh"
+              fi
+            else
+              echo "::notice::radar-output does not exist; starting without restored state"
+            fi
+          fi
+
+          rm -rf _state-download _legacy-out _state-artifact.zip radar-state.tar.gz
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -98,7 +233,7 @@ jobs:
           RUST_BACKTRACE: "1"
         run: ./target/release/secpath-radar ${{ steps.mode.outputs.flags }}
 
-      - name: Stage public Pages and operational publication bundles
+      - name: Stage public Pages and publication bundle
         shell: bash
         run: |
           set -euo pipefail
@@ -109,50 +244,89 @@ jobs:
           test -s data/latest_brief.json
 
           rm -rf _pages _publication radar-publication.tar.gz
-          mkdir -p _pages _publication/state
+          mkdir -p _pages _publication
 
           # Public GitHub Pages artifact: rendered site only.
           cp -a site/. _pages/
           printf '%s\n' 'radar.secpath.space' > _pages/CNAME
           touch _pages/.nojekyll
 
-          # Operational branch bundle: public site plus state required by the next run.
-          cp -a site/. _publication/
-          printf '%s\n' 'radar.secpath.space' > _publication/CNAME
-          touch _publication/.nojekyll
+          # Public radar-output mirror: rendered site only, never runtime state.
+          cp -a _pages/. _publication/
 
-          if [ -d data/cache ]; then
-            mkdir -p _publication/state/cache
-            cp -a data/cache/. _publication/state/cache/
-          fi
-          if [ -d data/day_state ]; then
-            mkdir -p _publication/state/day_state
-            cp -a data/day_state/. _publication/state/day_state/
-          fi
-          if [ -d snapshots ]; then
-            mkdir -p _publication/state/snapshots
-            cp -a snapshots/. _publication/state/snapshots/
-          fi
-          cp -a data/latest_brief.json _publication/state/latest_brief.json
-
-          # Security invariants: internal state must never enter the Pages artifact.
-          test ! -e _pages/state
-          test ! -e _pages/.env
-          test ! -e _pages/data
-          test -s _pages/index.html
-          test -s _pages/feed.xml
-          test -s _pages/api/brief.json
-          test -s _publication/state/latest_brief.json
+          # Security invariants: internal state must never enter public outputs.
+          for root in _pages _publication; do
+            test ! -e "$root/state"
+            test ! -e "$root/.env"
+            test ! -e "$root/data"
+            test -s "$root/index.html"
+            test -s "$root/feed.xml"
+            test -s "$root/api/brief.json"
+            test -s "$root/api/summary.json"
+          done
 
           tar -C _publication -czf radar-publication.tar.gz .
 
-      - name: Upload validated bundle
+      - name: Encrypt validated private state
+        shell: bash
+        env:
+          RADAR_STATE_KEY: ${{ secrets.RADAR_STATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RADAR_STATE_KEY:-}" ] || [ "${#RADAR_STATE_KEY}" -lt 32 ]; then
+            echo "::error::RADAR_STATE_KEY must be present and at least 32 characters"
+            exit 1
+          fi
+
+          test -d data/cache
+          test -d data/day_state
+          test -d snapshots
+          test -s data/latest_brief.json
+
+          rm -f radar-state.tar.gz radar-state.tar.gz.gpg
+          tar -czf radar-state.tar.gz \
+            data/cache \
+            data/day_state \
+            data/latest_brief.json \
+            snapshots
+
+          if tar -tzf radar-state.tar.gz | grep -Eq '(^|/)(\.env|\.git)(/|$)|(^|/)\.\.(/|$)|^/'; then
+            echo "::error::Private state archive contains a forbidden path"
+            exit 1
+          fi
+
+          printf '%s' "$RADAR_STATE_KEY" | gpg \
+            --batch \
+            --yes \
+            --no-tty \
+            --pinentry-mode loopback \
+            --passphrase-fd 0 \
+            --symmetric \
+            --cipher-algo AES256 \
+            --compress-algo none \
+            --output radar-state.tar.gz.gpg \
+            radar-state.tar.gz
+
+          rm -f radar-state.tar.gz
+          test -s radar-state.tar.gz.gpg
+
+      - name: Upload validated publication bundle
         uses: actions/upload-artifact@v7
         with:
           name: radar-publication-${{ github.run_id }}
           path: radar-publication.tar.gz
           if-no-files-found: error
           retention-days: 1
+
+      - name: Upload encrypted private state
+        uses: actions/upload-artifact@v7
+        with:
+          name: radar-private-state
+          path: radar-state.tar.gz.gpg
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
@@ -173,7 +347,7 @@ jobs:
         with:
           name: radar-publication-${{ github.run_id }}
 
-      - name: Publish radar-output branch
+      - name: Publish state-free radar-output branch
         env:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
@@ -187,7 +361,9 @@ jobs:
           test -s _pub/feed.xml
           test -s _pub/api/brief.json
           test -s _pub/api/summary.json
-          test -s _pub/state/latest_brief.json
+          test ! -e _pub/state
+          test ! -e _pub/data
+          test ! -e _pub/.env
 
           cd _pub
           git init -b radar-output
@@ -217,3 +393,37 @@ jobs:
       - name: Deploy validated site to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  cleanup-state:
+    name: Retain encrypted state rollback copies
+    needs:
+      - build
+      - publish
+      - deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+
+    steps:
+      - name: Keep the three newest encrypted state artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t stale_artifact_ids < <(
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=radar-private-state&per_page=100" \
+              --jq '.artifacts | map(select(.expired == false)) | sort_by(.created_at) | reverse | .[3:] | .[].id'
+          )
+
+          for artifact_id in "${stale_artifact_ids[@]}"; do
+            gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+            echo "Deleted old encrypted state artifact ${artifact_id}"
+          done

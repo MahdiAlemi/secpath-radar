@@ -102,9 +102,9 @@ Safety and cost controls:
 
 ## CI
 
-`.github/workflows/radar.yml` runs every two hours at minute 17 and can also be started with `workflow_dispatch`. The build job has read-only repository access, restores the previous cache/day/history state, runs formatting and tests with a pinned Rust toolchain, collects and renders the radar, and applies publication quality gates. Only a validated bundle is passed to a separate write-scoped job, which updates the `radar-output` branch. Failed or empty-news builds never replace the last known-good published output.
+`.github/workflows/radar.yml` runs every two hours at minute 17 and can also be started with `workflow_dispatch`. The build job has read-only repository access, restores the previous cache/day/history state from an encrypted GitHub Actions artifact, runs formatting and tests with a pinned Rust toolchain, collects and renders the radar, and applies publication quality gates. Only validated, state-free site files are passed to the write-scoped `radar-output` job and the GitHub Pages deployment. Failed or empty-news builds never replace the last known-good published output.
 
-HTTP cache freshness is stored in `.meta.json` sidecars rather than filesystem mtimes, because Git checkout does not preserve the original cache-file modification time. The restored `latest_brief.json`, day state, AI/HTTP/intel cache, and snapshots are merged without creating nested state directories.
+Runtime state is packed after validation and encrypted with the repository secret `RADAR_STATE_KEY` before upload. The workflow keeps the three newest encrypted artifacts for rollback and can perform a one-time migration from the legacy `radar-output/state` directory. The public `radar-output` branch and Pages artifact contain no cache, day state, snapshots, `.env`, or `data` directory. HTTP cache freshness remains stored in `.meta.json` sidecars rather than filesystem mtimes.
 
 ## Design principles
 
