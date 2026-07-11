@@ -27,6 +27,15 @@ mod writeups;
 
 use crate::prelude::*;
 
+fn fetch_with_intel_freshness<F>(config: &Config, fetch: F) -> Value
+where
+    F: FnOnce() -> Value,
+{
+    let scope_start = begin_intel_freshness_scope();
+    let panel = fetch();
+    apply_intel_freshness(panel, scope_start, config)
+}
+
 fn main() -> Result<()> {
     let args = parse_args()?;
 
@@ -92,10 +101,14 @@ fn main() -> Result<()> {
             brief["source_health"]["stale_writeup_sources"].clone();
         brief["stats"]["degraded_writeup_sources"] =
             brief["source_health"]["degraded_writeup_sources"].clone();
-        let attack_pressure =
-            fetch_attack_pressure_or_fallback(&config, args.offline, args.refresh_cache);
+        let intel_scope_start = begin_intel_freshness_scope();
+        let attack_pressure = fetch_with_intel_freshness(&config, || {
+            fetch_attack_pressure_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         brief["attack_pressure"] = attack_pressure;
-        let ioc_radar = fetch_ioc_radar_or_fallback(&config, args.offline, args.refresh_cache);
+        let ioc_radar = fetch_with_intel_freshness(&config, || {
+            fetch_ioc_radar_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         let ioc_total = ioc_radar
             .get("totals")
             .and_then(|totals| totals.get("total"))
@@ -104,12 +117,14 @@ fn main() -> Result<()> {
         brief["stats"]["iocs"] = json!(ioc_total);
         brief["ioc_radar"] = ioc_radar;
 
-        let infrastructure_radar = fetch_infrastructure_radar_or_fallback(
-            &config,
-            &brief["ioc_radar"],
-            args.offline,
-            args.refresh_cache,
-        );
+        let infrastructure_radar = fetch_with_intel_freshness(&config, || {
+            fetch_infrastructure_radar_or_fallback(
+                &config,
+                &brief["ioc_radar"],
+                args.offline,
+                args.refresh_cache,
+            )
+        });
         let infra_total = infrastructure_radar
             .get("totals")
             .and_then(|totals| totals.get("hosts"))
@@ -118,8 +133,9 @@ fn main() -> Result<()> {
         brief["stats"]["infrastructure_hosts"] = json!(infra_total);
         brief["infrastructure_radar"] = infrastructure_radar;
 
-        let supply_chain =
-            fetch_supply_chain_radar_or_fallback(&config, args.offline, args.refresh_cache);
+        let supply_chain = fetch_with_intel_freshness(&config, || {
+            fetch_supply_chain_radar_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         let supply_total = supply_chain
             .get("totals")
             .and_then(|totals| totals.get("advisories"))
@@ -128,8 +144,9 @@ fn main() -> Result<()> {
         brief["stats"]["supply_chain_advisories"] = json!(supply_total);
         brief["supply_chain_radar"] = supply_chain;
 
-        let ransomware_pulse =
-            fetch_ransomware_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        let ransomware_pulse = fetch_with_intel_freshness(&config, || {
+            fetch_ransomware_pulse_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         let ransomware_total = ransomware_pulse
             .get("totals")
             .and_then(|totals| totals.get("victims"))
@@ -138,8 +155,9 @@ fn main() -> Result<()> {
         brief["stats"]["ransomware_victims"] = json!(ransomware_total);
         brief["ransomware_pulse"] = ransomware_pulse;
 
-        let botnet_c2_pulse =
-            fetch_botnet_c2_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        let botnet_c2_pulse = fetch_with_intel_freshness(&config, || {
+            fetch_botnet_c2_pulse_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         let botnet_total = botnet_c2_pulse
             .get("totals")
             .and_then(|totals| totals.get("c2"))
@@ -154,13 +172,15 @@ fn main() -> Result<()> {
         brief["stats"]["malicious_tls"] = json!(malicious_tls_total);
         brief["botnet_c2_pulse"] = botnet_c2_pulse;
 
-        let greynoise_context = fetch_greynoise_context_or_fallback(
-            &config,
-            &brief["infrastructure_radar"],
-            &brief["botnet_c2_pulse"],
-            args.offline,
-            args.refresh_cache,
-        );
+        let greynoise_context = fetch_with_intel_freshness(&config, || {
+            fetch_greynoise_context_or_fallback(
+                &config,
+                &brief["infrastructure_radar"],
+                &brief["botnet_c2_pulse"],
+                args.offline,
+                args.refresh_cache,
+            )
+        });
         let greynoise_noise = greynoise_context
             .get("totals")
             .and_then(|totals| totals.get("noise"))
@@ -181,57 +201,72 @@ fn main() -> Result<()> {
         brief["stats"]["greynoise_riot"] = json!(greynoise_riot);
         brief["greynoise_context"] = greynoise_context;
 
-        let phishing_pulse =
-            fetch_phishing_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        let phishing_pulse = fetch_with_intel_freshness(&config, || {
+            fetch_phishing_pulse_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         brief["stats"]["phishing_urls"] = json!(path_u64(&phishing_pulse, &["totals", "urls"]));
         brief["stats"]["phishing_high"] = json!(path_u64(&phishing_pulse, &["totals", "high"]));
         brief["stats"]["phishing_tlds"] = json!(path_u64(&phishing_pulse, &["totals", "tlds"]));
         brief["phishing_pulse"] = phishing_pulse;
 
-        let ics_ot_pulse =
-            fetch_ics_ot_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        let ics_ot_pulse = fetch_with_intel_freshness(&config, || {
+            fetch_ics_ot_pulse_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         brief["stats"]["ics_advisories"] =
             json!(path_u64(&ics_ot_pulse, &["totals", "advisories"]));
         brief["stats"]["ics_high"] = json!(path_u64(&ics_ot_pulse, &["totals", "high"]));
         brief["stats"]["ics_vendors"] = json!(path_u64(&ics_ot_pulse, &["totals", "vendors"]));
         brief["ics_ot_pulse"] = ics_ot_pulse;
 
-        let malware_pulse =
-            fetch_malware_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        let malware_pulse = fetch_with_intel_freshness(&config, || {
+            fetch_malware_pulse_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         brief["stats"]["malware_samples"] = json!(path_u64(&malware_pulse, &["totals", "samples"]));
         brief["stats"]["malware_families"] =
             json!(path_u64(&malware_pulse, &["totals", "families"]));
         brief["malware_pulse"] = malware_pulse;
 
-        let drop_pulse = fetch_drop_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        let drop_pulse = fetch_with_intel_freshness(&config, || {
+            fetch_drop_pulse_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         brief["stats"]["drop_ranges"] = json!(path_u64(&drop_pulse, &["totals", "ranges"]));
         brief["stats"]["drop_big_ranges"] = json!(path_u64(&drop_pulse, &["totals", "big_ranges"]));
         brief["drop_pulse"] = drop_pulse;
 
-        let csaf_pulse = fetch_csaf_pulse_or_fallback(&config, args.offline, args.refresh_cache);
+        let csaf_pulse = fetch_with_intel_freshness(&config, || {
+            fetch_csaf_pulse_or_fallback(&config, args.offline, args.refresh_cache)
+        });
         brief["stats"]["csaf_advisories"] = json!(path_u64(&csaf_pulse, &["totals", "advisories"]));
         brief["stats"]["csaf_critical"] = json!(path_u64(&csaf_pulse, &["totals", "critical"]));
         brief["csaf_pulse"] = csaf_pulse;
 
-        let nuclei_coverage = fetch_nuclei_coverage_or_fallback(
-            &config,
-            &brief["cves"],
-            args.offline,
-            args.refresh_cache,
-        );
+        let nuclei_coverage = fetch_with_intel_freshness(&config, || {
+            fetch_nuclei_coverage_or_fallback(
+                &config,
+                &brief["cves"],
+                args.offline,
+                args.refresh_cache,
+            )
+        });
         brief["stats"]["nuclei_covered_cves"] =
             json!(path_u64(&nuclei_coverage, &["totals", "covered_cves"]));
         brief["stats"]["nuclei_coverage_pct"] =
             json!(path_u64(&nuclei_coverage, &["totals", "coverage_pct"]));
         brief["nuclei_coverage"] = nuclei_coverage;
 
-        let poc_watch =
-            fetch_poc_watch_or_fallback(&config, &brief["cves"], args.offline, args.refresh_cache);
+        let poc_watch = fetch_with_intel_freshness(&config, || {
+            fetch_poc_watch_or_fallback(&config, &brief["cves"], args.offline, args.refresh_cache)
+        });
         brief["stats"]["poc_watch"] = json!(path_u64(&poc_watch, &["totals", "repos"]));
         brief["stats"]["poc_watch_high"] = json!(path_u64(&poc_watch, &["totals", "high"]));
         brief["stats"]["poc_watch_cves"] =
             json!(path_u64(&poc_watch, &["totals", "cves_with_poc"]));
         brief["poc_watch"] = poc_watch;
+        let intel_freshness = intel_freshness_summary_since(intel_scope_start);
+        brief["source_health"]["intel_cache"] = intel_freshness.clone();
+        brief["stats"]["intel_tracked_sources"] = intel_freshness["tracked_sources"].clone();
+        brief["stats"]["intel_stale_sources"] = intel_freshness["stale_sources"].clone();
+        brief["stats"]["intel_cache_age_minutes"] = intel_freshness["cache_age_minutes"].clone();
 
         let executive_snapshot = build_executive_snapshot(&brief);
         brief["executive_snapshot"] = executive_snapshot;

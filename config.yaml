@@ -41,6 +41,7 @@ intel:
   enabled: true
   cache_dir: "data/cache/intel"
   refresh_hours: 1
+  max_stale_hours: 48
   sleep_ms_between_sources: 350
   attack_pressure:
     enabled: true

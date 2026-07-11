@@ -117,6 +117,8 @@ pub(crate) struct IntelConfig {
     pub(crate) cache_dir: String,
     #[serde(default = "default_intel_refresh_hours")]
     pub(crate) refresh_hours: u64,
+    #[serde(default = "default_intel_max_stale_hours")]
+    pub(crate) max_stale_hours: u64,
     #[serde(default = "default_intel_sleep_ms")]
     pub(crate) sleep_ms_between_sources: u64,
     #[serde(default)]
@@ -155,6 +157,7 @@ impl Default for IntelConfig {
             enabled: default_intel_enabled(),
             cache_dir: default_intel_cache_dir(),
             refresh_hours: default_intel_refresh_hours(),
+            max_stale_hours: default_intel_max_stale_hours(),
             sleep_ms_between_sources: default_intel_sleep_ms(),
             attack_pressure: AttackPressureConfig::default(),
             ioc_radar: IocRadarConfig::default(),
@@ -184,6 +187,10 @@ pub(crate) fn default_intel_cache_dir() -> String {
 
 pub(crate) fn default_intel_refresh_hours() -> u64 {
     1
+}
+
+pub(crate) fn default_intel_max_stale_hours() -> u64 {
+    48
 }
 
 pub(crate) fn default_intel_sleep_ms() -> u64 {
@@ -883,6 +890,12 @@ pub(crate) fn load_config(path: &PathBuf) -> Result<Config> {
     }
     if config.cache.enabled && config.cache.ttl_minutes == 0 {
         anyhow::bail!("cache.ttl_minutes must be greater than zero when cache is enabled");
+    }
+    if config.intel.enabled && config.intel.refresh_hours == 0 {
+        anyhow::bail!("intel.refresh_hours must be greater than zero when Intel is enabled");
+    }
+    if config.intel.enabled && config.intel.max_stale_hours < config.intel.refresh_hours {
+        anyhow::bail!("intel.max_stale_hours must be greater than or equal to intel.refresh_hours");
     }
     if config.fetch.user_agent.trim().is_empty() {
         anyhow::bail!("fetch.user_agent cannot be empty");

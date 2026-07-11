@@ -14,6 +14,84 @@ fn array_len(value: &Value, key: &str) -> usize {
         .unwrap_or(0)
 }
 
+fn validate_intel_freshness(brief: &Value, config: &Config) -> Result<()> {
+    if !config.intel.enabled {
+        return Ok(());
+    }
+
+    let freshness = brief
+        .pointer("/source_health/intel_cache")
+        .with_context(|| "quality gate: source_health.intel_cache is missing")?;
+    let tracked = freshness
+        .get("tracked_sources")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let stale = freshness
+        .get("stale_sources")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    if stale > tracked {
+        anyhow::bail!(
+            "quality gate: Intel stale source count {stale} exceeds tracked source count {tracked}"
+        );
+    }
+
+    let status = freshness
+        .get("cache_status")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    if !matches!(status, "fresh" | "stale" | "untracked") {
+        anyhow::bail!("quality gate: invalid Intel cache_status {status:?}");
+    }
+
+    let max_age_minutes = config.intel.max_stale_hours.saturating_mul(60);
+    if let Some(age) = freshness.get("cache_age_minutes").and_then(Value::as_u64) {
+        if age > max_age_minutes {
+            anyhow::bail!(
+                "quality gate: Intel cache age {age} minutes exceeds configured maximum {max_age_minutes}"
+            );
+        }
+    }
+
+    if tracked > 0 {
+        let fetched_at = freshness
+            .get("source_fetched_at")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        if fetched_at.is_empty() {
+            anyhow::bail!(
+                "quality gate: Intel sources were tracked but source_fetched_at is empty"
+            );
+        }
+        chrono::DateTime::parse_from_rfc3339(fetched_at).with_context(|| {
+            format!("quality gate: invalid Intel source_fetched_at {fetched_at:?}")
+        })?;
+    }
+
+    if let Some(sources) = freshness.get("sources").and_then(Value::as_array) {
+        for (index, source) in sources.iter().enumerate() {
+            let age = source
+                .get("age_minutes")
+                .and_then(Value::as_u64)
+                .unwrap_or(max_age_minutes.saturating_add(1));
+            if age > max_age_minutes {
+                anyhow::bail!(
+                    "quality gate: Intel source {index} cache age {age} minutes exceeds configured maximum {max_age_minutes}"
+                );
+            }
+            let fetched_at = source
+                .get("fetched_at")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            chrono::DateTime::parse_from_rfc3339(fetched_at).with_context(|| {
+                format!("quality gate: invalid fetched_at for Intel source {index}: {fetched_at:?}")
+            })?;
+        }
+    }
+
+    Ok(())
+}
+
 pub(crate) fn validate_collected_brief(brief: &Value, config: &Config) -> Result<()> {
     let rss_items = path_u64(brief, &["stats", "rss_items_fetched"]) as usize;
     let visible_news = array_len(brief, "today_news");
@@ -125,6 +203,8 @@ pub(crate) fn validate_collected_brief(brief: &Value, config: &Config) -> Result
             }
         }
     }
+
+    validate_intel_freshness(brief, config)?;
 
     Ok(())
 }

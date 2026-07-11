@@ -5,10 +5,225 @@
 //! caches look fresh on every CI run and can keep stale feeds alive forever.
 
 use crate::prelude::*;
+use std::sync::{Mutex, OnceLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct CacheMetadata {
     fetched_at_unix: i64,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct IntelCacheEntry {
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) fetched_at_unix: i64,
+    pub(crate) age_minutes: u64,
+    pub(crate) is_fresh: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct IntelCacheEvent {
+    pub(crate) label: String,
+    pub(crate) status: String,
+    pub(crate) fetched_at: String,
+    pub(crate) age_minutes: u64,
+    pub(crate) stale_reason: Option<String>,
+}
+
+static INTEL_CACHE_EVENTS: OnceLock<Mutex<Vec<IntelCacheEvent>>> = OnceLock::new();
+
+fn intel_cache_events() -> &'static Mutex<Vec<IntelCacheEvent>> {
+    INTEL_CACHE_EVENTS.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+pub(crate) fn begin_intel_freshness_scope() -> usize {
+    intel_cache_events()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .len()
+}
+
+fn unix_to_rfc3339(timestamp: i64) -> String {
+    chrono::DateTime::<Utc>::from_timestamp(timestamp, 0)
+        .map(|value| value.to_rfc3339_opts(SecondsFormat::Secs, true))
+        .unwrap_or_default()
+}
+
+pub(crate) fn record_intel_cache_event(
+    label: &str,
+    status: &str,
+    fetched_at_unix: i64,
+    age_minutes: u64,
+    stale_reason: Option<String>,
+) {
+    let event = IntelCacheEvent {
+        label: label.to_string(),
+        status: status.to_string(),
+        fetched_at: unix_to_rfc3339(fetched_at_unix),
+        age_minutes,
+        stale_reason,
+    };
+    intel_cache_events()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .push(event);
+}
+
+pub(crate) fn intel_freshness_summary_since(start: usize) -> Value {
+    let events = intel_cache_events()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let scoped = events.iter().skip(start).cloned().collect::<Vec<_>>();
+
+    if scoped.is_empty() {
+        return json!({
+            "cache_status": "untracked",
+            "tracked_sources": 0,
+            "stale_sources": 0,
+            "cache_age_minutes": null,
+            "source_fetched_at": "",
+            "newest_source_fetched_at": "",
+            "sources": []
+        });
+    }
+
+    let stale_sources = scoped
+        .iter()
+        .filter(|event| event.status.contains("stale"))
+        .count();
+    let max_age = scoped
+        .iter()
+        .map(|event| event.age_minutes)
+        .max()
+        .unwrap_or(0);
+    let oldest = scoped
+        .iter()
+        .filter_map(|event| chrono::DateTime::parse_from_rfc3339(&event.fetched_at).ok())
+        .min()
+        .map(|value| {
+            value
+                .with_timezone(&Utc)
+                .to_rfc3339_opts(SecondsFormat::Secs, true)
+        })
+        .unwrap_or_default();
+    let newest = scoped
+        .iter()
+        .filter_map(|event| chrono::DateTime::parse_from_rfc3339(&event.fetched_at).ok())
+        .max()
+        .map(|value| {
+            value
+                .with_timezone(&Utc)
+                .to_rfc3339_opts(SecondsFormat::Secs, true)
+        })
+        .unwrap_or_default();
+
+    json!({
+        "cache_status": if stale_sources > 0 { "stale" } else { "fresh" },
+        "tracked_sources": scoped.len(),
+        "stale_sources": stale_sources,
+        "cache_age_minutes": max_age,
+        "source_fetched_at": oldest,
+        "newest_source_fetched_at": newest,
+        "sources": scoped
+    })
+}
+
+pub(crate) fn apply_intel_freshness(
+    mut panel: Value,
+    scope_start: usize,
+    config: &Config,
+) -> Value {
+    let summary = intel_freshness_summary_since(scope_start);
+    let generated_at = Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true);
+    let tracked_sources = summary
+        .get("tracked_sources")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+
+    let Some(object) = panel.as_object_mut() else {
+        return panel;
+    };
+    object.insert("generated_at".to_string(), json!(generated_at));
+    object.insert(
+        "cache_status".to_string(),
+        summary
+            .get("cache_status")
+            .cloned()
+            .unwrap_or(json!("untracked")),
+    );
+    object.insert(
+        "cache_age_minutes".to_string(),
+        summary
+            .get("cache_age_minutes")
+            .cloned()
+            .unwrap_or(Value::Null),
+    );
+    object.insert(
+        "stale_sources".to_string(),
+        summary.get("stale_sources").cloned().unwrap_or(json!(0)),
+    );
+    object.insert(
+        "tracked_sources".to_string(),
+        summary.get("tracked_sources").cloned().unwrap_or(json!(0)),
+    );
+    object.insert(
+        "source_fetched_at".to_string(),
+        summary
+            .get("source_fetched_at")
+            .cloned()
+            .unwrap_or(json!("")),
+    );
+    object.insert("freshness".to_string(), summary.clone());
+
+    if tracked_sources > 0 {
+        if let Some(source_fetched_at) = summary
+            .get("source_fetched_at")
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+        {
+            object.insert("last_updated".to_string(), json!(source_fetched_at));
+        }
+    }
+
+    let source_health = object
+        .entry("source_health".to_string())
+        .or_insert_with(|| json!({}));
+    if let Some(health) = source_health.as_object_mut() {
+        health.insert(
+            "cache_status".to_string(),
+            summary
+                .get("cache_status")
+                .cloned()
+                .unwrap_or(json!("untracked")),
+        );
+        health.insert(
+            "cache_age_minutes".to_string(),
+            summary
+                .get("cache_age_minutes")
+                .cloned()
+                .unwrap_or(Value::Null),
+        );
+        health.insert(
+            "stale_sources".to_string(),
+            summary.get("stale_sources").cloned().unwrap_or(json!(0)),
+        );
+        health.insert(
+            "tracked_sources".to_string(),
+            summary.get("tracked_sources").cloned().unwrap_or(json!(0)),
+        );
+        health.insert(
+            "source_fetched_at".to_string(),
+            summary
+                .get("source_fetched_at")
+                .cloned()
+                .unwrap_or(json!("")),
+        );
+        health.insert(
+            "max_stale_hours".to_string(),
+            json!(config.intel.max_stale_hours),
+        );
+    }
+
+    panel
 }
 
 #[derive(Debug, Clone)]
@@ -26,20 +241,37 @@ pub(crate) fn get_bytes_cached_intel(
     refresh_cache: bool,
 ) -> Result<Vec<u8>> {
     let cache_key = cache_key(url, &[]);
-    let ttl_minutes = config.intel.refresh_hours.saturating_mul(60).max(60);
 
     if !refresh_cache {
-        if let Some(bytes) =
-            read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, false)?
-        {
+        if let Some(entry) = read_intel_cache_entry(config, &cache_key, false)? {
             eprintln!("  ↳ cache hit: {label}");
-            return Ok(bytes);
+            record_intel_cache_event(
+                label,
+                "fresh-cache",
+                entry.fetched_at_unix,
+                entry.age_minutes,
+                None,
+            );
+            return Ok(entry.bytes);
         }
     }
 
     if offline {
-        return read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
-            .with_context(|| format!("offline mode has no cached response for {label}"));
+        let entry = read_intel_cache_entry(config, &cache_key, true)?
+            .with_context(|| format!("offline mode has no bounded cached response for {label}"))?;
+        let status = if entry.is_fresh {
+            "offline-fresh-cache"
+        } else {
+            "offline-stale-cache"
+        };
+        record_intel_cache_event(
+            label,
+            status,
+            entry.fetched_at_unix,
+            entry.age_minutes,
+            Some("offline mode used cached response".to_string()),
+        );
+        return Ok(entry.bytes);
     }
 
     match client
@@ -53,18 +285,30 @@ pub(crate) fn get_bytes_cached_intel(
                 .with_context(|| format!("failed to read response body for {label}"))?
                 .to_vec();
             write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)?;
+            record_intel_cache_event(label, "network", Utc::now().timestamp(), 0, None);
             Ok(bytes)
         }
-        Err(err) => {
-            if let Some(bytes) =
-                read_cache_from_dir(&config.intel.cache_dir, &cache_key, ttl_minutes, true)?
-            {
-                eprintln!("⚠️  using stale intel cache for {label}: {err}");
-                Ok(bytes)
-            } else {
-                Err(err).with_context(|| format!("request failed for {label}: {url}"))
+        Err(err) => match read_intel_cache_entry(config, &cache_key, true) {
+            Ok(Some(entry)) => {
+                let reason = format!("{err:#}");
+                eprintln!(
+                    "⚠️  using stale intel cache for {label} ({} min old): {reason}",
+                    entry.age_minutes
+                );
+                record_intel_cache_event(
+                    label,
+                    "stale-cache",
+                    entry.fetched_at_unix,
+                    entry.age_minutes,
+                    Some(reason),
+                );
+                Ok(entry.bytes)
             }
-        }
+            Ok(None) => Err(err).with_context(|| format!("request failed for {label}: {url}")),
+            Err(cache_err) => Err(err).with_context(|| {
+                format!("request failed for {label}: {url}; stale fallback rejected: {cache_err:#}")
+            }),
+        },
     }
 }
 
@@ -100,6 +344,54 @@ fn cache_is_fresh(cache_dir: &str, cache_key: &str, ttl_minutes: u64) -> bool {
         .saturating_sub(metadata.fetched_at_unix)
         .max(0) as u64;
     age_seconds <= ttl_minutes.saturating_mul(60)
+}
+
+pub(crate) fn read_intel_cache_entry(
+    config: &Config,
+    cache_key: &str,
+    allow_stale: bool,
+) -> Result<Option<IntelCacheEntry>> {
+    let path = cache_path_in_dir(&config.intel.cache_dir, cache_key);
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let Some(metadata) = read_cache_metadata(&config.intel.cache_dir, cache_key) else {
+        // A cache restored without explicit metadata has no trustworthy age.
+        // Reject it for Intel so stale data cannot live forever.
+        return Ok(None);
+    };
+
+    let age_seconds = Utc::now()
+        .timestamp()
+        .saturating_sub(metadata.fetched_at_unix)
+        .max(0) as u64;
+    let age_minutes = age_seconds.saturating_add(59) / 60;
+    let ttl_minutes = config.intel.refresh_hours.saturating_mul(60).max(60);
+    let max_stale_minutes = config
+        .intel
+        .max_stale_hours
+        .saturating_mul(60)
+        .max(ttl_minutes);
+    let is_fresh = age_seconds <= ttl_minutes.saturating_mul(60);
+
+    if !allow_stale && !is_fresh {
+        return Ok(None);
+    }
+    if allow_stale && age_seconds > max_stale_minutes.saturating_mul(60) {
+        anyhow::bail!(
+            "cached Intel response is {age_minutes} minutes old; maximum allowed is {max_stale_minutes} minutes"
+        );
+    }
+
+    let bytes = fs::read(&path)
+        .with_context(|| format!("failed to read Intel cache file: {}", path.display()))?;
+    Ok(Some(IntelCacheEntry {
+        bytes,
+        fetched_at_unix: metadata.fetched_at_unix,
+        age_minutes,
+        is_fresh,
+    }))
 }
 
 pub(crate) fn read_cache_from_dir(
@@ -418,5 +710,56 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn stale_intel_cache_is_rejected_after_configured_max_age() {
+        let dir = temp_cache_dir("intel-max-stale");
+        let key = "https://example.test/intel";
+        let mut config = load_config(&PathBuf::from("config.yaml")).expect("load config");
+        config.intel.cache_dir = dir.clone();
+        config.intel.refresh_hours = 1;
+        config.intel.max_stale_hours = 2;
+
+        write_cache_to_dir(&dir, key, b"old-intel").expect("write cache");
+        let meta_path = cache_meta_path_in_dir(&dir, key);
+        fs::write(
+            &meta_path,
+            serde_json::to_vec(&CacheMetadata {
+                fetched_at_unix: Utc::now().timestamp() - 3 * 60 * 60,
+            })
+            .expect("metadata JSON"),
+        )
+        .expect("write metadata");
+
+        let err = read_intel_cache_entry(&config, key, true)
+            .expect_err("cache older than max_stale_hours must be rejected");
+        assert!(err.to_string().contains("maximum allowed"));
+
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn intel_freshness_summary_reports_stale_sources_and_oldest_fetch() {
+        let start = begin_intel_freshness_scope();
+        let now = Utc::now().timestamp();
+        record_intel_cache_event("fresh-source", "network", now, 0, None);
+        record_intel_cache_event(
+            "stale-source",
+            "stale-cache",
+            now - 7_200,
+            120,
+            Some("timeout".to_string()),
+        );
+
+        let summary = intel_freshness_summary_since(start);
+        assert_eq!(summary["cache_status"], json!("stale"));
+        assert_eq!(summary["tracked_sources"], json!(2));
+        assert_eq!(summary["stale_sources"], json!(1));
+        assert_eq!(summary["cache_age_minutes"], json!(120));
+        assert_eq!(
+            summary["source_fetched_at"],
+            json!(unix_to_rfc3339(now - 7_200))
+        );
     }
 }

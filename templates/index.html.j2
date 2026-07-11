@@ -260,6 +260,11 @@
         <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
         <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
         <div class="meta"><span>{{ brief.source_health.rss_sources }} news feeds</span><span>{{ brief.source_health.intel_sources }} telemetry sources</span></div>
+        <div class="meta">
+          <span>Intel cache: {{ brief.source_health.intel_cache.cache_status }}</span>
+          {% if brief.source_health.intel_cache.cache_age_minutes is not none %}<span>oldest source: {{ brief.source_health.intel_cache.cache_age_minutes }} min</span>{% endif %}
+          <span>{{ brief.source_health.intel_cache.stale_sources }} stale / {{ brief.source_health.intel_cache.tracked_sources }} tracked</span>
+        </div>
       </section>
 
     </div>

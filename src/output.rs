@@ -142,6 +142,10 @@ pub(crate) fn write_json_api(brief: &Value, out_path: &PathBuf) -> Result<()> {
         "generated_at": brief.get("generated_at").cloned().unwrap_or_else(|| json!("")),
         "date_en": brief.get("date_en").cloned().unwrap_or_else(|| json!("")),
         "stats": brief.get("stats").cloned().unwrap_or_else(|| json!({})),
+        "intel_cache": brief
+            .pointer("/source_health/intel_cache")
+            .cloned()
+            .unwrap_or_else(|| json!({})),
         "executive_snapshot": brief
             .get("executive_snapshot")
             .cloned()
