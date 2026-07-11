@@ -51,6 +51,18 @@ pub(crate) struct FetchConfig {
     pub(crate) connect_timeout_seconds: u64,
     #[serde(default = "default_request_timeout_seconds")]
     pub(crate) request_timeout_seconds: u64,
+    #[serde(default = "default_max_retries")]
+    pub(crate) max_retries: usize,
+    #[serde(default = "default_retry_backoff_ms")]
+    pub(crate) retry_backoff_ms: u64,
+    #[serde(default = "default_max_response_bytes")]
+    pub(crate) max_response_bytes: usize,
+    #[serde(default = "default_max_feed_response_bytes")]
+    pub(crate) max_feed_response_bytes: usize,
+    #[serde(default = "default_max_intel_response_bytes")]
+    pub(crate) max_intel_response_bytes: usize,
+    #[serde(default = "default_conditional_requests")]
+    pub(crate) conditional_requests: bool,
     #[serde(default)]
     pub(crate) proxy: Option<String>,
 }
@@ -77,6 +89,30 @@ pub(crate) fn default_connect_timeout_seconds() -> u64 {
 
 pub(crate) fn default_request_timeout_seconds() -> u64 {
     20
+}
+
+pub(crate) fn default_max_retries() -> usize {
+    2
+}
+
+pub(crate) fn default_retry_backoff_ms() -> u64 {
+    500
+}
+
+pub(crate) fn default_max_response_bytes() -> usize {
+    25 * 1024 * 1024
+}
+
+pub(crate) fn default_max_feed_response_bytes() -> usize {
+    8 * 1024 * 1024
+}
+
+pub(crate) fn default_max_intel_response_bytes() -> usize {
+    50 * 1024 * 1024
+}
+
+pub(crate) fn default_conditional_requests() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -982,6 +1018,21 @@ pub(crate) fn load_config(path: &PathBuf) -> Result<Config> {
     }
     if config.fetch.connect_timeout_seconds > config.fetch.request_timeout_seconds {
         anyhow::bail!("fetch.connect_timeout_seconds cannot exceed request_timeout_seconds");
+    }
+    if config.fetch.max_retries > 5 {
+        anyhow::bail!("fetch.max_retries must be between 0 and 5");
+    }
+    if config.fetch.max_retries > 0 && config.fetch.retry_backoff_ms == 0 {
+        anyhow::bail!("fetch.retry_backoff_ms must be greater than zero when retries are enabled");
+    }
+    if config.fetch.max_response_bytes == 0
+        || config.fetch.max_feed_response_bytes == 0
+        || config.fetch.max_intel_response_bytes == 0
+    {
+        anyhow::bail!("fetch response-size limits must be greater than zero");
+    }
+    if config.fetch.max_feed_response_bytes > config.fetch.max_response_bytes {
+        anyhow::bail!("fetch.max_feed_response_bytes cannot exceed fetch.max_response_bytes");
     }
     if config.cache.enabled && config.cache.ttl_minutes == 0 {
         anyhow::bail!("cache.ttl_minutes must be greater than zero when cache is enabled");

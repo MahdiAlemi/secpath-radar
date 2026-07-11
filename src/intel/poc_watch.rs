@@ -229,99 +229,34 @@ pub(crate) fn fetch_github_repository_search(
         ("per_page", per_page.as_str()),
     ];
     let cache_key = cache_key(&cfg.github_search_repositories_url, &query_params);
+    let token = env::var(&cfg.github_token_env)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
 
-    if !refresh_cache {
-        if let Some(entry) = read_intel_cache_entry(config, &cache_key, false)? {
-            eprintln!("  ↳ cache hit: {label}");
-            record_intel_cache_event(
-                label,
-                "fresh-cache",
-                entry.fetched_at_unix,
-                entry.age_minutes,
-                None,
-            );
-            return serde_json::from_slice(&entry.bytes)
-                .with_context(|| format!("cached GitHub search was not valid JSON for {label}"));
-        }
-    }
-
-    if offline {
-        let entry = read_intel_cache_entry(config, &cache_key, true)?
-            .with_context(|| format!("offline mode has no bounded cached response for {label}"))?;
-        let status = if entry.is_fresh {
-            "offline-fresh-cache"
-        } else {
-            "offline-stale-cache"
-        };
-        record_intel_cache_event(
-            label,
-            status,
-            entry.fetched_at_unix,
-            entry.age_minutes,
-            Some("offline mode used cached response".to_string()),
-        );
-        return serde_json::from_slice(&entry.bytes)
-            .with_context(|| format!("cached GitHub search was not valid JSON for {label}"));
-    }
-
-    let mut request = client
-        .get(&cfg.github_search_repositories_url)
-        .query(&query_params)
-        .header("Accept", "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28");
-
-    if let Ok(token) = env::var(&cfg.github_token_env) {
-        let token = token.trim();
-        if !token.is_empty() {
-            request = request.header("Authorization", format!("Bearer {token}"));
-        }
-    }
-
-    match request
-        .send()
-        .and_then(|response| response.error_for_status())
-    {
-        Ok(response) => {
-            let bytes = response
-                .bytes()
-                .with_context(|| format!("failed to read response body for {label}"))?
-                .to_vec();
-            write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)?;
-            record_intel_cache_event(label, "network", Utc::now().timestamp(), 0, None);
-            serde_json::from_slice(&bytes)
-                .with_context(|| format!("GitHub search response was not valid JSON for {label}"))
-        }
-        Err(err) => match read_intel_cache_entry(config, &cache_key, true) {
-            Ok(Some(entry)) => {
-                let reason = format!("{err:#}");
-                eprintln!(
-                    "⚠️  using stale intel cache for {label} ({} min old): {reason}",
-                    entry.age_minutes
-                );
-                record_intel_cache_event(
-                    label,
-                    "stale-cache",
-                    entry.fetched_at_unix,
-                    entry.age_minutes,
-                    Some(reason),
-                );
-                serde_json::from_slice(&entry.bytes)
-                    .with_context(|| format!("cached GitHub search was not valid JSON for {label}"))
+    let bytes = get_bytes_cached_intel_with_request(
+        config,
+        &cache_key,
+        &cfg.github_search_repositories_url,
+        label,
+        offline,
+        refresh_cache,
+        || {
+            let mut request = client
+                .get(&cfg.github_search_repositories_url)
+                .query(&query_params)
+                .header("Accept", "application/vnd.github+json")
+                .header("X-GitHub-Api-Version", "2022-11-28");
+            if let Some(token) = token.as_deref() {
+                request = request.header("Authorization", format!("Bearer {token}"));
             }
-            Ok(None) => Err(err).with_context(|| {
-                format!(
-                    "request failed for {label}: {}",
-                    cfg.github_search_repositories_url
-                )
-            }),
-            Err(cache_err) => Err(err).with_context(|| {
-                format!(
-                    "request failed for {label}: {}; stale fallback rejected: {cache_err:#}",
-                    cfg.github_search_repositories_url
-                )
-            }),
+            request
         },
-    }
+        |status| status.is_success(),
+    )?;
+
+    serde_json::from_slice(&bytes)
+        .with_context(|| format!("GitHub search response was not valid JSON for {label}"))
 }
 
 pub(crate) fn is_cve_id(value: &str) -> bool {

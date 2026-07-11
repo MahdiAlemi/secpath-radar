@@ -5,11 +5,22 @@
 //! caches look fresh on every CI run and can keep stale feeds alive forever.
 
 use crate::prelude::*;
-use std::sync::{Mutex, OnceLock};
+use reqwest::{
+    blocking::{RequestBuilder, Response},
+    StatusCode,
+};
+use std::{
+    io::Read,
+    sync::{Mutex, OnceLock},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct CacheMetadata {
     fetched_at_unix: i64,
+    #[serde(default)]
+    etag: Option<String>,
+    #[serde(default)]
+    last_modified: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +38,140 @@ pub(crate) struct IntelCacheEvent {
     pub(crate) fetched_at: String,
     pub(crate) age_minutes: u64,
     pub(crate) stale_reason: Option<String>,
+}
+
+fn retryable_status(status: StatusCode) -> bool {
+    matches!(
+        status,
+        StatusCode::TOO_MANY_REQUESTS
+            | StatusCode::INTERNAL_SERVER_ERROR
+            | StatusCode::BAD_GATEWAY
+            | StatusCode::SERVICE_UNAVAILABLE
+            | StatusCode::GATEWAY_TIMEOUT
+    )
+}
+
+fn retryable_error(error: &reqwest::Error) -> bool {
+    error.is_timeout() || error.is_connect() || error.is_request()
+}
+
+fn retry_delay(config: &Config, attempt: usize) -> Duration {
+    let multiplier = 1_u64 << attempt.min(6);
+    Duration::from_millis(config.fetch.retry_backoff_ms.saturating_mul(multiplier))
+}
+
+fn send_with_retry<F, S>(
+    config: &Config,
+    label: &str,
+    mut build_request: F,
+    accept_status: S,
+) -> Result<Response>
+where
+    F: FnMut() -> RequestBuilder,
+    S: Fn(StatusCode) -> bool,
+{
+    let mut last_error: Option<anyhow::Error> = None;
+
+    for attempt in 0..=config.fetch.max_retries {
+        match build_request().send() {
+            Ok(response) => {
+                let status = response.status();
+                if accept_status(status) || status == StatusCode::NOT_MODIFIED {
+                    return Ok(response);
+                }
+
+                let error = match response.error_for_status() {
+                    Ok(_) => unreachable!("non-success status unexpectedly passed validation"),
+                    Err(error) => error,
+                };
+                let can_retry = retryable_status(status) && attempt < config.fetch.max_retries;
+                if !can_retry {
+                    return Err(error).with_context(|| format!("HTTP error for {label}"));
+                }
+                last_error = Some(anyhow::Error::new(error));
+            }
+            Err(error) => {
+                let can_retry = retryable_error(&error) && attempt < config.fetch.max_retries;
+                if !can_retry {
+                    return Err(error)
+                        .with_context(|| format!("failed to send request for {label}"));
+                }
+                last_error = Some(anyhow::Error::new(error));
+            }
+        }
+
+        let delay = retry_delay(config, attempt);
+        eprintln!(
+            "  ↳ retrying {label} in {} ms (attempt {}/{})",
+            delay.as_millis(),
+            attempt + 2,
+            config.fetch.max_retries + 1
+        );
+        thread::sleep(delay);
+    }
+
+    Err(last_error.unwrap_or_else(|| anyhow::anyhow!("request failed without a captured error")))
+        .with_context(|| format!("request failed for {label}"))
+}
+
+fn read_limited<R: Read>(reader: R, max_bytes: usize, label: &str) -> Result<Vec<u8>> {
+    let limit = u64::try_from(max_bytes)
+        .unwrap_or(u64::MAX)
+        .saturating_add(1);
+    let mut bytes = Vec::new();
+    let mut limited = reader.take(limit);
+    limited
+        .read_to_end(&mut bytes)
+        .with_context(|| format!("failed to read response body for {label}"))?;
+
+    if bytes.len() > max_bytes {
+        anyhow::bail!("response body for {label} exceeded configured limit of {max_bytes} bytes");
+    }
+    Ok(bytes)
+}
+
+fn read_response_limited(response: Response, max_bytes: usize, label: &str) -> Result<Vec<u8>> {
+    if let Some(content_length) = response.content_length() {
+        if content_length > max_bytes as u64 {
+            anyhow::bail!(
+                "response body for {label} declares {content_length} bytes; configured limit is {max_bytes} bytes"
+            );
+        }
+    }
+    read_limited(response, max_bytes, label)
+}
+
+fn response_validators(response: &Response) -> (Option<String>, Option<String>) {
+    let etag = response
+        .headers()
+        .get(reqwest::header::ETAG)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_string);
+    let last_modified = response
+        .headers()
+        .get(reqwest::header::LAST_MODIFIED)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_string);
+    (etag, last_modified)
+}
+
+fn apply_conditional_headers(
+    mut request: RequestBuilder,
+    config: &Config,
+    metadata: Option<&CacheMetadata>,
+) -> RequestBuilder {
+    if !config.fetch.conditional_requests {
+        return request;
+    }
+    if let Some(metadata) = metadata {
+        if let Some(etag) = metadata.etag.as_deref() {
+            request = request.header(reqwest::header::IF_NONE_MATCH, etag);
+        }
+        if let Some(last_modified) = metadata.last_modified.as_deref() {
+            request = request.header(reqwest::header::IF_MODIFIED_SINCE, last_modified);
+        }
+    }
+    request
 }
 
 static INTEL_CACHE_EVENTS: OnceLock<Mutex<Vec<IntelCacheEvent>>> = OnceLock::new();
@@ -241,9 +386,34 @@ pub(crate) fn get_bytes_cached_intel(
     refresh_cache: bool,
 ) -> Result<Vec<u8>> {
     let cache_key = cache_key(url, &[]);
+    get_bytes_cached_intel_with_request(
+        config,
+        &cache_key,
+        url,
+        label,
+        offline,
+        refresh_cache,
+        || client.get(url),
+        |status| status.is_success(),
+    )
+}
 
+pub(crate) fn get_bytes_cached_intel_with_request<F, S>(
+    config: &Config,
+    cache_key: &str,
+    source_url: &str,
+    label: &str,
+    offline: bool,
+    refresh_cache: bool,
+    build_request: F,
+    accept_status: S,
+) -> Result<Vec<u8>>
+where
+    F: Fn() -> RequestBuilder,
+    S: Fn(StatusCode) -> bool + Copy,
+{
     if !refresh_cache {
-        if let Some(entry) = read_intel_cache_entry(config, &cache_key, false)? {
+        if let Some(entry) = read_intel_cache_entry(config, cache_key, false)? {
             eprintln!("  ↳ cache hit: {label}");
             record_intel_cache_event(
                 label,
@@ -257,7 +427,7 @@ pub(crate) fn get_bytes_cached_intel(
     }
 
     if offline {
-        let entry = read_intel_cache_entry(config, &cache_key, true)?
+        let entry = read_intel_cache_entry(config, cache_key, true)?
             .with_context(|| format!("offline mode has no bounded cached response for {label}"))?;
         let status = if entry.is_fresh {
             "offline-fresh-cache"
@@ -274,21 +444,59 @@ pub(crate) fn get_bytes_cached_intel(
         return Ok(entry.bytes);
     }
 
-    match client
-        .get(url)
-        .send()
-        .and_then(|response| response.error_for_status())
-    {
-        Ok(response) => {
-            let bytes = response
-                .bytes()
-                .with_context(|| format!("failed to read response body for {label}"))?
-                .to_vec();
-            write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)?;
-            record_intel_cache_event(label, "network", Utc::now().timestamp(), 0, None);
-            Ok(bytes)
+    let metadata = if refresh_cache {
+        None
+    } else {
+        read_cache_metadata(&config.intel.cache_dir, cache_key)
+    };
+    let network_result: Result<Vec<u8>> = (|| {
+        let response = send_with_retry(
+            config,
+            label,
+            || apply_conditional_headers(build_request(), config, metadata.as_ref()),
+            accept_status,
+        )?;
+
+        if response.status() == StatusCode::NOT_MODIFIED {
+            let path = cache_path_in_dir(&config.intel.cache_dir, cache_key);
+            let bytes = fs::read(&path).with_context(|| {
+                format!(
+                    "server returned 304 for {label}, but cached response {} is unavailable",
+                    path.display()
+                )
+            })?;
+            let (response_etag, response_last_modified) = response_validators(&response);
+            write_cache_metadata(
+                &config.intel.cache_dir,
+                cache_key,
+                response_etag.or_else(|| metadata.as_ref().and_then(|value| value.etag.clone())),
+                response_last_modified.or_else(|| {
+                    metadata
+                        .as_ref()
+                        .and_then(|value| value.last_modified.clone())
+                }),
+            )?;
+            record_intel_cache_event(label, "revalidated-cache", Utc::now().timestamp(), 0, None);
+            eprintln!("  ↳ revalidated cache: {label}");
+            return Ok(bytes);
         }
-        Err(err) => match read_intel_cache_entry(config, &cache_key, true) {
+
+        let (etag, last_modified) = response_validators(&response);
+        let bytes = read_response_limited(response, config.fetch.max_intel_response_bytes, label)?;
+        write_cache_to_dir_with_validators(
+            &config.intel.cache_dir,
+            cache_key,
+            &bytes,
+            etag,
+            last_modified,
+        )?;
+        record_intel_cache_event(label, "network", Utc::now().timestamp(), 0, None);
+        Ok(bytes)
+    })();
+
+    match network_result {
+        Ok(bytes) => Ok(bytes),
+        Err(err) => match read_intel_cache_entry(config, cache_key, true) {
             Ok(Some(entry)) => {
                 let reason = format!("{err:#}");
                 eprintln!(
@@ -304,9 +512,11 @@ pub(crate) fn get_bytes_cached_intel(
                 );
                 Ok(entry.bytes)
             }
-            Ok(None) => Err(err).with_context(|| format!("request failed for {label}: {url}")),
+            Ok(None) => Err(err).with_context(|| format!("request failed for {label}: {source_url}")),
             Err(cache_err) => Err(err).with_context(|| {
-                format!("request failed for {label}: {url}; stale fallback rejected: {cache_err:#}")
+                format!(
+                    "request failed for {label}: {source_url}; stale fallback rejected: {cache_err:#}"
+                )
             }),
         },
     }
@@ -437,16 +647,36 @@ fn atomic_write(path: &PathBuf, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn write_cache_to_dir(cache_dir: &str, cache_key: &str, bytes: &[u8]) -> Result<()> {
-    let path = cache_path_in_dir(cache_dir, cache_key);
-    atomic_write(&path, bytes)?;
-
+fn write_cache_metadata(
+    cache_dir: &str,
+    cache_key: &str,
+    etag: Option<String>,
+    last_modified: Option<String>,
+) -> Result<()> {
     let metadata = CacheMetadata {
         fetched_at_unix: Utc::now().timestamp(),
+        etag,
+        last_modified,
     };
     let metadata_bytes = serde_json::to_vec(&metadata)?;
     let metadata_path = cache_meta_path_in_dir(cache_dir, cache_key);
     atomic_write(&metadata_path, &metadata_bytes)
+}
+
+fn write_cache_to_dir_with_validators(
+    cache_dir: &str,
+    cache_key: &str,
+    bytes: &[u8],
+    etag: Option<String>,
+    last_modified: Option<String>,
+) -> Result<()> {
+    let path = cache_path_in_dir(cache_dir, cache_key);
+    atomic_write(&path, bytes)?;
+    write_cache_metadata(cache_dir, cache_key, etag, last_modified)
+}
+
+pub(crate) fn write_cache_to_dir(cache_dir: &str, cache_key: &str, bytes: &[u8]) -> Result<()> {
+    write_cache_to_dir_with_validators(cache_dir, cache_key, bytes, None, None)
 }
 
 pub(crate) fn get_bytes_cached(
@@ -472,26 +702,63 @@ pub(crate) fn get_bytes_cached(
             .with_context(|| format!("offline mode has no cached response for {label}"));
     }
 
-    let mut request = client.get(url);
-    if !query.is_empty() {
-        request = request.query(query);
-    }
+    let metadata = if refresh_cache || !config.cache.enabled {
+        None
+    } else {
+        read_cache_metadata(&config.cache.dir, &cache_key)
+    };
+    let network_result: Result<Vec<u8>> = (|| {
+        let response = send_with_retry(
+            config,
+            label,
+            || {
+                let mut request = client.get(url);
+                if !query.is_empty() {
+                    request = request.query(query);
+                }
+                apply_conditional_headers(request, config, metadata.as_ref())
+            },
+            |status| status.is_success(),
+        )?;
 
-    match request
-        .send()
-        .and_then(|response| response.error_for_status())
-    {
-        Ok(response) => {
-            let bytes = response
-                .bytes()
-                .with_context(|| format!("failed to read response body for {label}"))?
-                .to_vec();
-            write_cache(config, &cache_key, &bytes)?;
-            Ok(bytes)
+        if response.status() == StatusCode::NOT_MODIFIED {
+            let bytes = read_cache(config, &cache_key, true)?.with_context(|| {
+                format!("server returned 304 for {label}, but no cached response exists")
+            })?;
+            let (response_etag, response_last_modified) = response_validators(&response);
+            write_cache_metadata(
+                &config.cache.dir,
+                &cache_key,
+                response_etag.or_else(|| metadata.as_ref().and_then(|value| value.etag.clone())),
+                response_last_modified.or_else(|| {
+                    metadata
+                        .as_ref()
+                        .and_then(|value| value.last_modified.clone())
+                }),
+            )?;
+            eprintln!("  ↳ revalidated cache: {label}");
+            return Ok(bytes);
         }
+
+        let (etag, last_modified) = response_validators(&response);
+        let bytes = read_response_limited(response, config.fetch.max_response_bytes, label)?;
+        if config.cache.enabled {
+            write_cache_to_dir_with_validators(
+                &config.cache.dir,
+                &cache_key,
+                &bytes,
+                etag,
+                last_modified,
+            )?;
+        }
+        Ok(bytes)
+    })();
+
+    match network_result {
+        Ok(bytes) => Ok(bytes),
         Err(err) => {
             if let Some(bytes) = read_cache(config, &cache_key, true)? {
-                eprintln!("⚠️  using stale cache for {label}: {err}");
+                eprintln!("⚠️  using stale cache for {label}: {err:#}");
                 Ok(bytes)
             } else {
                 Err(err).with_context(|| format!("request failed for {label}: {url}"))
@@ -543,39 +810,72 @@ where
         });
     }
 
-    let mut request = client
-        .get(url)
-        .header(
-            reqwest::header::ACCEPT,
-            "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1",
-        )
-        .header(reqwest::header::ACCEPT_LANGUAGE, "en-US,en;q=0.8");
-    if !query.is_empty() {
-        request = request.query(query);
-    }
-
+    let metadata = if refresh_cache || !config.cache.enabled {
+        None
+    } else {
+        read_cache_metadata(&config.cache.dir, &cache_key)
+    };
     let network_result: Result<Vec<u8>> = (|| {
-        let response = request
-            .send()
-            .with_context(|| format!("failed to send request for {label}"))?
-            .error_for_status()
-            .with_context(|| format!("HTTP error for {label}"))?;
-        let bytes = response
-            .bytes()
-            .with_context(|| format!("failed to read response body for {label}"))?
-            .to_vec();
+        let response = send_with_retry(
+            config,
+            label,
+            || {
+                let mut request = client
+                    .get(url)
+                    .header(
+                        reqwest::header::ACCEPT,
+                        "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1",
+                    )
+                    .header(reqwest::header::ACCEPT_LANGUAGE, "en-US,en;q=0.8");
+                if !query.is_empty() {
+                    request = request.query(query);
+                }
+                apply_conditional_headers(request, config, metadata.as_ref())
+            },
+            |status| status.is_success(),
+        )?;
+
+        if response.status() == StatusCode::NOT_MODIFIED {
+            let bytes = read_cache(config, &cache_key, true)?.with_context(|| {
+                format!("server returned 304 for {label}, but no cached response exists")
+            })?;
+            validate(&bytes)
+                .with_context(|| format!("revalidated cached response is invalid for {label}"))?;
+            let (response_etag, response_last_modified) = response_validators(&response);
+            write_cache_metadata(
+                &config.cache.dir,
+                &cache_key,
+                response_etag.or_else(|| metadata.as_ref().and_then(|value| value.etag.clone())),
+                response_last_modified.or_else(|| {
+                    metadata
+                        .as_ref()
+                        .and_then(|value| value.last_modified.clone())
+                }),
+            )?;
+            eprintln!("  ↳ revalidated cache: {label}");
+            return Ok(bytes);
+        }
+
+        let (etag, last_modified) = response_validators(&response);
+        let bytes = read_response_limited(response, config.fetch.max_feed_response_bytes, label)?;
         validate(&bytes).with_context(|| format!("response validation failed for {label}"))?;
+        if config.cache.enabled {
+            write_cache_to_dir_with_validators(
+                &config.cache.dir,
+                &cache_key,
+                &bytes,
+                etag,
+                last_modified,
+            )?;
+        }
         Ok(bytes)
     })();
 
     match network_result {
-        Ok(bytes) => {
-            write_cache(config, &cache_key, &bytes)?;
-            Ok(ValidatedCacheBytes {
-                bytes,
-                stale_fallback_reason: None,
-            })
-        }
+        Ok(bytes) => Ok(ValidatedCacheBytes {
+            bytes,
+            stale_fallback_reason: None,
+        }),
         Err(err) => {
             if let Some(bytes) = read_cache(config, &cache_key, true)? {
                 if validate(&bytes).is_ok() {
@@ -624,14 +924,6 @@ pub(crate) fn read_cache(
     )
 }
 
-pub(crate) fn write_cache(config: &Config, cache_key: &str, bytes: &[u8]) -> Result<()> {
-    if !config.cache.enabled {
-        return Ok(());
-    }
-
-    write_cache_to_dir(&config.cache.dir, cache_key, bytes)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -678,6 +970,8 @@ mod tests {
             &meta_path,
             serde_json::to_vec(&CacheMetadata {
                 fetched_at_unix: Utc::now().timestamp() - 7_200,
+                etag: None,
+                last_modified: None,
             })
             .expect("metadata JSON"),
         )
@@ -727,6 +1021,8 @@ mod tests {
             &meta_path,
             serde_json::to_vec(&CacheMetadata {
                 fetched_at_unix: Utc::now().timestamp() - 3 * 60 * 60,
+                etag: None,
+                last_modified: None,
             })
             .expect("metadata JSON"),
         )
@@ -737,6 +1033,56 @@ mod tests {
         assert!(err.to_string().contains("maximum allowed"));
 
         let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn limited_reader_rejects_oversized_response_bodies() {
+        let bytes = vec![b'x'; 9];
+        let err = read_limited(std::io::Cursor::new(bytes), 8, "oversized test")
+            .expect_err("response larger than limit must fail");
+        assert!(err.to_string().contains("exceeded configured limit"));
+    }
+
+    #[test]
+    fn retry_policy_only_retries_transient_http_statuses() {
+        assert!(retryable_status(StatusCode::TOO_MANY_REQUESTS));
+        assert!(retryable_status(StatusCode::BAD_GATEWAY));
+        assert!(retryable_status(StatusCode::SERVICE_UNAVAILABLE));
+        assert!(!retryable_status(StatusCode::FORBIDDEN));
+        assert!(!retryable_status(StatusCode::NOT_FOUND));
+    }
+
+    #[test]
+    fn conditional_headers_use_cached_validators() {
+        let config = load_config(&PathBuf::from("config.yaml")).expect("load config");
+        let client = build_client(&config).expect("build client");
+        let metadata = CacheMetadata {
+            fetched_at_unix: Utc::now().timestamp(),
+            etag: Some("\"abc123\"".to_string()),
+            last_modified: Some("Sat, 11 Jul 2026 18:00:00 GMT".to_string()),
+        };
+        let request = apply_conditional_headers(
+            client.get("https://example.test/feed"),
+            &config,
+            Some(&metadata),
+        )
+        .build()
+        .expect("build request");
+
+        assert_eq!(
+            request
+                .headers()
+                .get(reqwest::header::IF_NONE_MATCH)
+                .and_then(|value| value.to_str().ok()),
+            Some("\"abc123\"")
+        );
+        assert_eq!(
+            request
+                .headers()
+                .get(reqwest::header::IF_MODIFIED_SINCE)
+                .and_then(|value| value.to_str().ok()),
+            Some("Sat, 11 Jul 2026 18:00:00 GMT")
+        );
     }
 
     #[test]

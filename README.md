@@ -22,7 +22,7 @@ Every run collects from public sources, scores and aggregates the results, optio
 - **~185 public sources** — security news RSS, research write-ups, NVD, CISA KEV, EPSS, CISA Vulnrichment, and 15 threat-intel feeds (DShield, URLhaus, ThreatFox, Shodan InternetDB, GitHub Advisories, ransomware.live, Feodo Tracker, SSLBL, GreyNoise, OpenPhish, CISA ICS, MalwareBazaar, Spamhaus DROP, Red Hat CSAF, nuclei templates, PoC watch)
 - **CVE triage engine** — CVSS + EPSS + KEV-aware risk scoring with layered fallbacks when a source is down
 - **AI editorial layer (optional)** — Gemini rewrites the top news/CVE items into concise, defensive editorial notes and produces a daily **Executive Briefing** panel; everything is schema-locked, sanitized, and cached per item
-- **Resilient by design** — explicit cache timestamps, bounded Intel stale fallback, pre-cache RSS/Atom validation, `--offline` mode, concurrent feed collection, and publication quality gates that preserve the last known-good output when essential data is unusable
+- **Resilient by design** — explicit cache timestamps, conditional HTTP revalidation, bounded response bodies, transient-error retries, bounded Intel stale fallback, pre-cache RSS/Atom validation, `--offline` mode, concurrent feed collection, and publication quality gates that preserve the last known-good output when essential data is unusable
 - **Static output** — `site/index.html`, `feed.xml`, and JSON endpoints under `site/api/`; host it anywhere (GitHub Pages, any static host, or just open the file)
 
 ## Quick start
@@ -63,7 +63,7 @@ Open `site/index.html` directly in a browser — no server needed.
 Everything lives in `config.yaml`:
 
 - **Feeds** — news and write-up sources with per-feed topic modes; mixed technology feeds pass an explicit cybersecurity relevance gate before ranking
-- **HTTP** — connection/request timeouts, bounded feed concurrency, a 90-minute cache TTL for the two-hour schedule, feed validation before cache replacement, fallback/source-health reporting, publication thresholds, and an optional proxy
+- **HTTP** — connection/request timeouts, bounded feed concurrency, exponential retry for transient `429`/`5xx` and transport failures, response-size ceilings, `ETag`/`Last-Modified` conditional revalidation, a 90-minute cache TTL for the two-hour schedule, feed validation before cache replacement, fallback/source-health reporting, publication thresholds, and an optional proxy
 - **Intel freshness** — `intel.refresh_hours` controls normal refresh cadence and `intel.max_stale_hours` caps stale fallback age (48 hours by default). Every Intel panel exposes the actual oldest source fetch time, maximum cache age, and stale-source count instead of presenting generation time as source freshness.
 - **Retention** — bounded history snapshots and AI item-cache storage by both age and file count
 - **Gemini** — model, API URL, temperature, cache directory, and how many top items get editorial treatment (`max_global_news`, `max_cves`)

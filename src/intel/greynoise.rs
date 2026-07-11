@@ -346,82 +346,27 @@ pub(crate) fn get_greynoise_context_cached(
     let url = format!("{}/{}", cfg.community_api_url.trim_end_matches('/'), ip);
     let label = format!("GreyNoise Community {}", ip);
     let cache_key = cache_key(&url, &[]);
+    let api_key = env::var(&cfg.api_key_env)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
 
-    if !refresh_cache {
-        if let Some(entry) = read_intel_cache_entry(config, &cache_key, false)? {
-            eprintln!("  ↳ cache hit: {label}");
-            record_intel_cache_event(
-                &label,
-                "fresh-cache",
-                entry.fetched_at_unix,
-                entry.age_minutes,
-                None,
-            );
-            return Ok(entry.bytes);
-        }
-    }
-
-    if offline {
-        let entry = read_intel_cache_entry(config, &cache_key, true)?
-            .with_context(|| format!("offline mode has no bounded cached response for {label}"))?;
-        let status = if entry.is_fresh {
-            "offline-fresh-cache"
-        } else {
-            "offline-stale-cache"
-        };
-        record_intel_cache_event(
-            &label,
-            status,
-            entry.fetched_at_unix,
-            entry.age_minutes,
-            Some("offline mode used cached response".to_string()),
-        );
-        return Ok(entry.bytes);
-    }
-
-    let mut request = client.get(&url);
-    if let Ok(api_key) = env::var(&cfg.api_key_env) {
-        if !api_key.trim().is_empty() {
-            request = request.header("key", api_key.trim().to_string());
-        }
-    }
-
-    let response = request
-        .send()
-        .with_context(|| format!("request failed for {label}: {url}"))?;
-    let status = response.status().as_u16();
-    let bytes = response
-        .bytes()
-        .with_context(|| format!("failed to read response body for {label}"))?
-        .to_vec();
-
-    if status == 200 || status == 404 {
-        write_cache_to_dir(&config.intel.cache_dir, &cache_key, &bytes)?;
-        record_intel_cache_event(&label, "network", Utc::now().timestamp(), 0, None);
-        Ok(bytes)
-    } else {
-        match read_intel_cache_entry(config, &cache_key, true) {
-            Ok(Some(entry)) => {
-                let reason = format!("HTTP {status}");
-                eprintln!(
-                    "⚠️  using stale intel cache for {label} ({} min old): {reason}",
-                    entry.age_minutes
-                );
-                record_intel_cache_event(
-                    &label,
-                    "stale-cache",
-                    entry.fetched_at_unix,
-                    entry.age_minutes,
-                    Some(reason),
-                );
-                Ok(entry.bytes)
+    get_bytes_cached_intel_with_request(
+        config,
+        &cache_key,
+        &url,
+        &label,
+        offline,
+        refresh_cache,
+        || {
+            let mut request = client.get(&url);
+            if let Some(api_key) = api_key.as_deref() {
+                request = request.header("key", api_key);
             }
-            Ok(None) => anyhow::bail!("GreyNoise Community API returned HTTP {status} for {ip}"),
-            Err(cache_err) => anyhow::bail!(
-                "GreyNoise Community API returned HTTP {status} for {ip}; stale fallback rejected: {cache_err:#}"
-            ),
-        }
-    }
+            request
+        },
+        |status| status.is_success() || status == reqwest::StatusCode::NOT_FOUND,
+    )
 }
 
 pub(crate) fn finalize_greynoise_rows(rows: &mut [GreyNoiseContextRow]) {
