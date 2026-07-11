@@ -28,8 +28,7 @@
   <p class="news-excerpt">{{ item.summary }}</p>
   <div class="meta">
     <span class="news-source">{{ item.source }}</span>
-    <span class="news-time">{{ item.published_time_local }} Tehran &middot; {{ item.published_time_utc }}</span>
-    <span class="news-date">{{ item.published_date_local }}</span>
+    <span class="news-time">{{ item.published_timestamp_display }}</span>
     {% if item.is_new %}<span class="tag tag-new">New</span>{% endif %}
     {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
   </div>
@@ -46,7 +45,7 @@
     {% for tag in item.tags %}{% if loop.index <= 3 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
   </div>
   <div class="meta">
-    <span>{{ item.published_time_local }} Tehran · {{ item.published_time_utc }} · {{ item.published_date_local }}</span>
+    <span>{{ item.published_timestamp_display }}</span>
   </div>
 </article>
 {% endmacro %}
@@ -64,7 +63,7 @@
       {% for tag in item.tags %}{% if loop.index <= 2 %}<span class="tag">{{ tag }}</span>{% endif %}{% endfor %}
     </div>
     <div class="meta news-top-time-line">
-      <span>{{ item.published_time_local }} Tehran · {{ item.published_time_utc }} · {{ item.published_date_local }}</span>
+      <span>{{ item.published_timestamp_display }}</span>
     </div>
   </div>
 </article>
@@ -257,16 +256,10 @@
         <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
       </section>
 
-      <section id="sources" class="panel panel-intel-card panel-meta-card panel-data-card">
+      <section class="panel panel-intel-card panel-meta-card panel-data-card">
         <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
         <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
-        <div class="meta">
-          <span>{{ brief.source_health.rss_sources }} news feeds</span>
-          <span>{{ brief.source_health.intel_sources }} telemetry sources</span>
-          {% if brief.source_health.degraded_rss_sources %}
-          <span>{{ brief.source_health.failed_rss_sources }} failed · {{ brief.source_health.stale_rss_sources }} stale</span>
-          {% endif %}
-        </div>
+        <div class="meta"><span>{{ brief.source_health.rss_sources }} news feeds</span><span>{{ brief.source_health.intel_sources }} telemetry sources</span></div>
       </section>
 
     </div>

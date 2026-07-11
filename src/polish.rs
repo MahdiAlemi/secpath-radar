@@ -29,45 +29,6 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
     if brief["source_health"].get("rss_failures").is_none() {
         brief["source_health"]["rss_failures"] = json!([]);
     }
-    if brief["source_health"].get("stale_rss_sources").is_none() {
-        brief["source_health"]["stale_rss_sources"] = json!(0);
-    }
-    if brief["source_health"].get("rss_stale_fallbacks").is_none() {
-        brief["source_health"]["rss_stale_fallbacks"] = json!([]);
-    }
-    if brief["source_health"].get("degraded_rss_sources").is_none() {
-        let failed = brief["source_health"]["failed_rss_sources"]
-            .as_u64()
-            .unwrap_or(0);
-        let stale = brief["source_health"]["stale_rss_sources"]
-            .as_u64()
-            .unwrap_or(0);
-        brief["source_health"]["degraded_rss_sources"] = json!(failed + stale);
-    }
-    if brief["source_health"]
-        .get("stale_writeup_sources")
-        .is_none()
-    {
-        brief["source_health"]["stale_writeup_sources"] = json!(0);
-    }
-    if brief["source_health"]
-        .get("writeup_stale_fallbacks")
-        .is_none()
-    {
-        brief["source_health"]["writeup_stale_fallbacks"] = json!([]);
-    }
-    if brief["source_health"]
-        .get("degraded_writeup_sources")
-        .is_none()
-    {
-        let failed = brief["source_health"]["failed_writeup_sources"]
-            .as_u64()
-            .unwrap_or(0);
-        let stale = brief["source_health"]["stale_writeup_sources"]
-            .as_u64()
-            .unwrap_or(0);
-        brief["source_health"]["degraded_writeup_sources"] = json!(failed + stale);
-    }
     if brief.get("breaking_news").is_none() {
         brief["breaking_news"] = json!([]);
     }
@@ -668,9 +629,33 @@ pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str) {
             .to_string();
         let (published_date_local, published_time_local, freshness_label) =
             news_time_display_fields(&published);
-        let published_time_utc = chrono::DateTime::parse_from_rfc3339(&published)
-            .map(|dt| dt.with_timezone(&chrono::Utc).format("%H:%M").to_string())
+        let parsed_utc = chrono::DateTime::parse_from_rfc3339(&published)
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .ok();
+        let published_date_utc = parsed_utc
+            .as_ref()
+            .map(|dt| dt.format("%Y-%m-%d").to_string())
             .unwrap_or_default();
+        let published_time_utc_raw = parsed_utc
+            .as_ref()
+            .map(|dt| dt.format("%H:%M").to_string())
+            .unwrap_or_default();
+        let published_time_utc = if published_time_utc_raw.is_empty() {
+            String::new()
+        } else {
+            format!("{published_time_utc_raw} UTC")
+        };
+        let published_timestamp_display = if published_date_local.is_empty()
+            || published_time_local.is_empty()
+            || published_date_utc.is_empty()
+            || published_time_utc_raw.is_empty()
+        {
+            "Unknown publication time".to_string()
+        } else {
+            format!(
+                "{published_date_local} {published_time_local} Tehran · {published_date_utc} {published_time_utc_raw} UTC"
+            )
+        };
         obj.insert(
             "published_date_local".to_string(),
             json!(published_date_local),
@@ -679,9 +664,11 @@ pub(crate) fn enrich_news_fields(brief: &mut Value, key: &str) {
             "published_time_local".to_string(),
             json!(published_time_local),
         );
+        obj.insert("published_date_utc".to_string(), json!(published_date_utc));
+        obj.insert("published_time_utc".to_string(), json!(published_time_utc));
         obj.insert(
-            "published_time_utc".to_string(),
-            json!(format!("{published_time_utc} UTC")),
+            "published_timestamp_display".to_string(),
+            json!(published_timestamp_display),
         );
         obj.insert("freshness_label".to_string(), json!(freshness_label));
         obj.insert(
@@ -887,4 +874,33 @@ pub(crate) fn apply_sev_strip(brief: &mut Value) {
         }));
     }
     brief["sev_strip"] = json!(segments);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn news_timestamp_keeps_local_and_utc_dates_distinct_across_midnight() {
+        let mut brief = json!({
+            "today_news": [{
+                "title": "Midnight boundary advisory",
+                "summary": "Test item",
+                "risk_score": 4,
+                "published": "2026-07-10T22:00:00Z"
+            }]
+        });
+
+        enrich_news_fields(&mut brief, "today_news");
+        let item = &brief["today_news"][0];
+
+        assert_eq!(item["published_date_local"], json!("2026-07-11"));
+        assert_eq!(item["published_time_local"], json!("01:30"));
+        assert_eq!(item["published_date_utc"], json!("2026-07-10"));
+        assert_eq!(item["published_time_utc"], json!("22:00 UTC"));
+        assert_eq!(
+            item["published_timestamp_display"],
+            json!("2026-07-11 01:30 Tehran · 2026-07-10 22:00 UTC")
+        );
+    }
 }
