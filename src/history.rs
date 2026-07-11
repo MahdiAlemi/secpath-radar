@@ -107,12 +107,27 @@ pub(crate) fn attach_history_snapshot(brief: &mut Value, previous: Option<&Value
     });
 }
 
-pub(crate) fn write_history_snapshot(brief: &Value) -> Result<()> {
-    let history_dir = PathBuf::from("snapshots/history");
-    fs::create_dir_all(&history_dir).context("failed to create snapshots/history")?;
+pub(crate) fn build_history_snapshot_value(brief: &Value) -> Value {
     let generated_at = brief
         .get("history_snapshot")
         .and_then(|value| value.get("generated_at"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown");
+    json!({
+        "version": brief.get("version").cloned().unwrap_or_else(|| json!("unknown")),
+        "generated_at": generated_at,
+        "stats": brief.get("stats").cloned().unwrap_or_else(|| json!({})),
+        "executive_snapshot": brief.get("executive_snapshot").cloned().unwrap_or_else(|| json!({})),
+        "history_snapshot": brief.get("history_snapshot").cloned().unwrap_or_else(|| json!({}))
+    })
+}
+
+pub(crate) fn write_history_snapshot(brief: &Value) -> Result<()> {
+    let history_dir = PathBuf::from("snapshots/history");
+    fs::create_dir_all(&history_dir).context("failed to create snapshots/history")?;
+    let snapshot = build_history_snapshot_value(brief);
+    let generated_at = snapshot
+        .get("generated_at")
         .and_then(|value| value.as_str())
         .unwrap_or("unknown");
     let safe_name = generated_at
@@ -121,13 +136,6 @@ pub(crate) fn write_history_snapshot(brief: &Value) -> Result<()> {
         .collect::<String>()
         .trim_matches('-')
         .to_string();
-    let snapshot = json!({
-        "version": brief.get("version").cloned().unwrap_or_else(|| json!("unknown")),
-        "generated_at": generated_at,
-        "stats": brief.get("stats").cloned().unwrap_or_else(|| json!({})),
-        "executive_snapshot": brief.get("executive_snapshot").cloned().unwrap_or_else(|| json!({})),
-        "history_snapshot": brief.get("history_snapshot").cloned().unwrap_or_else(|| json!({}))
-    });
     let pretty = serde_json::to_string_pretty(&snapshot)?;
     fs::write(history_dir.join("latest_snapshot.json"), &pretty)
         .context("failed to write latest history snapshot")?;

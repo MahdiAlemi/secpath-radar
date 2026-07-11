@@ -257,10 +257,16 @@
         <div class="meta"><span>{{ brief.attack_pressure.provider }}</span></div>
       </section>
 
-      <section class="panel panel-intel-card panel-meta-card panel-data-card">
+      <section id="sources" class="panel panel-intel-card panel-meta-card panel-data-card">
         <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
         <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
-        <div class="meta"><span>{{ brief.source_health.rss_sources }} news feeds</span><span>{{ brief.source_health.intel_sources }} telemetry sources</span></div>
+        <div class="meta">
+          <span>{{ brief.source_health.rss_sources }} news feeds</span>
+          <span>{{ brief.source_health.intel_sources }} telemetry sources</span>
+          {% if brief.source_health.degraded_rss_sources %}
+          <span>{{ brief.source_health.failed_rss_sources }} failed · {{ brief.source_health.stale_rss_sources }} stale</span>
+          {% endif %}
+        </div>
       </section>
 
     </div>
@@ -659,19 +665,29 @@
     <div class="top-column top-column-news" aria-label="Daily news and threat activity stream">
     <section id="global-news" class="panel panel-top-card panel-news-top panel-column-fill{% if not brief.today_news %} is-empty{% endif %}">
         <div class="panel-head">
-          <div><span class="eyebrow">TODAY</span><h2>All News Today</h2></div>
+          <div>
+            <span class="eyebrow">{% if brief.news_window.mode == "local-day-only" %}TODAY{% else %}LATEST{% endif %}</span>
+            <h2>{{ brief.news_window.display_label }}</h2>
+          </div>
           <div class="panel-head-actions">
-            <span class="chip chip-news">{{ brief.today_news|length }} today</span>
-            <span class="chip chip-news-date">{{ brief.date_en }}</span>
+            <span class="chip chip-news">{{ brief.today_news|length }} items</span>
+            <span class="chip chip-news-date">{{ brief.news_window.date }}</span>
           </div>
         </div>
         <div class="top-card-body">
+          {% if brief.news_window.mode == "day-state-fallback" %}
+          <p class="lede lede-tight">This run found no new same-day feed entries, so the latest validated items accumulated earlier today are preserved.</p>
+          {% elif brief.news_window.mode == "rolling-fallback" %}
+          <p class="lede lede-tight">No same-day feed items were available; showing verified entries from the last {{ brief.news_window.fallback_hours }} hours.</p>
+          {% elif brief.news_window.stale_fallback %}
+          <p class="lede lede-tight">No dated feed items were available within the fallback window; showing older available entries. Review source health before relying on recency.</p>
+          {% endif %}
           {% if brief.today_news %}
-          <div class="news-top-list" aria-label="News published today only">
+          <div class="news-top-list" aria-label="Latest security news">
             {% for item in brief.today_news %}{{ news_stream_card(item) }}{% endfor %}
           </div>
           {% else %}
-          <p class="empty-note">No news items were published for {{ brief.date_en }}.</p>
+          <p class="empty-note">No usable news items were collected. Publication quality checks should block this output.</p>
           {% endif %}
         </div>
       </section>

@@ -15,6 +15,7 @@ mod news;
 mod output;
 mod polish;
 mod prelude;
+mod quality;
 mod render;
 mod snapshot;
 mod today;
@@ -34,40 +35,63 @@ fn main() -> Result<()> {
     let mut gemini_calls_used = 0_u8;
 
     let mut brief = if network_mode {
-        let (items, rss_failures) = if args.fetch {
+        let (items, rss_failures, rss_stale_fallbacks) = if args.fetch {
             fetch_and_score(&config, args.offline, args.refresh_cache)?
         } else {
-            (Vec::new(), Vec::new())
+            (Vec::new(), Vec::new(), Vec::new())
         };
 
-        let (writeup_items, writeup_failures) = if args.fetch {
+        let (writeup_items, writeup_failures, writeup_stale_fallbacks) = if args.fetch {
             fetch_writeup_feeds(&config, args.offline, args.refresh_cache)?
         } else {
-            (Vec::new(), Vec::new())
+            (Vec::new(), Vec::new(), Vec::new())
         };
 
-        let cves = if args.cves {
+        let (cves, cve_error) = if args.cves {
             match fetch_cves(&config, args.offline, args.refresh_cache) {
-                Ok(cves) => cves,
+                Ok(cves) => (cves, None),
                 Err(err) => {
-                    eprintln!("⚠️  CVE engine skipped: {err:#}");
-                    Vec::new()
+                    let message = format!("{err:#}");
+                    eprintln!("⚠️  CVE engine degraded: {message}");
+                    (Vec::new(), Some(message))
                 }
             }
         } else {
-            Vec::new()
+            (Vec::new(), None)
         };
 
+        let failed_rss_count = rss_failures.len();
+        let stale_rss_count = rss_stale_fallbacks.len();
+        let failed_writeup_count = writeup_failures.len();
+        let stale_writeup_count = writeup_stale_fallbacks.len();
+
         let mut brief = build_brief(&config, items, writeup_items, cves)?;
-        brief["source_health"]["failed_rss_sources"] = json!(rss_failures.len());
+        brief["source_health"]["cve_engine_enabled"] = json!(args.cves);
+        brief["source_health"]["cve_engine_ok"] = json!(cve_error.is_none());
+        brief["source_health"]["cve_error"] = json!(cve_error);
+        brief["source_health"]["failed_rss_sources"] = json!(failed_rss_count);
         brief["source_health"]["rss_failures"] = json!(rss_failures);
+        brief["source_health"]["stale_rss_sources"] = json!(stale_rss_count);
+        brief["source_health"]["rss_stale_fallbacks"] = json!(rss_stale_fallbacks);
+        brief["source_health"]["degraded_rss_sources"] = json!(failed_rss_count + stale_rss_count);
         brief["source_health"]["writeup_sources"] = json!(config.writeup_sources.len());
-        brief["source_health"]["failed_writeup_sources"] = json!(writeup_failures.len());
+        brief["source_health"]["failed_writeup_sources"] = json!(failed_writeup_count);
         brief["source_health"]["writeup_failures"] = json!(writeup_failures);
+        brief["source_health"]["stale_writeup_sources"] = json!(stale_writeup_count);
+        brief["source_health"]["writeup_stale_fallbacks"] = json!(writeup_stale_fallbacks);
+        brief["source_health"]["degraded_writeup_sources"] =
+            json!(failed_writeup_count + stale_writeup_count);
         brief["stats"]["failed_rss_sources"] = brief["source_health"]["failed_rss_sources"].clone();
+        brief["stats"]["stale_rss_sources"] = brief["source_health"]["stale_rss_sources"].clone();
+        brief["stats"]["degraded_rss_sources"] =
+            brief["source_health"]["degraded_rss_sources"].clone();
         brief["stats"]["writeup_feed_sources"] = brief["source_health"]["writeup_sources"].clone();
         brief["stats"]["failed_writeup_sources"] =
             brief["source_health"]["failed_writeup_sources"].clone();
+        brief["stats"]["stale_writeup_sources"] =
+            brief["source_health"]["stale_writeup_sources"].clone();
+        brief["stats"]["degraded_writeup_sources"] =
+            brief["source_health"]["degraded_writeup_sources"].clone();
         let attack_pressure =
             fetch_attack_pressure_or_fallback(&config, args.offline, args.refresh_cache);
         brief["attack_pressure"] = attack_pressure;
@@ -250,51 +274,85 @@ fn main() -> Result<()> {
         });
     }
 
+    if network_mode {
+        validate_collected_brief(&brief, &config)?;
+    }
+
     let previous_brief = read_previous_latest_brief();
-    apply_day_accumulation(&mut brief);
+    let pending_day_state = if network_mode {
+        apply_day_accumulation(&mut brief)?
+    } else {
+        None
+    };
     apply_local_polish(&mut brief);
     build_vendor_watchlist(&mut brief);
     build_attack_matrix(&mut brief);
     brief["top_signals"] = build_top_signals(&brief);
     attach_history_snapshot(&mut brief, previous_brief.as_ref());
     brief["triage_signals"] = build_triage_signals(&brief);
-    if let Err(err) = write_history_snapshot(&brief) {
-        eprintln!("⚠️  history snapshot skipped: {err:#}");
-    }
 
     build_trend_pulse(&mut brief);
 
-    let archives = read_archive_series(ARCHIVE_DIR, WEEKLY_MAX_DAYS);
-    let weekly = build_weekly_brief(&archives);
-    brief["weekly"] = weekly;
+    let mut archives = read_archive_series(ARCHIVE_DIR, WEEKLY_MAX_DAYS);
+    let current_archive = build_daily_archive(&brief);
+    let current_archive_date = current_archive
+        .get("date")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .to_string();
+    archives.retain(|archive| {
+        archive.get("date").and_then(|value| value.as_str()) != Some(current_archive_date.as_str())
+    });
+    archives.push(current_archive);
+    archives.sort_by_key(|archive| {
+        archive
+            .get("date")
+            .and_then(|value| value.as_str())
+            .unwrap_or("")
+            .to_string()
+    });
+    if archives.len() > WEEKLY_MAX_DAYS {
+        let skip = archives.len() - WEEKLY_MAX_DAYS;
+        archives.drain(0..skip);
+    }
+    brief["weekly"] = build_weekly_brief(&archives);
 
-    fs::create_dir_all("data").context("failed to create data directory")?;
-    fs::write(
-        "data/latest_brief.json",
-        serde_json::to_string_pretty(&brief)?,
-    )
-    .context("failed to write data/latest_brief.json")?;
+    if network_mode {
+        validate_collected_brief(&brief, &config)?;
+    }
 
     render_html(&brief, &args.template, &args.out)?;
     copy_static_assets(&args.out)?;
+    write_feed_xml(&brief, &config, &args.out)?;
+    write_json_api(&brief, &args.out)?;
 
-    match write_feed_xml(&brief, &config, &args.out).and_then(|_| write_json_api(&brief, &args.out))
-    {
-        Ok(()) => println!("✅ wrote site/feed.xml + site/api"),
-        Err(err) => eprintln!("⚠️  static outputs skipped: {err:#}"),
+    if network_mode {
+        validate_rendered_outputs(&args.out, &config)?;
     }
 
-    if let Err(err) = write_daily_archive(&brief) {
-        eprintln!("⚠️  daily archive skipped: {err:#}");
+    // Persist production state only for collection runs and only after every
+    // required output has passed the quality gate. Render-only runs stay read-only.
+    if network_mode {
+        if let Some(day_state) = pending_day_state.as_ref() {
+            persist_day_state(day_state)?;
+        }
+        write_json_atomic(&PathBuf::from("data/latest_brief.json"), &brief)?;
+        write_history_snapshot(&brief)?;
+        write_daily_archive(&brief)?;
     }
+
     let legacy_weekly = site_output_dir(&args.out).join("weekly.html");
     if legacy_weekly.exists() {
-        if let Err(err) = fs::remove_file(&legacy_weekly) {
-            eprintln!("⚠️  legacy weekly.html cleanup skipped: {err:#}");
-        }
+        fs::remove_file(&legacy_weekly)
+            .with_context(|| format!("failed to remove {}", legacy_weekly.display()))?;
     }
     println!("✅ rendered {}", args.out.display());
-    println!("✅ wrote data/latest_brief.json");
+    println!("✅ wrote site/feed.xml + site/api");
+    if network_mode {
+        println!("✅ wrote data/latest_brief.json and snapshots");
+    } else {
+        println!("ℹ️ render-only mode: production state was not modified");
+    }
     println!("ℹ️ Gemini calls used: {gemini_calls_used}");
     if args.offline {
         println!("ℹ️ offline mode: used cached HTTP responses only");

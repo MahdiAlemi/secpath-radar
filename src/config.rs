@@ -37,8 +37,44 @@ pub(crate) struct FetchConfig {
     pub(crate) max_total_items: usize,
     pub(crate) sleep_ms_between_sources: u64,
     pub(crate) user_agent: String,
+    #[serde(default = "default_max_concurrent_sources")]
+    pub(crate) max_concurrent_sources: usize,
+    #[serde(default = "default_news_fallback_hours")]
+    pub(crate) news_fallback_hours: u64,
+    #[serde(default = "default_min_news_items_for_publish")]
+    pub(crate) min_news_items_for_publish: usize,
+    #[serde(default = "default_max_source_failure_percent")]
+    pub(crate) max_source_failure_percent: usize,
+    #[serde(default = "default_connect_timeout_seconds")]
+    pub(crate) connect_timeout_seconds: u64,
+    #[serde(default = "default_request_timeout_seconds")]
+    pub(crate) request_timeout_seconds: u64,
     #[serde(default)]
     pub(crate) proxy: Option<String>,
+}
+
+pub(crate) fn default_max_concurrent_sources() -> usize {
+    8
+}
+
+pub(crate) fn default_news_fallback_hours() -> u64 {
+    36
+}
+
+pub(crate) fn default_min_news_items_for_publish() -> usize {
+    5
+}
+
+pub(crate) fn default_max_source_failure_percent() -> usize {
+    50
+}
+
+pub(crate) fn default_connect_timeout_seconds() -> u64 {
+    8
+}
+
+pub(crate) fn default_request_timeout_seconds() -> u64 {
+    20
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -70,7 +106,7 @@ pub(crate) fn default_cache_dir() -> String {
 }
 
 pub(crate) fn default_cache_ttl_minutes() -> u64 {
-    720
+    90
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -814,7 +850,60 @@ pub(crate) fn default_gemini_max_cves() -> usize {
 pub(crate) fn load_config(path: &PathBuf) -> Result<Config> {
     let raw = fs::read_to_string(path)
         .with_context(|| format!("failed to read config: {}", path.display()))?;
-    serde_yaml::from_str(&raw).with_context(|| format!("invalid YAML in {}", path.display()))
+    let config: Config = serde_yaml::from_str(&raw)
+        .with_context(|| format!("invalid YAML in {}", path.display()))?;
+
+    if config.sources.is_empty() {
+        anyhow::bail!("config must contain at least one RSS source");
+    }
+    if config.fetch.max_items_per_source == 0 || config.fetch.max_total_items == 0 {
+        anyhow::bail!("fetch item limits must be greater than zero");
+    }
+    if !(1..=64).contains(&config.fetch.max_concurrent_sources) {
+        anyhow::bail!("fetch.max_concurrent_sources must be between 1 and 64");
+    }
+    if !(1..=168).contains(&config.fetch.news_fallback_hours) {
+        anyhow::bail!("fetch.news_fallback_hours must be between 1 and 168");
+    }
+    if config.fetch.min_news_items_for_publish == 0
+        || config.fetch.min_news_items_for_publish > config.fetch.max_total_items
+    {
+        anyhow::bail!(
+            "fetch.min_news_items_for_publish must be between 1 and fetch.max_total_items"
+        );
+    }
+    if config.fetch.max_source_failure_percent > 100 {
+        anyhow::bail!("fetch.max_source_failure_percent must be between 0 and 100");
+    }
+    if config.fetch.connect_timeout_seconds == 0 || config.fetch.request_timeout_seconds == 0 {
+        anyhow::bail!("HTTP timeout values must be greater than zero");
+    }
+    if config.fetch.connect_timeout_seconds > config.fetch.request_timeout_seconds {
+        anyhow::bail!("fetch.connect_timeout_seconds cannot exceed request_timeout_seconds");
+    }
+    if config.cache.enabled && config.cache.ttl_minutes == 0 {
+        anyhow::bail!("cache.ttl_minutes must be greater than zero when cache is enabled");
+    }
+    if config.fetch.user_agent.trim().is_empty() {
+        anyhow::bail!("fetch.user_agent cannot be empty");
+    }
+
+    for source in config.sources.iter().chain(config.writeup_sources.iter()) {
+        if source.name.trim().is_empty() {
+            anyhow::bail!("feed source names cannot be empty");
+        }
+        let parsed = reqwest::Url::parse(source.url.trim())
+            .with_context(|| format!("invalid feed URL for {}: {}", source.name, source.url))?;
+        if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+            anyhow::bail!(
+                "feed URL must use HTTP(S) for {}: {}",
+                source.name,
+                source.url
+            );
+        }
+    }
+
+    Ok(config)
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -923,7 +1012,8 @@ pub(crate) fn default_csaf_base_url() -> String {
 pub(crate) fn build_client(config: &Config) -> Result<Client> {
     let mut builder = Client::builder()
         .user_agent(&config.fetch.user_agent)
-        .timeout(Duration::from_secs(18));
+        .connect_timeout(Duration::from_secs(config.fetch.connect_timeout_seconds))
+        .timeout(Duration::from_secs(config.fetch.request_timeout_seconds));
 
     if let Some(ref proxy_url) = config.fetch.proxy {
         if !proxy_url.is_empty() {

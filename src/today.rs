@@ -6,6 +6,12 @@ pub(crate) const DAY_STATE_DIR: &str = "data/day_state";
 pub(crate) const DAY_MAX_NEWS: usize = 60;
 pub(crate) const DAY_MAX_CVES: usize = 2000;
 
+#[derive(Debug, Clone)]
+pub(crate) struct PendingDayState {
+    path: PathBuf,
+    value: Value,
+}
+
 pub(crate) fn tehran_offset() -> chrono::FixedOffset {
     chrono::FixedOffset::east_opt(3 * 3600 + 30 * 60).expect("tehran offset")
 }
@@ -108,6 +114,10 @@ fn refresh_day_stats(brief: &mut Value) {
         .as_array()
         .map(|a| a.len())
         .unwrap_or(0);
+    let visible_news = brief["today_news"]
+        .as_array()
+        .map(|a| a.len())
+        .unwrap_or(global + breaking);
     let cves = brief["cves"].as_array().map(|a| a.len()).unwrap_or(0);
     let critical = brief["cves"]
         .as_array()
@@ -134,21 +144,29 @@ fn refresh_day_stats(brief: &mut Value) {
     if let Some(stats) = brief.get_mut("stats").and_then(|v| v.as_object_mut()) {
         stats.insert("global_news".to_string(), json!(global));
         stats.insert("breaking_news".to_string(), json!(breaking));
-        stats.insert("daily_news".to_string(), json!(global + breaking));
+        stats.insert("daily_news".to_string(), json!(visible_news));
         stats.insert("cves".to_string(), json!(cves));
         stats.insert("critical_cves".to_string(), json!(critical));
         stats.insert("kev".to_string(), json!(kev));
     }
+    if brief
+        .get("news_window")
+        .and_then(|value| value.as_object())
+        .is_some()
+    {
+        brief["news_window"]["daily_news"] = json!(visible_news);
+        brief["news_window"]["current_day_news"] = json!(visible_news);
+    }
 }
 
-pub(crate) fn apply_day_accumulation(brief: &mut Value) {
+pub(crate) fn apply_day_accumulation(brief: &mut Value) -> Result<Option<PendingDayState>> {
     let date = brief
         .get("date_en")
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
     if date.len() != 10 {
-        return;
+        return Ok(None);
     }
     let run_stamp = brief
         .get("generated_at")
@@ -156,24 +174,78 @@ pub(crate) fn apply_day_accumulation(brief: &mut Value) {
         .unwrap_or("")
         .to_string();
     let state_path = std::path::Path::new(DAY_STATE_DIR).join(format!("{date}.json"));
-    let mut state: Value = fs::read_to_string(&state_path)
-        .ok()
-        .and_then(|text| serde_json::from_str(&text).ok())
-        .unwrap_or_else(|| json!({}));
+    let mut state: Value = match fs::read_to_string(&state_path) {
+        Ok(text) => match serde_json::from_str(&text) {
+            Ok(value) => value,
+            Err(err) => {
+                eprintln!(
+                    "⚠️  invalid day state {}; starting a clean state: {err}",
+                    state_path.display()
+                );
+                json!({})
+            }
+        },
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => json!({}),
+        Err(err) => {
+            return Err(err)
+                .with_context(|| format!("failed to read day state: {}", state_path.display()))
+        }
+    };
     if state.get("date").and_then(|v| v.as_str()) != Some(date.as_str()) {
         state = json!({ "date": date.clone() });
     }
     prune_state_cves_to_day(&mut state, &date);
-    let plans: [(&str, &[&str], usize); 3] = [
-        ("breaking_news", &["url", "title"], DAY_MAX_NEWS),
-        ("global_news", &["url", "title"], DAY_MAX_NEWS),
-        ("cves", &["cve_id", "url"], DAY_MAX_CVES),
-    ];
-    for (list_key, id_keys, cap) in plans {
-        let merged = merge_day_list(&state, brief, list_key, id_keys, cap, &run_stamp);
-        state[list_key] = merged.clone();
-        brief[list_key] = merged;
+
+    let fallback_used = brief
+        .get("news_window")
+        .and_then(|value| value.get("fallback_used"))
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false);
+
+    if fallback_used {
+        // Do not save older fallback stories as if they had been published today.
+        // If this Tehran day already has accumulated same-day news, prefer that
+        // state over an older rolling fallback from the current fetch.
+        let saved_today = state
+            .get("today_news")
+            .and_then(|value| value.as_array())
+            .map(|items| !items.is_empty())
+            .unwrap_or(false);
+        if saved_today {
+            for key in ["breaking_news", "global_news", "today_news"] {
+                if let Some(saved) = state.get(key).cloned() {
+                    brief[key] = saved;
+                }
+            }
+            brief["news_window"]["mode"] = json!("day-state-fallback");
+            brief["news_window"]["date"] = json!(date.clone());
+            brief["news_window"]["display_label"] = json!("Today's Accumulated News");
+            brief["news_window"]["stale_fallback"] = json!(false);
+        }
+    } else {
+        let news_plans: [(&str, &[&str], usize); 3] = [
+            ("breaking_news", &["url", "title"], DAY_MAX_NEWS),
+            ("global_news", &["url", "title"], DAY_MAX_NEWS),
+            ("today_news", &["url", "title"], DAY_MAX_NEWS),
+        ];
+        for (list_key, id_keys, cap) in news_plans {
+            let merged = merge_day_list(&state, brief, list_key, id_keys, cap, &run_stamp);
+            state[list_key] = merged.clone();
+            brief[list_key] = merged;
+        }
     }
+
+    let merged_cves = merge_day_list(
+        &state,
+        brief,
+        "cves",
+        &["cve_id", "url"],
+        DAY_MAX_CVES,
+        &run_stamp,
+    );
+    state["cves"] = merged_cves.clone();
+    brief["cves"] = merged_cves;
+
     refresh_day_stats(brief);
     let runs = state.get("runs").and_then(|v| v.as_u64()).unwrap_or(0) + 1;
     state["runs"] = json!(runs);
@@ -183,10 +255,32 @@ pub(crate) fn apply_day_accumulation(brief: &mut Value) {
     state["updated_at"] = json!(run_stamp.clone());
     brief["day_runs"] = json!(runs);
     brief["day_first_run"] = state.get("first_run").cloned().unwrap_or(Value::Null);
-    let _ = fs::create_dir_all(DAY_STATE_DIR);
-    if let Ok(text) = serde_json::to_string(&state) {
-        let _ = fs::write(&state_path, text);
-    }
+
+    Ok(Some(PendingDayState {
+        path: state_path,
+        value: state,
+    }))
+}
+
+pub(crate) fn persist_day_state(pending: &PendingDayState) -> Result<()> {
+    fs::create_dir_all(DAY_STATE_DIR).context("failed to create day state directory")?;
+    let text = serde_json::to_vec(&pending.value)?;
+    let temp_path = pending
+        .path
+        .with_extension(format!("json.tmp-{}", std::process::id()));
+    fs::write(&temp_path, text).with_context(|| {
+        format!(
+            "failed to write day state temp file: {}",
+            temp_path.display()
+        )
+    })?;
+    fs::rename(&temp_path, &pending.path).with_context(|| {
+        format!(
+            "failed to atomically replace day state: {}",
+            pending.path.display()
+        )
+    })?;
+    Ok(())
 }
 
 fn signal_level(risk: f64) -> &'static str {

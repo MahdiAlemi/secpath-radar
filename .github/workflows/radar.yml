@@ -2,9 +2,8 @@ name: SecPath Radar
 
 on:
   schedule:
-    # Render and publish every 2 hours. Cached AI editorial keeps Gemini
-    # usage at a handful of calls per run, far below free-tier limits.
-    - cron: "0 */2 * * *"
+    # Avoid minute 0, which is a high-load period for scheduled workflows.
+    - cron: "17 */2 * * *"
   workflow_dispatch:
     inputs:
       ai:
@@ -13,74 +12,165 @@ on:
         default: true
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: secpath-radar
+  group: secpath-radar-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  radar:
+  build:
+    name: Build, collect, and validate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    timeout-minutes: 45
+    permissions:
+      contents: read
 
-      - name: Restore state from radar-output branch
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Restore last known state
+        shell: bash
         run: |
-          git fetch origin radar-output --depth 1 || true
-          if git rev-parse --verify origin/radar-output >/dev/null 2>&1; then
-            git worktree add _out origin/radar-output
-            mkdir -p data
-            [ -d _out/state/cache ]     && cp -r _out/state/cache data/cache         || true
-            [ -d _out/state/day_state ] && cp -r _out/state/day_state data/day_state || true
-            [ -d _out/state/snapshots ] && cp -r _out/state/snapshots snapshots      || true
+          set -euo pipefail
+          rm -rf _out
+
+          if git fetch --no-tags origin radar-output --depth=1; then
+            git worktree add --detach _out origin/radar-output
+            mkdir -p data/cache data/day_state snapshots
+
+            if [ -d _out/state/cache ]; then
+              cp -a _out/state/cache/. data/cache/
+            fi
+            if [ -d _out/state/day_state ]; then
+              cp -a _out/state/day_state/. data/day_state/
+            fi
+            if [ -d _out/state/snapshots ]; then
+              cp -a _out/state/snapshots/. snapshots/
+            fi
+            if [ -s _out/state/latest_brief.json ]; then
+              cp -a _out/state/latest_brief.json data/latest_brief.json
+            fi
+
             git worktree remove --force _out
+          else
+            echo "::notice::radar-output does not exist yet; starting without restored state"
           fi
 
-      - name: Install Rust
+      - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.0
+          components: rustfmt
 
-      - name: Cache cargo
+      - name: Cache Cargo build data
         uses: Swatinem/rust-cache@v2
 
       - name: Format check
         run: cargo fmt --all -- --check
 
       - name: Test
-        run: cargo test --all
+        run: cargo test --all --locked
 
       - name: Decide run mode
         id: mode
+        shell: bash
         run: |
+          set -euo pipefail
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.ai }}" = "true" ]; then
             echo "flags=--full --ai" >> "$GITHUB_OUTPUT"
           else
             echo "flags=--full" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build and render radar
+      - name: Build, collect, render, and run quality gates
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: cargo run --release -- ${{ steps.mode.outputs.flags }}
+          GREYNOISE_API_KEY: ${{ secrets.GREYNOISE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          RUST_BACKTRACE: "1"
+        run: cargo run --release --locked -- ${{ steps.mode.outputs.flags }}
 
-      - name: Publish site and state to radar-output branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Stage validated publication bundle
+        shell: bash
         run: |
-          rm -rf _pub && mkdir -p _pub/state
-          cp -r site/. _pub/
-          echo "radar.secpath.space" > _pub/CNAME
-          touch _pub/.nojekyll
-          [ -d data/cache ]              && cp -r data/cache _pub/state/cache          || true
-          [ -d data/day_state ]          && cp -r data/day_state _pub/state/day_state  || true
-          [ -d snapshots ]               && cp -r snapshots _pub/state/snapshots       || true
-          [ -f data/latest_brief.json ]  && cp data/latest_brief.json _pub/state/      || true
+          set -euo pipefail
+          test -s site/index.html
+          test -s site/feed.xml
+          test -s site/api/brief.json
+          test -s site/api/summary.json
+          test -s data/latest_brief.json
+
+          rm -rf _bundle radar-bundle.tar.gz
+          mkdir -p _bundle/state
+          cp -a site/. _bundle/
+          printf '%s\n' 'radar.secpath.space' > _bundle/CNAME
+          touch _bundle/.nojekyll
+
+          if [ -d data/cache ]; then
+            mkdir -p _bundle/state/cache
+            cp -a data/cache/. _bundle/state/cache/
+          fi
+          if [ -d data/day_state ]; then
+            mkdir -p _bundle/state/day_state
+            cp -a data/day_state/. _bundle/state/day_state/
+          fi
+          if [ -d snapshots ]; then
+            mkdir -p _bundle/state/snapshots
+            cp -a snapshots/. _bundle/state/snapshots/
+          fi
+          cp -a data/latest_brief.json _bundle/state/latest_brief.json
+
+          tar -C _bundle -czf radar-bundle.tar.gz .
+
+      - name: Upload validated bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: radar-publication-${{ github.run_id }}
+          path: radar-bundle.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish validated output
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download validated bundle
+        uses: actions/download-artifact@v7
+        with:
+          name: radar-publication-${{ github.run_id }}
+
+      - name: Publish radar-output branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _pub
+          mkdir -p _pub
+          tar -xzf radar-bundle.tar.gz -C _pub
+
+          test -s _pub/index.html
+          test -s _pub/feed.xml
+          test -s _pub/api/brief.json
+          test -s _pub/api/summary.json
+          test -s _pub/state/latest_brief.json
+
           cd _pub
           git init -b radar-output
           git config user.name "secpath-radar-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "radar output $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" radar-output
+          git push --force \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            radar-output

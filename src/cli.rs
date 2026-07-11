@@ -80,7 +80,7 @@ pub(crate) fn parse_args() -> Result<Args> {
                 );
                 println!("Default mode renders samples/sample_brief.json without network calls.");
                 println!("Use --fetch for RSS, --cves for NVD/CISA KEV/EPSS, --full for both, or --offline --full to use cache only.");
-                println!("Use --ai to polish the brief with Gemini. It is cached and limited to one call per run.");
+                println!("Use --ai to polish the brief with Gemini. Calls are schema-locked, cached, and capped per run.");
                 std::process::exit(0);
             }
             unknown => anyhow::bail!("unknown argument: {unknown}"),

@@ -266,6 +266,8 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
     let poc_watch_cves = stat_u64(brief, "poc_watch_cves");
     let history_changes = stat_u64(brief, "history_changes");
     let failed_rss = stat_u64(brief, "failed_rss_sources");
+    let stale_rss = stat_u64(brief, "stale_rss_sources");
+    let degraded_rss = failed_rss.saturating_add(stale_rss);
     let risk_score = path_u64(brief, &["executive_snapshot", "score"]);
 
     let mut signals: Vec<(u64, Value)> = Vec::new();
@@ -417,14 +419,14 @@ pub(crate) fn build_triage_signals(brief: &Value) -> Value {
         ));
     }
 
-    if failed_rss > 0 {
-        let score = (failed_rss * 15).min(100).max(12);
+    if degraded_rss > 0 {
+        let score = (degraded_rss * 8).min(100).max(12);
         signals.push((
             45 + score,
             json!({
                 "title": "Source Health",
-                "metric": format!("{failed_rss} RSS failed"),
-                "level": "medium",
+                "metric": format!("{failed_rss} failed · {stale_rss} stale"),
+                "level": if failed_rss > 0 { "medium" } else { "low" },
                 "anchor": "#sources",
                 "bar_width": score
             }),

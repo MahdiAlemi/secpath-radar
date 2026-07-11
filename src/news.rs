@@ -6,31 +6,11 @@ pub(crate) fn fetch_and_score(
     config: &Config,
     offline: bool,
     refresh_cache: bool,
-) -> Result<(Vec<FeedItem>, Vec<SourceFailure>)> {
-    let client = build_client(config)?;
+) -> Result<(Vec<FeedItem>, Vec<SourceFailure>, Vec<SourceFailure>)> {
+    let (all, failures, stale_fallbacks) =
+        fetch_source_group(config, &config.sources, offline, refresh_cache, false)?;
 
     let mut seen = HashSet::new();
-    let mut all = Vec::new();
-    let mut failures = Vec::new();
-
-    for source in &config.sources {
-        eprintln!("→ fetching {}", source.name);
-
-        match fetch_source(&client, source, config, offline, refresh_cache) {
-            Ok(mut items) => all.append(&mut items),
-            Err(err) => {
-                eprintln!("⚠️  skipped {}: {err:#}", source.name);
-                failures.push(SourceFailure {
-                    name: source.name.clone(),
-                    url: source.url.clone(),
-                    error: source_error_summary(&err.to_string()),
-                });
-            }
-        }
-
-        thread::sleep(Duration::from_millis(config.fetch.sleep_ms_between_sources));
-    }
-
     let mut deduped = Vec::new();
     for item in all {
         let key = normalize_key(&item.title, &item.url);
@@ -52,7 +32,7 @@ pub(crate) fn fetch_and_score(
         current_day_kept,
         dashboard_day
     );
-    Ok((deduped, failures))
+    Ok((deduped, failures, stale_fallbacks))
 }
 
 /// Keep all available items for the current Tehran dashboard day before applying
@@ -95,40 +75,20 @@ pub(crate) fn fetch_writeup_feeds(
     config: &Config,
     offline: bool,
     refresh_cache: bool,
-) -> Result<(Vec<FeedItem>, Vec<SourceFailure>)> {
+) -> Result<(Vec<FeedItem>, Vec<SourceFailure>, Vec<SourceFailure>)> {
     if config.writeup_sources.is_empty() {
-        return Ok((Vec::new(), Vec::new()));
+        return Ok((Vec::new(), Vec::new(), Vec::new()));
     }
 
-    let client = build_client(config)?;
+    let (all, failures, stale_fallbacks) = fetch_source_group(
+        config,
+        &config.writeup_sources,
+        offline,
+        refresh_cache,
+        true,
+    )?;
 
     let mut seen = HashSet::new();
-    let mut all = Vec::new();
-    let mut failures = Vec::new();
-
-    for source in &config.writeup_sources {
-        eprintln!("→ fetching writeups {}", source.name);
-
-        match fetch_source(&client, source, config, offline, refresh_cache) {
-            Ok(mut items) => {
-                for item in &mut items {
-                    item.tags.push("Writeup Source".to_string());
-                }
-                all.append(&mut items)
-            }
-            Err(err) => {
-                eprintln!("⚠️  skipped writeup source {}: {err:#}", source.name);
-                failures.push(SourceFailure {
-                    name: source.name.clone(),
-                    url: source.url.clone(),
-                    error: source_error_summary(&err.to_string()),
-                });
-            }
-        }
-
-        thread::sleep(Duration::from_millis(config.fetch.sleep_ms_between_sources));
-    }
-
     let mut deduped = Vec::new();
     for item in all {
         let key = normalize_key(&item.title, &item.url);
@@ -152,7 +112,95 @@ pub(crate) fn fetch_writeup_feeds(
         deduped_before_quality_filter,
         config.writeup_sources.len().saturating_sub(failures.len())
     );
-    Ok((deduped, failures))
+    Ok((deduped, failures, stale_fallbacks))
+}
+
+fn fetch_source_group(
+    config: &Config,
+    sources: &[SourceConfig],
+    offline: bool,
+    refresh_cache: bool,
+    writeup_mode: bool,
+) -> Result<(Vec<FeedItem>, Vec<SourceFailure>, Vec<SourceFailure>)> {
+    let client = build_client(config)?;
+    let mut all = Vec::new();
+    let mut failures = Vec::new();
+    let mut stale_fallbacks = Vec::new();
+    let concurrency = config.fetch.max_concurrent_sources.max(1);
+
+    for chunk in sources.chunks(concurrency) {
+        let mut batch_results = Vec::with_capacity(chunk.len());
+
+        thread::scope(|scope| {
+            let mut handles = Vec::with_capacity(chunk.len());
+            for source in chunk {
+                if writeup_mode {
+                    eprintln!("→ fetching writeups {}", source.name);
+                } else {
+                    eprintln!("→ fetching {}", source.name);
+                }
+
+                let worker_client = client.clone();
+                handles.push((
+                    source,
+                    scope.spawn(move || {
+                        fetch_source(&worker_client, source, config, offline, refresh_cache)
+                    }),
+                ));
+            }
+
+            for (source, handle) in handles {
+                let result = match handle.join() {
+                    Ok(result) => result,
+                    Err(_) => Err(anyhow::anyhow!("source worker panicked")),
+                };
+                batch_results.push((source, result));
+            }
+        });
+
+        for (source, result) in batch_results {
+            match result {
+                Ok((mut items, stale_fallback)) => {
+                    if let Some(issue) = stale_fallback {
+                        stale_fallbacks.push(issue);
+                    }
+                    if items.is_empty() {
+                        failures.push(SourceFailure {
+                            name: source.name.clone(),
+                            url: source.url.clone(),
+                            error: "feed parsed but contained no usable titled entries".to_string(),
+                        });
+                        continue;
+                    }
+                    if writeup_mode {
+                        for item in &mut items {
+                            push_tag(&mut item.tags, "Writeup Source".to_string());
+                        }
+                    }
+                    all.append(&mut items);
+                }
+                Err(err) => {
+                    let label = if writeup_mode {
+                        "writeup source"
+                    } else {
+                        "source"
+                    };
+                    eprintln!("⚠️  skipped {label} {}: {err:#}", source.name);
+                    failures.push(SourceFailure {
+                        name: source.name.clone(),
+                        url: source.url.clone(),
+                        error: source_error_summary(&format!("{err:#}")),
+                    });
+                }
+            }
+        }
+
+        if config.fetch.sleep_ms_between_sources > 0 {
+            thread::sleep(Duration::from_millis(config.fetch.sleep_ms_between_sources));
+        }
+    }
+
+    Ok((all, failures, stale_fallbacks))
 }
 
 pub(crate) fn source_error_summary(error: &str) -> String {
@@ -166,14 +214,31 @@ pub(crate) fn is_offline_cache_miss_error(error_text: &str) -> bool {
         .contains("offline mode has no cached response")
 }
 
+fn validate_feed_payload(bytes: &[u8]) -> Result<()> {
+    let feed = parser::parse(bytes).context("failed to parse RSS/Atom feed")?;
+    let has_titled_entry = feed.entries.iter().any(|entry| {
+        entry
+            .title
+            .as_ref()
+            .map(|title| !clean_text(&title.content).is_empty())
+            .unwrap_or(false)
+    });
+
+    if !has_titled_entry {
+        anyhow::bail!("feed contained no usable titled entries");
+    }
+
+    Ok(())
+}
+
 pub(crate) fn fetch_source(
     client: &Client,
     source: &SourceConfig,
     config: &Config,
     offline: bool,
     refresh_cache: bool,
-) -> Result<Vec<FeedItem>> {
-    let bytes = get_bytes_cached(
+) -> Result<(Vec<FeedItem>, Option<SourceFailure>)> {
+    let cached = get_bytes_cached_validated(
         client,
         config,
         &source.url,
@@ -181,23 +246,34 @@ pub(crate) fn fetch_source(
         &format!("RSS {}", source.name),
         offline,
         refresh_cache,
+        validate_feed_payload,
     )?;
 
-    let feed = parser::parse(&bytes[..]).context("failed to parse RSS/Atom feed")?;
+    let stale_fallback = cached.stale_fallback_reason.map(|error| SourceFailure {
+        name: source.name.clone(),
+        url: source.url.clone(),
+        error: source_error_summary(&error),
+    });
+
+    let feed = parser::parse(&cached.bytes[..]).context("failed to parse RSS/Atom feed")?;
     let mut out = Vec::new();
 
     for entry in feed.entries.iter().take(config.fetch.max_items_per_source) {
         let title = entry
             .title
             .as_ref()
-            .map(|t| clean_text(&t.content))
-            .unwrap_or_else(|| "Untitled".to_string());
+            .map(|title| clean_text(&title.content))
+            .unwrap_or_default();
+        if title.is_empty() {
+            continue;
+        }
 
         let url = entry
             .links
-            .first()
-            .map(|l| l.href.clone())
-            .unwrap_or_else(|| source.url.clone());
+            .iter()
+            .find_map(|link| validated_http_url(&link.href))
+            .or_else(|| validated_http_url(&source.url))
+            .unwrap_or_default();
 
         let summary = entry
             .summary
@@ -233,7 +309,15 @@ pub(crate) fn fetch_source(
         out.push(item);
     }
 
-    Ok(out)
+    Ok((out, stale_fallback))
+}
+
+pub(crate) fn validated_http_url(raw: &str) -> Option<String> {
+    let parsed = reqwest::Url::parse(raw.trim()).ok()?;
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+        return None;
+    }
+    Some(parsed.to_string())
 }
 
 pub(crate) fn classify_and_score(item: &mut FeedItem, config: &Config) {
@@ -337,6 +421,33 @@ mod tests {
             category: "general".to_string(),
             tags: Vec::new(),
         }
+    }
+
+    #[test]
+    fn feed_validation_rejects_html_and_empty_feeds() {
+        assert!(validate_feed_payload(b"<html><body>challenge</body></html>").is_err());
+        assert!(validate_feed_payload(
+            br#"<?xml version="1.0"?><rss version="2.0"><channel><title>Empty</title></channel></rss>"#,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn feed_validation_accepts_a_titled_rss_item() {
+        let feed = br#"<?xml version="1.0" encoding="UTF-8"?>
+            <rss version="2.0">
+              <channel>
+                <title>Example</title>
+                <link>https://example.test/</link>
+                <description>Example feed</description>
+                <item>
+                  <title>Security update</title>
+                  <link>https://example.test/security-update</link>
+                  <description>Details</description>
+                </item>
+              </channel>
+            </rss>"#;
+        assert!(validate_feed_payload(feed).is_ok());
     }
 
     #[test]

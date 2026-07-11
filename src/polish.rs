@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 pub(crate) fn apply_local_polish(brief: &mut Value) {
-    brief["version"] = json!("v1.0.1");
+    brief["version"] = json!(format!("v{}", env!("CARGO_PKG_VERSION")));
     apply_sev_strip(brief);
 
     if brief.get("source_health").is_none() {
@@ -29,6 +29,45 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
     if brief["source_health"].get("rss_failures").is_none() {
         brief["source_health"]["rss_failures"] = json!([]);
     }
+    if brief["source_health"].get("stale_rss_sources").is_none() {
+        brief["source_health"]["stale_rss_sources"] = json!(0);
+    }
+    if brief["source_health"].get("rss_stale_fallbacks").is_none() {
+        brief["source_health"]["rss_stale_fallbacks"] = json!([]);
+    }
+    if brief["source_health"].get("degraded_rss_sources").is_none() {
+        let failed = brief["source_health"]["failed_rss_sources"]
+            .as_u64()
+            .unwrap_or(0);
+        let stale = brief["source_health"]["stale_rss_sources"]
+            .as_u64()
+            .unwrap_or(0);
+        brief["source_health"]["degraded_rss_sources"] = json!(failed + stale);
+    }
+    if brief["source_health"]
+        .get("stale_writeup_sources")
+        .is_none()
+    {
+        brief["source_health"]["stale_writeup_sources"] = json!(0);
+    }
+    if brief["source_health"]
+        .get("writeup_stale_fallbacks")
+        .is_none()
+    {
+        brief["source_health"]["writeup_stale_fallbacks"] = json!([]);
+    }
+    if brief["source_health"]
+        .get("degraded_writeup_sources")
+        .is_none()
+    {
+        let failed = brief["source_health"]["failed_writeup_sources"]
+            .as_u64()
+            .unwrap_or(0);
+        let stale = brief["source_health"]["stale_writeup_sources"]
+            .as_u64()
+            .unwrap_or(0);
+        brief["source_health"]["degraded_writeup_sources"] = json!(failed + stale);
+    }
     if brief.get("breaking_news").is_none() {
         brief["breaking_news"] = json!([]);
     }
@@ -44,15 +83,34 @@ pub(crate) fn apply_local_polish(brief: &mut Value) {
                 .map(|items| items.len())
                 .unwrap_or(0);
         brief["news_window"] = json!({
-            "mode": "local-day",
+            "mode": "local-day-only",
             "date": brief.get("date_en").and_then(|v| v.as_str()).unwrap_or(""),
+            "requested_date": brief.get("date_en").and_then(|v| v.as_str()).unwrap_or(""),
             "start": "00:00",
             "end": "23:59",
             "timezone": tehran_now().format("%:z").to_string(),
+            "fallback_hours": 0,
+            "fallback_used": false,
+            "stale_fallback": false,
+            "display_label": "Today's News",
             "rss_items_fetched": daily_news,
             "daily_news": daily_news,
+            "current_day_news": daily_news,
+            "backfill_news": 0,
             "hidden_old_or_undated": 0
         });
+    }
+    if brief["news_window"].get("fallback_hours").is_none() {
+        brief["news_window"]["fallback_hours"] = json!(0);
+    }
+    if brief["news_window"].get("fallback_used").is_none() {
+        brief["news_window"]["fallback_used"] = json!(false);
+    }
+    if brief["news_window"].get("stale_fallback").is_none() {
+        brief["news_window"]["stale_fallback"] = json!(false);
+    }
+    if brief["news_window"].get("display_label").is_none() {
+        brief["news_window"]["display_label"] = json!("Today's News");
     }
     if brief
         .get("stats")

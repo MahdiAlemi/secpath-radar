@@ -13,16 +13,56 @@ pub(crate) fn build_brief(
     let generated_at = now.format("%Y-%m-%d %H:%M").to_string();
 
     let requested_news_day = now.date_naive();
-    let news_window_mode = "local-day-only";
-    let mut daily_items: Vec<_> = items
+    let mut current_day_items: Vec<_> = items
         .iter()
         .filter(|item| feed_item_is_local_day(item, requested_news_day))
         .cloned()
         .collect();
-    sort_news_latest_first(&mut daily_items);
-    let current_day_news_total = daily_items.len();
+    sort_news_latest_first(&mut current_day_items);
+    let current_day_news_total = current_day_items.len();
 
-    let mut breaking_news: Vec<_> = daily_items
+    let fallback_cutoff = now.timestamp().saturating_sub(
+        config
+            .fetch
+            .news_fallback_hours
+            .saturating_mul(60)
+            .saturating_mul(60) as i64,
+    );
+    let (mut visible_news, news_window_mode, backfill_news_total, stale_news_fallback) =
+        if !current_day_items.is_empty() {
+            (current_day_items, "local-day-only", 0usize, false)
+        } else {
+            let mut recent: Vec<_> = items
+                .iter()
+                .filter(|item| {
+                    let timestamp = feed_item_timestamp(item);
+                    timestamp >= fallback_cutoff
+                        && timestamp <= now.timestamp().saturating_add(7200)
+                })
+                .cloned()
+                .collect();
+            sort_news_latest_first(&mut recent);
+
+            if !recent.is_empty() {
+                let count = recent.len();
+                (recent, "rolling-fallback", count, false)
+            } else {
+                let mut latest = items.clone();
+                sort_news_latest_first(&mut latest);
+                latest.truncate(config.fetch.max_total_items.min(50));
+                let count = latest.len();
+                (latest, "latest-available-fallback", count, count > 0)
+            }
+        };
+
+    visible_news.truncate(config.fetch.max_total_items.min(100));
+    let effective_news_date = visible_news
+        .first()
+        .and_then(parse_feed_item_local_time)
+        .map(|dt| dt.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| date_en.clone());
+
+    let mut breaking_news: Vec<_> = visible_news
         .iter()
         .filter(|item| is_breaking_news_item(item))
         .cloned()
@@ -31,17 +71,15 @@ pub(crate) fn build_brief(
     breaking_news.truncate(5);
     let breaking_keys: HashSet<String> = breaking_news.iter().map(news_dedupe_key).collect();
 
-    let mut global: Vec<_> = daily_items
+    let mut global: Vec<_> = visible_news
         .iter()
         .filter(|item| !breaking_keys.contains(&news_dedupe_key(item)))
         .cloned()
         .collect();
     sort_news_latest_first(&mut global);
-    let today_news = daily_items.clone();
-    let daily_news_total = daily_items.len();
-    let backfill_news_total = 0usize;
+    let today_news = visible_news.clone();
+    let daily_news_total = visible_news.len();
     let daily_news_hidden = items.len().saturating_sub(daily_news_total);
-    let effective_news_date = date_en.clone();
     let news_lanes = build_news_lanes(&global);
     let writeups_pulse = build_writeups_pulse(&writeup_items, requested_news_day, &date_en);
     let writeups_total = writeups_pulse
@@ -158,6 +196,12 @@ pub(crate) fn build_brief(
             "source_names": config.sources.iter().map(|source| source.name.clone()).collect::<Vec<_>>(),
             "failed_rss_sources": 0,
             "rss_failures": [],
+            "stale_rss_sources": 0,
+            "rss_stale_fallbacks": [],
+            "degraded_rss_sources": 0,
+            "stale_writeup_sources": 0,
+            "writeup_stale_fallbacks": [],
+            "degraded_writeup_sources": 0,
             "http_cache": config.cache.enabled,
             "cache_ttl_minutes": config.cache.ttl_minutes,
             "ai_cache_dir": config.gemini.cache_dir.clone(),
@@ -176,9 +220,19 @@ pub(crate) fn build_brief(
             "mode": news_window_mode,
             "date": effective_news_date,
             "requested_date": date_en.clone(),
-            "start": "00:00",
-            "end": "23:59",
+            "start": if news_window_mode == "local-day-only" { "00:00" } else { "rolling" },
+            "end": if news_window_mode == "local-day-only" { "23:59" } else { "now" },
             "timezone": now.format("%:z").to_string(),
+            "fallback_hours": config.fetch.news_fallback_hours,
+            "fallback_used": news_window_mode != "local-day-only",
+            "stale_fallback": stale_news_fallback,
+            "display_label": if news_window_mode == "local-day-only" {
+                "Today's News"
+            } else if news_window_mode == "rolling-fallback" {
+                "Latest News"
+            } else {
+                "Latest Available News"
+            },
             "rss_items_fetched": items.len(),
             "daily_news": daily_news_total,
             "current_day_news": current_day_news_total,
@@ -377,4 +431,34 @@ pub(crate) fn empty_priority() -> Value {
         "risk_score": 1,
         "tags": ["No Data"]
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn feed_item(published: String) -> FeedItem {
+        FeedItem {
+            title: "Recent security advisory".to_string(),
+            summary: "A defensive security update".to_string(),
+            source: "Test Feed".to_string(),
+            url: "https://example.test/advisory".to_string(),
+            published,
+            risk_score: 4,
+            category: "vulnerability".to_string(),
+            tags: vec!["Vulnerability".to_string()],
+        }
+    }
+
+    #[test]
+    fn previous_day_items_use_the_rolling_fallback_instead_of_empty_news() {
+        let config = load_config(&PathBuf::from("config.yaml")).expect("config");
+        let published = (tehran_now() - ChronoDuration::hours(25)).to_rfc3339();
+        let brief = build_brief(&config, vec![feed_item(published)], Vec::new(), Vec::new())
+            .expect("brief");
+
+        assert_eq!(brief["news_window"]["mode"], json!("rolling-fallback"));
+        assert_eq!(brief["news_window"]["fallback_used"], json!(true));
+        assert_eq!(brief["today_news"].as_array().map(Vec::len), Some(1));
+    }
 }

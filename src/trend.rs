@@ -5,7 +5,13 @@ use crate::prelude::*;
 pub(crate) const TREND_MAX_RUNS: usize = 14;
 
 pub(crate) fn build_trend_pulse(brief: &mut Value) {
-    let snapshots = read_history_series("snapshots/history", TREND_MAX_RUNS);
+    let mut snapshots = read_history_series("snapshots/history", TREND_MAX_RUNS);
+    snapshots.push(build_history_snapshot_value(brief));
+    snapshots.sort_by_key(snapshot_generated_at);
+    if snapshots.len() > TREND_MAX_RUNS {
+        let skip = snapshots.len() - TREND_MAX_RUNS;
+        snapshots.drain(0..skip);
+    }
     attach_trend_pulse(brief, &snapshots);
 }
 

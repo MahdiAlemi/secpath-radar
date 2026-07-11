@@ -146,7 +146,7 @@ pub(crate) fn enhance_brief_with_gemini(
                     if let Some(alert) = value.get("priority_alert") {
                         let editorial = sanitize_editorial("news", alert);
                         if merge_batch_alert(&mut edited, &editorial) {
-                            let _ = write_item_cache(config, &alert_key, &editorial);
+                            log_item_cache_write(config, &alert_key, &editorial);
                             items_generated += 1;
                         }
                     }
@@ -207,7 +207,7 @@ pub(crate) fn enhance_brief_with_gemini(
                     calls_used = calls_used.saturating_add(calls);
                     let clean = sanitize_briefing(&value);
                     if briefing_is_usable(&clean) {
-                        let _ = write_item_cache(config, &briefing_key, &clean);
+                        log_item_cache_write(config, &briefing_key, &clean);
                         edited["ai_briefing"] = clean;
                         items_generated += 1;
                     } else {
@@ -333,7 +333,7 @@ pub(crate) fn apply_batch_items(
             .map(|item| item_cache_key(&config.gemini.model, section, item));
         if merge_batch_item(brief, section, *index, &editorial) {
             if let Some(key) = key {
-                let _ = write_item_cache(config, &key, &editorial);
+                log_item_cache_write(config, &key, &editorial);
             }
             applied += 1;
         }
@@ -460,18 +460,13 @@ pub(crate) fn read_item_cache(config: &Config, key: &str) -> Option<Value> {
 }
 
 pub(crate) fn write_item_cache(config: &Config, key: &str, value: &Value) -> Result<()> {
-    let path = item_cache_path(config, key);
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|| {
-            format!(
-                "failed to create AI item cache directory: {}",
-                parent.display()
-            )
-        })?;
+    write_json_atomic(&item_cache_path(config, key), value)
+}
+
+fn log_item_cache_write(config: &Config, key: &str, value: &Value) {
+    if let Err(err) = write_item_cache(config, key, value) {
+        eprintln!("⚠️  AI item cache write failed for {key}: {err:#}");
     }
-    fs::write(&path, serde_json::to_string_pretty(value)?)
-        .with_context(|| format!("failed to write AI item cache: {}", path.display()))?;
-    Ok(())
 }
 
 const NEWS_PROMPT_RULES: &str = r#"You are the editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.

@@ -9,7 +9,13 @@ fetch:
   max_items_per_source: 20
   max_total_items: 500
   sleep_ms_between_sources: 200
-  user_agent: "SecPathRadar/1.0.1 (+https://radar.secpath.space)"
+  user_agent: "SecPathRadar/1.1.0 (+https://radar.secpath.space)"
+  max_concurrent_sources: 8
+  news_fallback_hours: 36
+  min_news_items_for_publish: 5
+  max_source_failure_percent: 50
+  connect_timeout_seconds: 8
+  request_timeout_seconds: 20
   proxy: ""
 
 cve:
@@ -121,7 +127,7 @@ intel:
 cache:
   enabled: true
   dir: "data/cache/http"
-  ttl_minutes: 720
+  ttl_minutes: 90
 
 gemini:
   model: "gemini-2.5-flash"
@@ -381,16 +387,14 @@ sources:
     url: "https://blog.malwarebytes.com/feed/"
   - name: "Schneier on Security"
     url: "https://schneier.com/feed/atom/"
-  - name: "Google TAG"
-    url: "https://blog.google/threat-analysis-group/rss/"
+  - name: "Google Threat Intelligence"
+    url: "https://feeds.feedburner.com/threatintelligence/pvexyqv7v0v"
   - name: "CERT-FR"
     url: "https://www.cert.ssi.gouv.fr/feed/"
   - name: "Risky Business"
     url: "https://risky.biz/rss.xml"
   - name: "Cisco Security Blog"
     url: "https://blogs.cisco.com/security/feed"
-  - name: "Mandiant Blog"
-    url: "https://www.mandiant.com/resources/blog/rss.xml"
   - name: "Proofpoint Threat Insight"
     url: "https://www.proofpoint.com/us/threat-insight-blog.xml"
   - name: "CrowdStrike Blog"
@@ -477,8 +481,8 @@ sources:
     url: "https://www.huntress.com/blog/rss.xml"
   - name: "MDSec Blog"
     url: "https://www.mdsec.co.uk/feed/"
-  - name: "Trustwave SpiderLabs"
-    url: "https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/rss.xml"
+  - name: "LevelBlue SpiderLabs"
+    url: "https://www.levelblue.com/blogs/spiderlabs-blog/rss.xml"
   - name: "GreyNoise Blog"
     url: "https://www.greynoise.io/blog/rss.xml"
   - name: "Censys Blog"
@@ -532,7 +536,7 @@ sources:
   - name: "UpGuard News"
     url: "https://www.upguard.com/news/rss.xml"
   - name: "Veracode Blog"
-    url: "http://www.veracode.com/blog/feed/"
+    url: "https://www.veracode.com/blog/feed/"
   - name: "Virus Bulletin"
     url: "https://www.virusbulletin.com/rss"
   - name: "VirusTotal Blog"

@@ -167,7 +167,7 @@ pub(crate) fn fetch_shodan_internetdb_host(
     let bytes = match get_bytes_cached_intel(client, config, &url, &label, offline, refresh_cache) {
         Ok(bytes) => bytes,
         Err(err) => {
-            let msg = err.to_string();
+            let msg = format!("{err:#}").to_ascii_lowercase();
             if msg.contains("404") || msg.contains("offline mode has no cached response") {
                 return Ok(None);
             }

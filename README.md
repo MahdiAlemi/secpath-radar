@@ -22,7 +22,7 @@ Every run collects from public sources, scores and aggregates the results, optio
 - **~185 public sources** — security news RSS, research write-ups, NVD, CISA KEV, EPSS, CISA Vulnrichment, and 15 threat-intel feeds (DShield, URLhaus, ThreatFox, Shodan InternetDB, GitHub Advisories, ransomware.live, Feodo Tracker, SSLBL, GreyNoise, OpenPhish, CISA ICS, MalwareBazaar, Spamhaus DROP, Red Hat CSAF, nuclei templates, PoC watch)
 - **CVE triage engine** — CVSS + EPSS + KEV-aware risk scoring with layered fallbacks when a source is down
 - **AI editorial layer (optional)** — Gemini rewrites the top news/CVE items into concise, defensive editorial notes and produces a daily **Executive Briefing** panel; everything is schema-locked, sanitized, and cached per item
-- **Resilient by design** — two-layer disk cache with stale fallback, `--offline` mode, and graceful degradation: if a source or the AI fails, the page still renders
+- **Resilient by design** — explicit cache timestamps, validated stale fallback, pre-cache RSS/Atom validation, `--offline` mode, concurrent feed collection, and publication quality gates that preserve the last known-good output when essential news data is unusable
 - **Static output** — `site/index.html`, `feed.xml`, and JSON endpoints under `site/api/`; host it anywhere (GitHub Pages, any static host, or just open the file)
 
 ## Quick start
@@ -35,7 +35,7 @@ cargo run --release -- --full
 #    (needs GEMINI_API_KEY in the environment or in .env)
 cargo run --release -- --full --ai
 
-# 3. Render-only from the last saved brief (no network)
+# 3. Run the full pipeline from cached/stale source responses only (no network)
 cargo run --release -- --offline
 ```
 
@@ -54,8 +54,8 @@ Open `site/index.html` directly in a browser — no server needed.
 | `--refresh-ai` | Regenerate AI output even when cached |
 | `--no-ai` | Force-disable AI for this run |
 | `--input <file>` | Render from a specific brief JSON |
-| `--template <dir>` | Override the template directory |
-| `--out <dir>` | Override the output directory (default `site/`) |
+| `--template <file>` | Override the Minijinja template file |
+| `--out <file>` | Override the rendered HTML path (default `site/index.html`) |
 | `--config <file>` | Override the config file (default `config.yaml`) |
 
 ## Configuration
@@ -63,7 +63,7 @@ Open `site/index.html` directly in a browser — no server needed.
 Everything lives in `config.yaml`:
 
 - **Feeds** — news and write-up sources with per-feed tags
-- **HTTP** — timeouts, cache TTL, and an optional proxy for restricted networks
+- **HTTP** — connection/request timeouts, bounded feed concurrency, a 90-minute cache TTL for the two-hour schedule, feed validation before cache replacement, fallback/source-health reporting, publication thresholds, and an optional proxy
 - **Gemini** — model, API URL, temperature, cache directory, and how many top items get editorial treatment (`max_global_news`, `max_cves`)
 
 Secrets are read from the environment first, then from a local `.env` file (which is git-ignored):
@@ -97,18 +97,20 @@ Safety and cost controls:
 | `site/feed.xml` | RSS feed of the day's items |
 | `site/api/summary.json` | Compact machine-readable summary |
 | `site/api/brief.json` | Full brief (news, CVEs, intel, weekly, trend, AI briefing) |
-| `data/latest_brief.json` | Last full pipeline state (input for `--offline`) |
+| `data/latest_brief.json` | Last validated full pipeline state used for history comparison and state restoration |
 | `snapshots/` | Daily archive and history snapshots |
 
 ## CI
 
-`.github/workflows/radar.yml` runs format checks, tests, and a full render on demand (`workflow_dispatch`), with an optional AI input toggle. The workflow **never deploys or publishes** — it only verifies that the pipeline builds and renders. A persistent cache for `data/cache` keeps HTTP, intel, and AI editorial caches warm between runs, which keeps Gemini usage well inside free-tier limits even on frequent schedules.
+`.github/workflows/radar.yml` runs every two hours at minute 17 and can also be started with `workflow_dispatch`. The build job has read-only repository access, restores the previous cache/day/history state, runs formatting and tests with a pinned Rust toolchain, collects and renders the radar, and applies publication quality gates. Only a validated bundle is passed to a separate write-scoped job, which updates the `radar-output` branch. Failed or empty-news builds never replace the last known-good published output.
+
+HTTP cache freshness is stored in `.meta.json` sidecars rather than filesystem mtimes, because Git checkout does not preserve the original cache-file modification time. The restored `latest_brief.json`, day state, AI/HTTP/intel cache, and snapshots are merged without creating nested state directories.
 
 ## Design principles
 
 1. **Passive only** — collect from public feeds and APIs; never scan, probe, or touch third-party systems
 2. **Read-only output** — a static page with no forms, no accounts, no analytics, and no visitor data collection
-3. **Fail soft** — every source has a fallback or a stale-cache path; a broken feed degrades one panel, not the page
+3. **Fail soft, publish hard** — optional sources may degrade to cached or empty panels, but missing/invalid essential news blocks publication and preserves the previous output
 4. **Defensive language** — AI output is constrained to defensive guidance; no exploit detail ever ships to the page
 
 ## Project structure
