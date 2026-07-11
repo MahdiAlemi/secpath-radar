@@ -127,6 +127,34 @@ fn prune_state_cves_to_day(state: &mut Value, date: &str) {
     });
 }
 
+fn prune_state_news_relevance(state: &mut Value, config: &Config) {
+    for key in ["breaking_news", "global_news", "today_news"] {
+        let Some(items) = state.get_mut(key).and_then(|value| value.as_array_mut()) else {
+            continue;
+        };
+        items.retain(|item| {
+            let source = item.get("source").and_then(Value::as_str).unwrap_or("");
+            let topic_mode = config
+                .sources
+                .iter()
+                .find(|candidate| candidate.name == source)
+                .map(|candidate| candidate.topic_mode)
+                .unwrap_or(TopicMode::Security);
+            if topic_mode != TopicMode::Mixed {
+                return true;
+            }
+
+            let title = item.get("title").and_then(Value::as_str).unwrap_or("");
+            let summary = item.get("summary").and_then(Value::as_str).unwrap_or("");
+            let category = item
+                .get("category")
+                .and_then(Value::as_str)
+                .unwrap_or("general");
+            is_security_relevant_fields(title, summary, category, config)
+        });
+    }
+}
+
 fn refresh_day_stats(brief: &mut Value) {
     let global = brief["global_news"]
         .as_array()
@@ -181,7 +209,10 @@ fn refresh_day_stats(brief: &mut Value) {
     }
 }
 
-pub(crate) fn apply_day_accumulation(brief: &mut Value) -> Result<Option<PendingDayState>> {
+pub(crate) fn apply_day_accumulation(
+    brief: &mut Value,
+    config: &Config,
+) -> Result<Option<PendingDayState>> {
     let date = brief
         .get("date_en")
         .and_then(|v| v.as_str())
@@ -217,6 +248,7 @@ pub(crate) fn apply_day_accumulation(brief: &mut Value) -> Result<Option<Pending
         state = json!({ "date": date.clone() });
     }
     prune_state_cves_to_day(&mut state, &date);
+    prune_state_news_relevance(&mut state, config);
 
     let fallback_used = brief
         .get("news_window")
@@ -462,5 +494,30 @@ mod tests {
         assert_eq!(rows[0]["title"], json!("CVE-2026-1111"));
         assert_eq!(rows[0]["anchor"], json!("#cves"));
         assert_eq!(rows[1]["anchor"], json!("#global-news"));
+    }
+    #[test]
+    fn day_state_prunes_irrelevant_items_from_mixed_sources() {
+        let config = load_config(&PathBuf::from("config.yaml")).expect("valid config");
+        let mut state = json!({
+            "today_news": [
+                {
+                    "source": "gHacks",
+                    "title": "Scientists solve mystery of unusual distant star",
+                    "summary": "Astronomers published new observations.",
+                    "category": "general"
+                },
+                {
+                    "source": "gHacks",
+                    "title": "Critical browser vulnerability fixed",
+                    "summary": "Install the security update.",
+                    "category": "vulnerability"
+                }
+            ]
+        });
+
+        prune_state_news_relevance(&mut state, &config);
+        let items = state["today_news"].as_array().expect("news array");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0]["title"], "Critical browser vulnerability fixed");
     }
 }

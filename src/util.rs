@@ -2,7 +2,11 @@
 
 use anyhow::{Context, Result};
 use serde_json::Value;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::PathBuf,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 pub(crate) fn normalize_key(title: &str, url: &str) -> String {
     let raw = if !url.is_empty() { url } else { title };
@@ -130,6 +134,75 @@ pub(crate) fn push_tag(tags: &mut Vec<String>, tag: String) {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct PruneStats {
+    pub(crate) scanned: usize,
+    pub(crate) removed_by_age: usize,
+    pub(crate) removed_by_count: usize,
+}
+
+impl PruneStats {
+    pub(crate) fn removed(self) -> usize {
+        self.removed_by_age + self.removed_by_count
+    }
+}
+
+pub(crate) fn prune_regular_files(
+    dir: &PathBuf,
+    max_age_days: u64,
+    max_files: usize,
+    protected_names: &[&str],
+) -> Result<PruneStats> {
+    if !dir.exists() {
+        return Ok(PruneStats::default());
+    }
+
+    let now = SystemTime::now();
+    let max_age = Duration::from_secs(max_age_days.saturating_mul(86_400));
+    let mut candidates = Vec::new();
+    let mut stats = PruneStats::default();
+
+    for entry in fs::read_dir(dir)
+        .with_context(|| format!("failed to read retention directory: {}", dir.display()))?
+    {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        if !file_type.is_file() {
+            continue;
+        }
+
+        let name = entry.file_name().to_string_lossy().to_string();
+        if protected_names.iter().any(|protected| name == *protected) {
+            continue;
+        }
+
+        stats.scanned += 1;
+        let modified = entry.metadata()?.modified().unwrap_or(UNIX_EPOCH);
+        let path = entry.path();
+        let too_old = now
+            .duration_since(modified)
+            .map(|age| age > max_age)
+            .unwrap_or(false);
+
+        if too_old {
+            fs::remove_file(&path)
+                .with_context(|| format!("failed to remove expired file: {}", path.display()))?;
+            stats.removed_by_age += 1;
+        } else {
+            candidates.push((path, modified));
+        }
+    }
+
+    candidates.sort_by(|a, b| b.1.cmp(&a.1));
+    for (path, _) in candidates.into_iter().skip(max_files) {
+        fs::remove_file(&path)
+            .with_context(|| format!("failed to remove excess file: {}", path.display()))?;
+        stats.removed_by_count += 1;
+    }
+
+    Ok(stats)
+}
+
 pub(crate) fn write_json_atomic(path: &PathBuf, value: &Value) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
@@ -190,5 +263,29 @@ mod tests {
         assert_eq!(keyword_tag("vpn"), "VPN");
         assert_eq!(keyword_tag("zero-day"), "Zero-day");
         assert_eq!(keyword_tag("ransomware"), "Ransomware");
+    }
+    #[test]
+    fn prune_regular_files_enforces_count_and_protects_named_files() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time after epoch")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "secpath-radar-prune-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&dir).expect("create temp directory");
+        fs::write(dir.join("latest.json"), b"latest").expect("write protected file");
+        for index in 0..4 {
+            fs::write(dir.join(format!("{index}.json")), b"item").expect("write item");
+        }
+
+        let stats = prune_regular_files(&dir, 365, 2, &["latest.json"]).expect("pruning succeeds");
+        assert_eq!(stats.removed_by_count, 2);
+        assert!(dir.join("latest.json").exists());
+        let remaining = fs::read_dir(&dir).expect("read temp directory").count();
+        assert_eq!(remaining, 3);
+
+        fs::remove_dir_all(&dir).expect("remove temp directory");
     }
 }

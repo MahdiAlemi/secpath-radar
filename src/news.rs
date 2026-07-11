@@ -165,6 +165,13 @@ fn fetch_source_group(
                         stale_fallbacks.push(issue);
                     }
                     if items.is_empty() {
+                        if !writeup_mode && source.topic_mode == TopicMode::Mixed {
+                            eprintln!(
+                                "  ↳ no cybersecurity-relevant items in mixed feed {}",
+                                source.name
+                            );
+                            continue;
+                        }
                         failures.push(SourceFailure {
                             name: source.name.clone(),
                             url: source.url.clone(),
@@ -257,6 +264,7 @@ pub(crate) fn fetch_source(
 
     let feed = parser::parse(&cached.bytes[..]).context("failed to parse RSS/Atom feed")?;
     let mut out = Vec::new();
+    let mut filtered_irrelevant = 0usize;
 
     for entry in feed.entries.iter().take(config.fetch.max_items_per_source) {
         let title = entry
@@ -306,10 +314,59 @@ pub(crate) fn fetch_source(
         };
 
         classify_and_score(&mut item, config);
+        if source.topic_mode == TopicMode::Mixed && !is_security_relevant(&item, config) {
+            filtered_irrelevant += 1;
+            continue;
+        }
         out.push(item);
     }
 
+    if filtered_irrelevant > 0 {
+        eprintln!(
+            "  ↳ filtered {filtered_irrelevant} non-security item(s) from mixed feed {}",
+            source.name
+        );
+    }
+
     Ok((out, stale_fallback))
+}
+
+pub(crate) fn is_security_relevant(item: &FeedItem, config: &Config) -> bool {
+    is_security_relevant_fields(&item.title, &item.summary, &item.category, config)
+}
+
+pub(crate) fn is_security_relevant_fields(
+    title: &str,
+    summary: &str,
+    _category: &str,
+    config: &Config,
+) -> bool {
+    let haystack = format!("{title} {summary}").to_lowercase();
+    config
+        .filters
+        .relevance_keywords
+        .iter()
+        .any(|keyword| contains_relevance_keyword(&haystack, keyword))
+}
+
+fn contains_relevance_keyword(haystack: &str, keyword: &str) -> bool {
+    let keyword = keyword.trim().to_lowercase();
+    if keyword.is_empty() {
+        return false;
+    }
+
+    if keyword.chars().all(|ch| ch.is_ascii_alphanumeric()) && keyword.len() <= 3 {
+        return haystack.match_indices(&keyword).any(|(start, _)| {
+            let before = haystack[..start].chars().next_back();
+            let end = start + keyword.len();
+            let after = haystack[end..].chars().next();
+
+            before.is_none_or(|ch| !ch.is_ascii_alphanumeric())
+                && after.is_none_or(|ch| !ch.is_ascii_alphanumeric())
+        });
+    }
+
+    haystack.contains(&keyword)
 }
 
 pub(crate) fn validated_http_url(raw: &str) -> Option<String> {
@@ -483,5 +540,62 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["today-latest", "today-middle"]
         );
+    }
+    #[test]
+    fn mixed_feed_relevance_rejects_general_technology_and_keeps_security() {
+        let config = load_config(&PathBuf::from("config.yaml")).expect("valid config");
+
+        let mut general = feed_item(
+            "Scientists solve mystery of unusual distant star",
+            "2026-07-11T10:00:00+00:00",
+            1,
+        );
+        general.summary = "Astronomers published new observations.".to_string();
+        classify_and_score(&mut general, &config);
+        assert!(!is_security_relevant(&general, &config));
+
+        let mut legal = feed_item(
+            "Apple sues AI company over alleged trade secrets",
+            "2026-07-11T10:00:00+00:00",
+            1,
+        );
+        legal.summary = "The companies are involved in an employment dispute.".to_string();
+        classify_and_score(&mut legal, &config);
+        assert!(!is_security_relevant(&legal, &config));
+
+        let mut security = feed_item(
+            "Critical browser vulnerability enables remote code execution",
+            "2026-07-11T10:00:00+00:00",
+            1,
+        );
+        security.summary = "Users should install the security update.".to_string();
+        classify_and_score(&mut security, &config);
+        assert!(is_security_relevant(&security, &config));
+
+        let mut ai_security = feed_item(
+            "Prompt injection lets attackers compromise AI agents",
+            "2026-07-11T10:00:00+00:00",
+            1,
+        );
+        ai_security.summary = "The exploit can expose credentials.".to_string();
+        classify_and_score(&mut ai_security, &config);
+        assert!(is_security_relevant(&ai_security, &config));
+    }
+
+    #[test]
+    fn short_relevance_keywords_require_word_boundaries() {
+        assert!(contains_relevance_keyword(
+            "apt campaign targets routers",
+            "apt"
+        ));
+        assert!(!contains_relevance_keyword(
+            "company adapts its strategy",
+            "apt"
+        ));
+        assert!(contains_relevance_keyword(
+            "stored xss vulnerability",
+            "xss"
+        ));
+        assert!(!contains_relevance_keyword("css update released", "xss"));
     }
 }

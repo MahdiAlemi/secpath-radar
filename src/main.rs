@@ -315,7 +315,7 @@ fn main() -> Result<()> {
 
     let previous_brief = read_previous_latest_brief();
     let pending_day_state = if network_mode {
-        apply_day_accumulation(&mut brief)?
+        apply_day_accumulation(&mut brief, &config)?
     } else {
         None
     };
@@ -373,6 +373,12 @@ fn main() -> Result<()> {
         }
         write_json_atomic(&PathBuf::from("data/latest_brief.json"), &brief)?;
         write_history_snapshot(&brief)?;
+        if let Err(err) = prune_history_snapshots(&config) {
+            eprintln!("⚠️  history snapshot pruning skipped: {err:#}");
+        }
+        if let Err(err) = prune_ai_item_cache(&config) {
+            eprintln!("⚠️  AI item cache pruning skipped: {err:#}");
+        }
         write_daily_archive(&brief)?;
     }
 

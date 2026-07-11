@@ -10,6 +10,8 @@ pub(crate) struct Config {
     pub(crate) cache: CacheConfig,
     #[serde(default)]
     pub(crate) intel: IntelConfig,
+    #[serde(default)]
+    pub(crate) retention: RetentionConfig,
     pub(crate) filters: FiltersConfig,
     // Kept for backward-compatible config.yaml parsing; current day-only rendering no longer reads global limits.
     #[allow(dead_code)]
@@ -107,6 +109,45 @@ pub(crate) fn default_cache_dir() -> String {
 
 pub(crate) fn default_cache_ttl_minutes() -> u64 {
     90
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct RetentionConfig {
+    #[serde(default = "default_history_retention_days")]
+    pub(crate) history_days: u64,
+    #[serde(default = "default_max_history_snapshots")]
+    pub(crate) max_history_snapshots: usize,
+    #[serde(default = "default_ai_cache_retention_days")]
+    pub(crate) ai_cache_days: u64,
+    #[serde(default = "default_max_ai_cache_files")]
+    pub(crate) max_ai_cache_files: usize,
+}
+
+impl Default for RetentionConfig {
+    fn default() -> Self {
+        Self {
+            history_days: default_history_retention_days(),
+            max_history_snapshots: default_max_history_snapshots(),
+            ai_cache_days: default_ai_cache_retention_days(),
+            max_ai_cache_files: default_max_ai_cache_files(),
+        }
+    }
+}
+
+pub(crate) fn default_history_retention_days() -> u64 {
+    60
+}
+
+pub(crate) fn default_max_history_snapshots() -> usize {
+    800
+}
+
+pub(crate) fn default_ai_cache_retention_days() -> u64 {
+    90
+}
+
+pub(crate) fn default_max_ai_cache_files() -> usize {
+    5000
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -681,6 +722,45 @@ pub(crate) fn default_openphish_feed_url() -> String {
 pub(crate) struct FiltersConfig {
     pub(crate) high_keywords: Vec<String>,
     pub(crate) low_keywords: Vec<String>,
+    #[serde(default = "default_relevance_keywords")]
+    pub(crate) relevance_keywords: Vec<String>,
+}
+
+pub(crate) fn default_relevance_keywords() -> Vec<String> {
+    [
+        "cybersecurity",
+        "cyber security",
+        "security flaw",
+        "security update",
+        "vulnerability",
+        "cve-",
+        "zero-day",
+        "zeroday",
+        "exploit",
+        "ransomware",
+        "malware",
+        "botnet",
+        "phishing",
+        "data breach",
+        "breach",
+        "credential",
+        "password",
+        "authentication",
+        "authorization",
+        "remote code execution",
+        "privilege escalation",
+        "xss",
+        "sql injection",
+        "firmware attack",
+        "supply chain attack",
+        "threat actor",
+        "apt",
+        "incident response",
+        "prompt injection",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect()
 }
 
 #[derive(Debug, Deserialize)]
@@ -690,10 +770,25 @@ pub(crate) struct LimitsConfig {
     pub(crate) global_news: usize,
 }
 
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum TopicMode {
+    Security,
+    Mixed,
+}
+
+impl Default for TopicMode {
+    fn default() -> Self {
+        Self::Security
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct SourceConfig {
     pub(crate) name: String,
     pub(crate) url: String,
+    #[serde(default)]
+    pub(crate) topic_mode: TopicMode,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -896,6 +991,16 @@ pub(crate) fn load_config(path: &PathBuf) -> Result<Config> {
     }
     if config.intel.enabled && config.intel.max_stale_hours < config.intel.refresh_hours {
         anyhow::bail!("intel.max_stale_hours must be greater than or equal to intel.refresh_hours");
+    }
+    if config.retention.history_days == 0
+        || config.retention.max_history_snapshots == 0
+        || config.retention.ai_cache_days == 0
+        || config.retention.max_ai_cache_files == 0
+    {
+        anyhow::bail!("retention values must be greater than zero");
+    }
+    if config.filters.relevance_keywords.is_empty() {
+        anyhow::bail!("filters.relevance_keywords cannot be empty");
     }
     if config.fetch.user_agent.trim().is_empty() {
         anyhow::bail!("fetch.user_agent cannot be empty");

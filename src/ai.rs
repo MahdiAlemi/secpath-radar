@@ -469,6 +469,25 @@ fn log_item_cache_write(config: &Config, key: &str, value: &Value) {
     }
 }
 
+pub(crate) fn prune_ai_item_cache(config: &Config) -> Result<PruneStats> {
+    let items_dir = PathBuf::from(&config.gemini.cache_dir).join("items");
+    let stats = prune_regular_files(
+        &items_dir,
+        config.retention.ai_cache_days,
+        config.retention.max_ai_cache_files,
+        &[],
+    )?;
+    if stats.removed() > 0 {
+        eprintln!(
+            "↳ pruned {} AI cache item(s): {} expired, {} over count limit",
+            stats.removed(),
+            stats.removed_by_age,
+            stats.removed_by_count
+        );
+    }
+    Ok(stats)
+}
+
 const NEWS_PROMPT_RULES: &str = r#"You are the editorial layer for SecPath Radar, a defensive daily cybersecurity intelligence brief.
 
 Input JSON contains news items in "items" and may contain a "priority_alert" object. Every item has a "ref" identifier.

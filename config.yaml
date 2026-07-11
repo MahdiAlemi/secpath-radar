@@ -130,6 +130,12 @@ cache:
   dir: "data/cache/http"
   ttl_minutes: 90
 
+retention:
+  history_days: 60
+  max_history_snapshots: 800
+  ai_cache_days: 90
+  max_ai_cache_files: 5000
+
 gemini:
   model: "gemini-2.5-flash"
   api_url: "https://generativelanguage.googleapis.com/v1beta"
@@ -180,6 +186,36 @@ filters:
     - opinion
     - job
     - conference
+  relevance_keywords:
+    - cybersecurity
+    - cyber security
+    - security flaw
+    - security update
+    - vulnerability
+    - cve-
+    - zero-day
+    - zeroday
+    - exploit
+    - ransomware
+    - malware
+    - botnet
+    - phishing
+    - data breach
+    - breach
+    - credential
+    - password
+    - authentication
+    - authorization
+    - remote code execution
+    - privilege escalation
+    - xss
+    - sql injection
+    - firmware attack
+    - supply chain attack
+    - threat actor
+    - apt
+    - incident response
+    - prompt injection
 
 limits:
   global_news: 50
@@ -329,6 +365,7 @@ sources:
   - name: "CISA Advisories"
     url: "https://www.cisa.gov/cybersecurity-advisories/all.xml"
   - name: "BleepingComputer"
+    topic_mode: mixed
     url: "https://www.bleepingcomputer.com/feed/"
   - name: "SecurityWeek"
     url: "https://www.securityweek.com/feed/"
@@ -411,6 +448,7 @@ sources:
   - name: "CSO Online"
     url: "https://www.csoonline.com/feed/"
   - name: "gHacks"
+    topic_mode: mixed
     url: "https://www.ghacks.net/feed/"
   - name: "Check Point Research"
     url: "https://blog.checkpoint.com/rss/"
@@ -419,6 +457,7 @@ sources:
   - name: "Ars Technica Security"
     url: "https://arstechnica.com/security/rss"
   - name: "404 Media"
+    topic_mode: mixed
     url: "https://www.404media.co/rss/"
   - name: "Mozilla Security"
     url: "https://blog.mozilla.org/security/feed/"

@@ -62,9 +62,10 @@ Open `site/index.html` directly in a browser — no server needed.
 
 Everything lives in `config.yaml`:
 
-- **Feeds** — news and write-up sources with per-feed tags
+- **Feeds** — news and write-up sources with per-feed topic modes; mixed technology feeds pass an explicit cybersecurity relevance gate before ranking
 - **HTTP** — connection/request timeouts, bounded feed concurrency, a 90-minute cache TTL for the two-hour schedule, feed validation before cache replacement, fallback/source-health reporting, publication thresholds, and an optional proxy
 - **Intel freshness** — `intel.refresh_hours` controls normal refresh cadence and `intel.max_stale_hours` caps stale fallback age (48 hours by default). Every Intel panel exposes the actual oldest source fetch time, maximum cache age, and stale-source count instead of presenting generation time as source freshness.
+- **Retention** — bounded history snapshots and AI item-cache storage by both age and file count
 - **Gemini** — model, API URL, temperature, cache directory, and how many top items get editorial treatment (`max_global_news`, `max_cves`)
 
 Secrets are read from the environment first, then from a local `.env` file (which is git-ignored):
@@ -87,7 +88,7 @@ Safety and cost controls:
 
 - **Schema-locked responses** — Gemini must return JSON matching a strict response schema; a single repair pass fixes truncated output
 - **Sanitized merge** — only whitelisted editorial fields are accepted; URLs, CVE IDs, scores, and sources can never be overwritten by the model
-- **Per-item content cache** — each item's editorial output is cached by content hash under `data/cache/ai/`; unchanged items never trigger a new call, so steady-state runs use zero to three calls
+- **Per-item content cache** — each item's editorial output is cached by content hash under `data/cache/ai/`; unchanged items never trigger a new call, and retention limits prune expired/excess entries automatically
 - **Graceful degradation** — if the AI call fails or the key is missing, the dashboard renders fully without AI content and records the reason in `ai_status`
 
 ## Outputs

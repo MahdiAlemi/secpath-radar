@@ -146,6 +146,25 @@ pub(crate) fn write_history_snapshot(brief: &Value) -> Result<()> {
     Ok(())
 }
 
+pub(crate) fn prune_history_snapshots(config: &Config) -> Result<PruneStats> {
+    let history_dir = PathBuf::from("snapshots/history");
+    let stats = prune_regular_files(
+        &history_dir,
+        config.retention.history_days,
+        config.retention.max_history_snapshots,
+        &["latest_snapshot.json"],
+    )?;
+    if stats.removed() > 0 {
+        eprintln!(
+            "↳ pruned {} history snapshot(s): {} expired, {} over count limit",
+            stats.removed(),
+            stats.removed_by_age,
+            stats.removed_by_count
+        );
+    }
+    Ok(stats)
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct HistoryMetric {
     pub(crate) key: &'static str,
