@@ -95,6 +95,37 @@ pub(crate) fn validate_collected_brief(brief: &Value, config: &Config) -> Result
         );
     }
 
+    if let Some(cves) = brief.get("cves").and_then(|value| value.as_array()) {
+        for (index, cve) in cves.iter().enumerate() {
+            let published = cve
+                .get("published")
+                .and_then(|value| value.as_str())
+                .unwrap_or("");
+            if !timestamp_is_tehran_day(published, brief_date) {
+                anyhow::bail!(
+                    "quality gate: CVE item {index} publication timestamp {published:?} is outside Tehran day {brief_date}"
+                );
+            }
+        }
+    }
+
+    if let Some(repos) = brief
+        .pointer("/poc_watch/repos")
+        .and_then(|value| value.as_array())
+    {
+        for (index, repo) in repos.iter().enumerate() {
+            let published = repo
+                .get("published_at")
+                .and_then(|value| value.as_str())
+                .unwrap_or("");
+            if !timestamp_is_tehran_day(published, brief_date) {
+                anyhow::bail!(
+                    "quality gate: PoC item {index} publication timestamp {published:?} is outside Tehran day {brief_date}"
+                );
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -136,6 +167,18 @@ pub(crate) fn validate_rendered_outputs(out_path: &PathBuf, config: &Config) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tehran_day_helper_handles_utc_midnight_boundary() {
+        assert!(timestamp_is_tehran_day(
+            "2026-07-10T20:30:00Z",
+            "2026-07-11"
+        ));
+        assert!(!timestamp_is_tehran_day(
+            "2026-07-11T20:30:00Z",
+            "2026-07-11"
+        ));
+    }
 
     #[test]
     fn unsafe_news_url_is_rejected() {

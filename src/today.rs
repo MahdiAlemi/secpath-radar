@@ -20,6 +20,28 @@ pub(crate) fn tehran_now() -> chrono::DateTime<chrono::FixedOffset> {
     Utc::now().with_timezone(&tehran_offset())
 }
 
+pub(crate) fn tehran_date_for_timestamp(value: &str) -> Option<NaiveDate> {
+    let value = value.trim();
+    if value.is_empty() {
+        return None;
+    }
+
+    if let Ok(timestamp) = chrono::DateTime::parse_from_rfc3339(value) {
+        return Some(timestamp.with_timezone(&tehran_offset()).date_naive());
+    }
+
+    value
+        .get(0..10)
+        .and_then(|date| NaiveDate::parse_from_str(date, "%Y-%m-%d").ok())
+}
+
+pub(crate) fn timestamp_is_tehran_day(value: &str, day: &str) -> bool {
+    let Ok(day) = NaiveDate::parse_from_str(day, "%Y-%m-%d") else {
+        return false;
+    };
+    tehran_date_for_timestamp(value) == Some(day)
+}
+
 fn item_id(item: &Value, id_keys: &[&str]) -> Option<String> {
     for key in id_keys {
         if let Some(text) = item.get(*key).and_then(|v| v.as_str()) {
@@ -100,8 +122,8 @@ fn prune_state_cves_to_day(state: &mut Value, date: &str) {
     cves.retain(|cve| {
         cve.get("published")
             .and_then(|v| v.as_str())
-            .and_then(|published| published.get(0..10))
-            == Some(date)
+            .map(|published| timestamp_is_tehran_day(published, date))
+            .unwrap_or(false)
     });
 }
 

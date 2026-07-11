@@ -191,12 +191,25 @@ pub(crate) fn fetch_poc_watch(
 }
 
 pub(crate) fn latest_poc_search_queries(day: &str) -> Vec<String> {
-    vec![
-        format!("CVE PoC in:name,description,readme created:{day}"),
-        format!("CVE exploit in:name,description,readme created:{day}"),
-        format!("CVE proof-of-concept in:name,description,readme created:{day}"),
-        format!("CVE reproducer in:name,description,readme created:{day}"),
-    ]
+    let Ok(local_day) = NaiveDate::parse_from_str(day, "%Y-%m-%d") else {
+        return Vec::new();
+    };
+    let previous_utc_day = local_day
+        .pred_opt()
+        .unwrap_or(local_day)
+        .format("%Y-%m-%d")
+        .to_string();
+    let current_utc_day = local_day.format("%Y-%m-%d").to_string();
+    let terms = ["PoC", "exploit", "proof-of-concept", "reproducer"];
+
+    [previous_utc_day, current_utc_day]
+        .into_iter()
+        .flat_map(|utc_day| {
+            terms
+                .iter()
+                .map(move |term| format!("CVE {term} in:name,description,readme created:{utc_day}"))
+        })
+        .collect()
 }
 
 pub(crate) fn fetch_github_repository_search(
@@ -397,7 +410,10 @@ pub(crate) fn map_github_latest_poc_candidates(repo: &Value) -> Vec<Value> {
                 "language": language.clone(),
                 "created_at": created_at.clone(),
                 "published_at": created_at.clone(),
-                "published_date": iso_date_prefix(&created_at).unwrap_or("").to_string(),
+                "published_date": tehran_date_for_timestamp(&created_at)
+                    .map(|date| date.format("%Y-%m-%d").to_string())
+                    .unwrap_or_default(),
+                "published_date_utc": iso_date_prefix(&created_at).unwrap_or("").to_string(),
                 "published_ts": published_ts,
                 "updated_at": updated_at.clone(),
                 "updated_ts": updated_ts,
@@ -419,8 +435,7 @@ pub(crate) fn retain_pocs_published_on_day(items: &mut Vec<Value>, target_date: 
     items.retain(|item| {
         item.get("published_at")
             .and_then(|value| value.as_str())
-            .and_then(iso_date_prefix)
-            .map(|published_date| published_date == target_date)
+            .map(|published_at| timestamp_is_tehran_day(published_at, target_date))
             .unwrap_or(false)
     });
 }
@@ -694,24 +709,40 @@ mod tests {
     }
 
     #[test]
-    fn retain_pocs_published_on_day_drops_other_dates() {
+    fn retain_pocs_published_on_day_uses_tehran_boundaries() {
         let mut repos = vec![
-            json!({"repo": "a/one", "published_at": "2026-07-08T02:10:00Z"}),
-            json!({"repo": "b/two", "published_at": "2026-07-07T23:59:59Z"}),
-            json!({"repo": "c/three", "published_at": ""}),
+            json!({"repo": "before/start", "published_at": "2026-07-07T20:29:59Z"}),
+            json!({"repo": "at/start", "published_at": "2026-07-07T20:30:00Z"}),
+            json!({"repo": "before/end", "published_at": "2026-07-08T20:29:59Z"}),
+            json!({"repo": "at/end", "published_at": "2026-07-08T20:30:00Z"}),
+            json!({"repo": "missing/time", "published_at": ""}),
         ];
         retain_pocs_published_on_day(&mut repos, "2026-07-08");
-        assert_eq!(repos.len(), 1);
-        assert_eq!(repos[0]["repo"], "a/one");
+        let names: Vec<&str> = repos
+            .iter()
+            .filter_map(|repo| repo.get("repo").and_then(|value| value.as_str()))
+            .collect();
+        assert_eq!(names, vec!["at/start", "before/end"]);
     }
 
     #[test]
-    fn latest_poc_search_queries_are_exact_day_only() {
+    fn latest_poc_search_queries_cover_both_utc_dates_for_tehran_day() {
         let queries = latest_poc_search_queries("2026-07-08");
-        assert_eq!(queries.len(), 4);
-        assert!(queries
-            .iter()
-            .all(|query| query.contains("created:2026-07-08")));
+        assert_eq!(queries.len(), 8);
+        assert_eq!(
+            queries
+                .iter()
+                .filter(|query| query.contains("created:2026-07-07"))
+                .count(),
+            4
+        );
+        assert_eq!(
+            queries
+                .iter()
+                .filter(|query| query.contains("created:2026-07-08"))
+                .count(),
+            4
+        );
         assert!(queries.iter().all(|query| !query.contains("created:>=")));
     }
 }

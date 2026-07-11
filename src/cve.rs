@@ -145,7 +145,7 @@ pub(crate) fn fetch_cves(
 }
 
 pub(crate) fn cve_published_on_day(cve: &CveItem, day: &str) -> bool {
-    cve.published.get(0..10) == Some(day)
+    timestamp_is_tehran_day(&cve.published, day)
 }
 
 pub(crate) fn retain_cves_published_on_day(cves: &mut Vec<CveItem>, day: &str) {
@@ -1047,6 +1047,60 @@ pub(crate) fn recommended_action_for_cve(cve: &CveItem) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_cve(published: &str) -> CveItem {
+        CveItem {
+            cve_id: "CVE-2026-0001".to_string(),
+            title: String::new(),
+            summary: String::new(),
+            severity: "UNKNOWN".to_string(),
+            cvss: 0.0,
+            epss: 0.0,
+            epss_percentile: 0.0,
+            epss_7d: 0.0,
+            epss_30d: 0.0,
+            epss_delta_7d: 0.0,
+            epss_delta_30d: 0.0,
+            epss_momentum: "stable".to_string(),
+            kev: false,
+            cisa_vulnrichment: false,
+            ssvc_exploitation: String::new(),
+            ssvc_automatable: String::new(),
+            ssvc_technical_impact: String::new(),
+            cisa_priority: String::new(),
+            cvss_version: String::new(),
+            kev_due_date: String::new(),
+            kev_ransomware: false,
+            published: published.to_string(),
+            url: String::new(),
+            recommended_action: String::new(),
+            risk_score: 1,
+            tags: Vec::new(),
+            vendor: String::new(),
+            product: String::new(),
+            cwe_type: String::new(),
+        }
+    }
+
+    #[test]
+    fn cve_publish_day_uses_tehran_date_across_utc_midnight() {
+        assert!(!cve_published_on_day(
+            &test_cve("2026-07-10T20:29:59Z"),
+            "2026-07-11"
+        ));
+        assert!(cve_published_on_day(
+            &test_cve("2026-07-10T20:30:00Z"),
+            "2026-07-11"
+        ));
+        assert!(cve_published_on_day(
+            &test_cve("2026-07-11T20:29:59Z"),
+            "2026-07-11"
+        ));
+        assert!(!cve_published_on_day(
+            &test_cve("2026-07-11T20:30:00Z"),
+            "2026-07-11"
+        ));
+    }
 
     #[test]
     fn parse_kev_map_extracts_due_date_and_ransomware() {
