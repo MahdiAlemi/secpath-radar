@@ -392,7 +392,7 @@ jobs:
     steps:
       - name: Deploy validated site to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   cleanup-state:
     name: Retain encrypted state rollback copies
