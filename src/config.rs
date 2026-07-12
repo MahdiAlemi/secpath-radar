@@ -12,6 +12,8 @@ pub(crate) struct Config {
     pub(crate) intel: IntelConfig,
     #[serde(default)]
     pub(crate) retention: RetentionConfig,
+    #[serde(default)]
+    pub(crate) quality: QualityConfig,
     pub(crate) filters: FiltersConfig,
     // Kept for backward-compatible config.yaml parsing; current day-only rendering no longer reads global limits.
     #[allow(dead_code)]
@@ -184,6 +186,114 @@ pub(crate) fn default_ai_cache_retention_days() -> u64 {
 
 pub(crate) fn default_max_ai_cache_files() -> usize {
     5000
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct QualityConfig {
+    #[serde(default = "default_require_cve_engine")]
+    pub(crate) require_cve_engine: bool,
+    #[serde(default = "default_min_visible_news_for_publish")]
+    pub(crate) min_visible_news_for_publish: usize,
+    #[serde(default = "default_min_writeups_for_publish")]
+    pub(crate) min_writeups_for_publish: usize,
+    #[serde(default = "default_max_writeup_source_failure_percent")]
+    pub(crate) max_writeup_source_failure_percent: usize,
+    #[serde(default = "default_required_quality_panels")]
+    pub(crate) required_panels: Vec<String>,
+    #[serde(default = "default_degradable_quality_panels")]
+    pub(crate) degradable_panels: Vec<String>,
+    #[serde(default = "default_max_degradable_panel_failures")]
+    pub(crate) max_degradable_panel_failures: usize,
+    #[serde(default = "default_optional_quality_panels")]
+    pub(crate) optional_panels: Vec<String>,
+}
+
+impl Default for QualityConfig {
+    fn default() -> Self {
+        Self {
+            require_cve_engine: default_require_cve_engine(),
+            min_visible_news_for_publish: default_min_visible_news_for_publish(),
+            min_writeups_for_publish: default_min_writeups_for_publish(),
+            max_writeup_source_failure_percent: default_max_writeup_source_failure_percent(),
+            required_panels: default_required_quality_panels(),
+            degradable_panels: default_degradable_quality_panels(),
+            max_degradable_panel_failures: default_max_degradable_panel_failures(),
+            optional_panels: default_optional_quality_panels(),
+        }
+    }
+}
+
+pub(crate) fn default_require_cve_engine() -> bool {
+    true
+}
+
+pub(crate) fn default_min_visible_news_for_publish() -> usize {
+    0
+}
+
+pub(crate) fn default_min_writeups_for_publish() -> usize {
+    1
+}
+
+pub(crate) fn default_max_writeup_source_failure_percent() -> usize {
+    50
+}
+
+pub(crate) fn default_required_quality_panels() -> Vec<String> {
+    [
+        "attack_pressure",
+        "ioc_radar",
+        "malware_pulse",
+        "drop_pulse",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect()
+}
+
+pub(crate) fn default_degradable_quality_panels() -> Vec<String> {
+    [
+        "infrastructure_radar",
+        "supply_chain_radar",
+        "ransomware_pulse",
+        "botnet_c2_pulse",
+        "phishing_pulse",
+        "ics_ot_pulse",
+        "csaf_pulse",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect()
+}
+
+pub(crate) fn default_max_degradable_panel_failures() -> usize {
+    3
+}
+
+pub(crate) fn default_optional_quality_panels() -> Vec<String> {
+    ["greynoise_context", "nuclei_coverage", "poc_watch"]
+        .into_iter()
+        .map(str::to_string)
+        .collect()
+}
+
+pub(crate) fn known_quality_panels() -> &'static [&'static str] {
+    &[
+        "attack_pressure",
+        "ioc_radar",
+        "infrastructure_radar",
+        "supply_chain_radar",
+        "ransomware_pulse",
+        "botnet_c2_pulse",
+        "greynoise_context",
+        "phishing_pulse",
+        "ics_ot_pulse",
+        "malware_pulse",
+        "drop_pulse",
+        "csaf_pulse",
+        "nuclei_coverage",
+        "poc_watch",
+    ]
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -1049,6 +1159,43 @@ pub(crate) fn load_config(path: &PathBuf) -> Result<Config> {
         || config.retention.max_ai_cache_files == 0
     {
         anyhow::bail!("retention values must be greater than zero");
+    }
+    if config.quality.min_visible_news_for_publish > config.fetch.min_news_items_for_publish {
+        anyhow::bail!(
+            "quality.min_visible_news_for_publish cannot exceed fetch.min_news_items_for_publish"
+        );
+    }
+    if config.quality.min_writeups_for_publish == 0 {
+        anyhow::bail!("quality.min_writeups_for_publish must be greater than zero");
+    }
+    if config.quality.max_writeup_source_failure_percent > 100 {
+        anyhow::bail!("quality.max_writeup_source_failure_percent must be between 0 and 100");
+    }
+    if config.quality.max_degradable_panel_failures > config.quality.degradable_panels.len() {
+        anyhow::bail!(
+            "quality.max_degradable_panel_failures cannot exceed the number of degradable panels"
+        );
+    }
+
+    let known_panels: HashSet<&str> = known_quality_panels().iter().copied().collect();
+    let mut configured_panels = HashSet::new();
+    for (group, panels) in [
+        ("required", &config.quality.required_panels),
+        ("degradable", &config.quality.degradable_panels),
+        ("optional", &config.quality.optional_panels),
+    ] {
+        for panel in panels {
+            let name = panel.trim();
+            if name.is_empty() {
+                anyhow::bail!("quality.{group}_panels cannot contain an empty name");
+            }
+            if !known_panels.contains(name) {
+                anyhow::bail!("quality.{group}_panels contains unknown panel {name:?}");
+            }
+            if !configured_panels.insert(name.to_string()) {
+                anyhow::bail!("quality panel {name:?} appears in more than one group");
+            }
+        }
     }
     if config.filters.relevance_keywords.is_empty() {
         anyhow::bail!("filters.relevance_keywords cannot be empty");

@@ -142,6 +142,32 @@ retention:
   ai_cache_days: 90
   max_ai_cache_files: 5000
 
+quality:
+  require_cve_engine: true
+  # Same-day news volume is naturally low near the Tehran day boundary.
+  # Keep this at 0 to gate collection health instead of editorial volume.
+  min_visible_news_for_publish: 0
+  min_writeups_for_publish: 1
+  max_writeup_source_failure_percent: 50
+  required_panels:
+    - attack_pressure
+    - ioc_radar
+    - malware_pulse
+    - drop_pulse
+  degradable_panels:
+    - infrastructure_radar
+    - supply_chain_radar
+    - ransomware_pulse
+    - botnet_c2_pulse
+    - phishing_pulse
+    - ics_ot_pulse
+    - csaf_pulse
+  max_degradable_panel_failures: 3
+  optional_panels:
+    - greynoise_context
+    - nuclei_coverage
+    - poc_watch
+
 gemini:
   model: "gemini-2.5-flash"
   api_url: "https://generativelanguage.googleapis.com/v1beta"

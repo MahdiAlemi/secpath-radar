@@ -104,7 +104,7 @@ Safety and cost controls:
 
 ## CI
 
-`.github/workflows/radar.yml` runs every two hours at minute 17 and can also be started with `workflow_dispatch`. The build job has read-only repository access, restores the previous cache/day/history state from an encrypted GitHub Actions artifact, runs formatting and tests with a pinned Rust toolchain, collects and renders the radar, and applies publication quality gates. Only validated, state-free site files are passed to the write-scoped `radar-output` job and the GitHub Pages deployment. Failed or empty-news builds never replace the last known-good published output.
+`.github/workflows/radar.yml` runs every two hours at minute 17 and can also be started with `workflow_dispatch`. The build job has read-only repository access, restores the previous cache/day/history state from an encrypted GitHub Actions artifact, runs formatting and tests with a pinned Rust toolchain, collects and renders the radar, and applies publication quality gates. Only validated, state-free site files are passed to the write-scoped `radar-output` job and the GitHub Pages deployment. Failed or structurally invalid builds never replace the last known-good published output. A low same-day news count does not block fresh CVE and threat-intel publication when RSS collection itself is healthy.
 
 Runtime state is packed after validation and encrypted with the repository secret `RADAR_STATE_KEY` before upload. The workflow keeps the three newest encrypted artifacts for rollback and can perform a one-time migration from the legacy `radar-output/state` directory. The public `radar-output` branch and Pages artifact contain no cache, day state, snapshots, `.env`, or `data` directory. HTTP cache freshness remains stored in `.meta.json` sidecars rather than filesystem mtimes.
 
@@ -139,3 +139,6 @@ MIT — see [LICENSE](LICENSE).
 Design & development: <strong>Mahdi Alemi</strong>
 
 </div>
+## Publication quality policy
+
+Scheduled publication is blocked when the CVE engine fails, collected RSS volume falls below the fetch threshold, usable writeups fall below the configured minimum, a required Intel panel reports `ok: false`, or degradable panel failures exceed their configured budget. Same-day news volume is not a health signal by default, so `quality.min_visible_news_for_publish` defaults to `0`; operators can set a positive value when a fixed editorial-volume requirement is intentional. The rendered HTML, JSON APIs, and RSS feed are validated again before state is persisted or deployment artifacts are staged. Quality thresholds and panel groups are configured under `quality:` in `config.yaml`. Templates render with strict undefined-variable handling, and CI runs `cargo clippy` with warnings treated as errors.
