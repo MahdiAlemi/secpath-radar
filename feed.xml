@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Fri, 24 Jul 2026 15:50:05 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-12736 — The Wpify Woo plugin for WordPress is vulnerable to Privilege Escalation in…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-12736</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-12736</guid>
+<description>The Wpify Woo plugin for WordPress is vulnerable to Privilege Escalation in versions up to, and including, 5.4.16. This is due to the SettingsApi::save_option() REST route (POST /wp-json/wpify-woo/v1/option) passing the request-supplied &apos;option&apos; and &apos;data&apos; par…</description>
+</item>
+<item>
+<title>CVE-2026-56191: Improper authentication in Microsoft Exchange Online allows an unauthorized attacker…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-56191</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-56191</guid>
+<description>Improper authentication in Microsoft Exchange Online allows an unauthorized attacker to perform tampering over a network.</description>
+</item>
+<item>
+<title>CVE-2026-58275: Missing authorization in Azure DNS allows an unauthorized attacker to elevate privil…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-58275</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-58275</guid>
+<description>Missing authorization in Azure DNS allows an unauthorized attacker to elevate privileges over a network.</description>
+</item>
+<item>
+<title>CVE-2026-62825: Improper authentication in Azure Key Vault allows an unauthorized attacker to elevat…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-62825</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-62825</guid>
+<description>Improper authentication in Azure Key Vault allows an unauthorized attacker to elevate privileges over a network.</description>
+</item>
+<item>
+<title>CVE-2026-50517: Deserialization of untrusted data in M365 Copilot allows an authorized attacker to e…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-50517</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-50517</guid>
+<description>Deserialization of untrusted data in M365 Copilot allows an authorized attacker to execute code over a network.</description>
+</item>
+<item>
+<title>CVE-2026-54120: Improper input validation in Microsoft Surface allows an authorized attacker to exec…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-54120</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-54120</guid>
+<description>Improper input validation in Microsoft Surface allows an authorized attacker to execute code over a network.</description>
+</item>
+<item>
+<title>CVE-2026-56165: Heap-based buffer overflow in Microsoft Account allows an unauthorized attacker to e…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-56165</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-56165</guid>
+<description>Heap-based buffer overflow in Microsoft Account allows an unauthorized attacker to execute code over a network.</description>
+</item>
+<item>
+<title>CVE-2026-56160: Improper authorization in Azure Red Hat OpenShift (ARO) allows an authorized attacke…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-56160</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-56160</guid>
+<description>Improper authorization in Azure Red Hat OpenShift (ARO) allows an authorized attacker to elevate privileges over a network.</description>
+</item>
+<item>
+<title>CVE-2026-56167: Server-side request forgery (ssrf) in Azure AI Search allows an authorized attacker …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-56167</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-56167</guid>
+<description>Server-side request forgery (ssrf) in Azure AI Search allows an authorized attacker to elevate privileges over a network.</description>
+</item>
+<item>
+<title>Kimi K3 Agents Found Redis Zero-Days and Built RCE Exploit, Researchers Say</title>
+<link>https://thehackernews.com/2026/07/kimi-k3-agents-found-redis-zero-days.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/07/kimi-k3-agents-found-redis-zero-days.html</guid>
+<description>Redis shipped seven security releases on July 23 after researchers published authenticated RCE PoCs for stock Redis 6.2.22, 7.4.9, 8.6.4, and 8.8.0. All four chains require RESTORE. The Streams chains also need EVAL and XGROUP; the 8.8.0 ch…</description>
+<pubDate>Fri, 24 Jul 2026 06:58:27 +0000</pubDate>
+</item>
+<item>
+<title>Russian Hackers Used a Zimbra Zero-Day to Steal Emails Without Link Clicks</title>
+<link>https://hackread.com/russian-hackers-zimbra-0-day-steal-emails-link-clicks/</link>
+<guid isPermaLink="false">https://hackread.com/russian-hackers-zimbra-0-day-steal-emails-link-clicks/</guid>
+<description>Russian hackers from the TA488 group exploited a Zimbra webmail flaw triggered when emails were opened or previewed, stealing credentials and up to 90 days of messages from victims.</description>
+<pubDate>Fri, 24 Jul 2026 11:04:51 +0000</pubDate>
+</item>
+<item>
+<title>Foxit PDF Reader Flaw Lets Local Attackers Gain SYSTEM Privileges via DLL Sideloading</title>
+<link>https://gbhackers.com/foxit-pdf-reader-flaw/</link>
+<guid isPermaLink="false">https://gbhackers.com/foxit-pdf-reader-flaw/</guid>
+<description>A recently disclosed vulnerability in Foxit PDF Reader may allow a local attacker with existing code execution to elevate their privileges to NT AUTHORITY\SYSTEM. This issue, tracked as CVE-2026-57239, affects Foxit PDF Reader installations…</description>
+<pubDate>Fri, 24 Jul 2026 13:15:56 +0000</pubDate>
+</item>
+<item>
+<title>ChatGPT AgentForger Flaw Could Deploy Rogue Workspace Agents via a Phishing Link</title>
+<link>https://thehackernews.com/2026/07/chatgpt-agentforger-flaw-could-deploy.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/07/chatgpt-agentforger-flaw-could-deploy.html</guid>
+<description>Cybersecurity researchers have disclosed a critical vulnerability in OpenAI&apos;s ChatGPT Workspace Agents that could have allowed a single phishing link to stealthily build, authorize, and deploy an autonomous artificial intelligence (AI) agen…</description>
+<pubDate>Fri, 24 Jul 2026 11:53:55 +0000</pubDate>
+</item>
+<item>
+<title>USN-8603-1: Linux kernel (Azure) vulnerabilities</title>
+<link>https://ubuntu.com/security/notices/USN-8603-1</link>
+<guid isPermaLink="false">https://ubuntu.com/security/notices/USN-8603-1</guid>
+<description>It was discovered that some AMD processors did not properly clear data in the floating point divider unit during speculative execution. A local attacker could use this to expose sensitive information. (CVE-2025-54505) It was discovered that…</description>
+<pubDate>Fri, 24 Jul 2026 09:51:53 +0000</pubDate>
+</item>
+<item>
+<title>USN-8609-1: Linux kernel (Azure CVM) vulnerabilities</title>
+<link>https://ubuntu.com/security/notices/USN-8609-1</link>
+<guid isPermaLink="false">https://ubuntu.com/security/notices/USN-8609-1</guid>
+<description>It was discovered that some AMD processors did not properly clear data in the floating point divider unit during speculative execution. A local attacker could use this to expose sensitive information. (CVE-2025-54505) It was discovered that…</description>
+<pubDate>Fri, 24 Jul 2026 10:26:03 +0000</pubDate>
+</item>
+<item>
+<title>USN-8608-1: Linux kernel (Azure FIPS) vulnerabilities</title>
+<link>https://ubuntu.com/security/notices/USN-8608-1</link>
+<guid isPermaLink="false">https://ubuntu.com/security/notices/USN-8608-1</guid>
+<description>It was discovered that some AMD processors did not properly clear data in the floating point divider unit during speculative execution. A local attacker could use this to expose sensitive information. (CVE-2025-54505) It was discovered that…</description>
+<pubDate>Fri, 24 Jul 2026 10:23:19 +0000</pubDate>
+</item>
+<item>
+<title>USN-8607-1: Linux kernel (Azure CVM) vulnerabilities</title>
+<link>https://ubuntu.com/security/notices/USN-8607-1</link>
+<guid isPermaLink="false">https://ubuntu.com/security/notices/USN-8607-1</guid>
+<description>It was discovered that some AMD processors did not properly clear data in the floating point divider unit during speculative execution. A local attacker could use this to expose sensitive information. (CVE-2025-54505) It was discovered that…</description>
+<pubDate>Fri, 24 Jul 2026 10:20:29 +0000</pubDate>
+</item>
+</channel>
+</rss>
