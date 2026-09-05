@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Sat, 5 Sep 2026 18:23:34 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-86185 — Bilibili Desktop through 1</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-86185</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-86185</guid>
+<description>Bilibili Desktop through 1.18.0 disables TLS certificate verification process-wide and executes unsigned remote JavaScript configuration without integrity checks. An attacker in an on-path network position can intercept configuration fetches, inject arbitrary …</description>
+</item>
+<item>
+<title>CVE-2026-52777: YesWiki is a wiki system written in PHP</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-52777</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-52777</guid>
+<description>YesWiki is a wiki system written in PHP. Prior to version 4.6.6, there is an authenticated PHP object injection vulnerability in BazarImportAction via unserialize. This issue has been patched in version 4.6.6.</description>
+</item>
+<item>
+<title>CVE-2026-52766: YesWiki is a wiki system written in PHP</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-52766</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-52766</guid>
+<description>YesWiki is a wiki system written in PHP. Prior to version 4.6.6, the {{erasespamedcomments}} wiki action (actions/EraseSpamedCommentsAction.php) accepts a suppr[] array from POST and deletes every wiki page whose tag appears in that array, with no authorizatio…</description>
+</item>
+<item>
+<title>CVE-2026-52775: YesWiki is a wiki system written in PHP</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-52775</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-52775</guid>
+<description>YesWiki is a wiki system written in PHP. Prior to version 4.6.6, YesWiki through the latest development branch contains a SQL injection vulnerability in ReactionManager::deleteUserReaction() that allows any authenticated user to inject arbitrary SQL via the {i…</description>
+</item>
+<item>
+<title>CVE-2026-13447: The Mstore Api plugin for WordPress is vulnerable to Authentication Bypass via JWT F…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-13447</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-13447</guid>
+<description>The Mstore Api plugin for WordPress is vulnerable to Authentication Bypass via JWT Forgery in versions up to, and including, 4.20.0 This is due to missing cryptographic signature verification in the FirebasePhoneAuthHelper::verify_id_token() function, which de…</description>
+</item>
+<item>
+<title>CVE-2026-83627: The Hummingbird – Speed Optimization, Caching, Minify, Compress &amp; CDN plugin for Wor…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-83627</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-83627</guid>
+<description>The Hummingbird – Speed Optimization, Caching, Minify, Compress &amp; CDN plugin for WordPress is vulnerable to Remote Code Execution in all versions up to, and including, 3.21.0 via the log_msg() function in core/modules/class-page-cache.php. The page-cache debug…</description>
+</item>
+<item>
+<title>CVE-2024-11080: The Post Grid and Gutenberg Blocks – ComboBlocks plugin for WordPress is vulnerable …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2024-11080</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2024-11080</guid>
+<description>The Post Grid and Gutenberg Blocks – ComboBlocks plugin for WordPress is vulnerable to Unauthenticated Hook Injection in versions 2.2.32 to 2.3.1 via several functions in the ~/includes/blocks/form-wrap/function.php file. This makes it possible for unauthentic…</description>
+</item>
+<item>
+<title>CVE-2026-19887: The Welcart e-Commerce plugin for WordPress is vulnerable to PHP Object Injection in…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-19887</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-19887</guid>
+<description>The Welcart e-Commerce plugin for WordPress is vulnerable to PHP Object Injection in all versions up to, and including, 2.12.1 via deserialization of untrusted input in the Telecom EDY payment callback (usces_action_acting_transaction). Unauthenticated attacke…</description>
+</item>
+<item>
+<title>CVE-2026-81543: The Abandoned Cart Pro for WooCommerce plugin for WordPress is vulnerable to Privile…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-81543</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-81543</guid>
+<description>The Abandoned Cart Pro for WooCommerce plugin for WordPress is vulnerable to Privilege Escalation in all versions up to, and including, 10.7.1. This is due to missing capability checks and nonce verification on multiple AJAX actions including wcap_save_connect…</description>
+</item>
+<item>
+<title>WordPress Security Plugins: How to Choose the Right One</title>
+<link>https://blog.sucuri.net/2026/09/wordpress-security-plugins-how-to-choose-the-right-one.html</link>
+<guid isPermaLink="false">https://blog.sucuri.net/2026/09/wordpress-security-plugins-how-to-choose-the-right-one.html</guid>
+<description>In short, WordPress security plugins are tools you add to your site to strengthen your settings, scan for malware, watch for file changes, and block suspicious activity from within WordPress. Most sites should use one, along with a firewall…</description>
+<pubDate>Sat, 5 Sep 2026 03:01:24 +0000</pubDate>
+</item>
+<item>
+<title>U.S. CISA adds Google Chromium V8 flaw to its Known Exploited Vulnerabilities catalog</title>
+<link>https://securityaffairs.com/198455/security/u-s-cisa-adds-google-chromium-v8-flaw-to-its-known-exploited-vulnerabilities-catalog-2.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/198455/security/u-s-cisa-adds-google-chromium-v8-flaw-to-its-known-exploited-vulnerabilities-catalog-2.html</guid>
+<description>U.S. Cybersecurity and Infrastructure Security Agency (CISA) adds Google Chromium V8 flaw to its Known Exploited Vulnerabilities catalog. The U.S. Cybersecurity and Infrastructure Security Agency (CISA) added a Google Chromium V8 flaw, trac…</description>
+<pubDate>Fri, 4 Sep 2026 22:50:15 +0000</pubDate>
+</item>
+<item>
+<title>New Panzer Ransomware Hits 16 Victims Across 11 Countries With Data Theft and Encryption</title>
+<link>https://gbhackers.com/new-panzer-ransomware-hits-16-victim/</link>
+<guid isPermaLink="false">https://gbhackers.com/new-panzer-ransomware-hits-16-victim/</guid>
+<description>Panzer ransomware has emerged as a new Ransomware-as-a-Service (RaaS) operation, publishing 16 alleged victims across 11 countries while combining data theft with file encryption. Documented by CyberXtron, its dedicated leak site was first …</description>
+<pubDate>Sat, 5 Sep 2026 07:53:57 +0000</pubDate>
+</item>
+<item>
+<title>CARS24 Data Breach Exposes 3,100 Customer Records, Leads Allegedly Sold for ₹1,000 Each</title>
+<link>https://gbhackers.com/cars24-data-breach-exposes-3100-customer-records/</link>
+<guid isPermaLink="false">https://gbhackers.com/cars24-data-breach-exposes-3100-customer-records/</guid>
+<description>Used-car platform CARS24 has alleged that confidential information belonging to approximately 3,100 customers was stolen and supplied to a rival business and outside dealers. The company claims that leads were offered for about ₹1,000 each,…</description>
+<pubDate>Sat, 5 Sep 2026 06:59:50 +0000</pubDate>
+</item>
+<item>
+<title>Broadcom Patches Critical VMware Workstation and Fusion VM-Escape Vulnerabilities</title>
+<link>https://securityaffairs.com/198465/security/broadcom-patches-critical-vmware-workstation-and-fusion-vm-escape-vulnerabilities.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/198465/security/broadcom-patches-critical-vmware-workstation-and-fusion-vm-escape-vulnerabilities.html</guid>
+<description>Broadcom patched two VMware Workstation/Fusion VM-escape bugs. No workarounds exist. Update to version 26H1u1 immediately. Broadcom published advisory VMSA-2026-0007, patching two vulnerabilities in VMware Workstation and Fusion that allow …</description>
+<pubDate>Sat, 5 Sep 2026 04:54:27 +0000</pubDate>
+</item>
+<item>
+<title>Hackers Use Frontier AI Agents to Breach Enterprise Network in Under 10 Hours</title>
+<link>https://gbhackers.com/hackers-use-frontier-ai-agents/</link>
+<guid isPermaLink="false">https://gbhackers.com/hackers-use-frontier-ai-agents/</guid>
+<description>A threat actor used frontier artificial-intelligence models and attack-specific agentic frameworks to breach an enterprise environment, harvest root credentials, and hijack cloud AI infrastructure in less than 10 hours. The investigation, d…</description>
+<pubDate>Sat, 5 Sep 2026 07:18:41 +0000</pubDate>
+</item>
+<item>
+<title>OpenAI admits it didn&apos;t disclose rogue AI wiki hijacking incident</title>
+<link>https://www.bleepingcomputer.com/news/security/openai-admits-it-didnt-disclose-rogue-ai-wiki-hijacking-incident/</link>
+<guid isPermaLink="false">https://www.bleepingcomputer.com/news/security/openai-admits-it-didnt-disclose-rogue-ai-wiki-hijacking-incident/</guid>
+<description>OpenAI admits it did not disclose an incident where autonomous AI agents hijacked a German wiki, created 18,000 posts, shared answers, and bypassed restrictions, saying it treated the activity as model &quot;misalignment&quot; rather than a security …</description>
+<pubDate>Sat, 5 Sep 2026 11:11:50 +0000</pubDate>
+</item>
+<item>
+<title>Multiple Vulnerabilities in Google Chrome Could Allow for Arbitrary Code Execution</title>
+<link>https://www.cisecurity.org/advisory/multiple-vulnerabilities-in-google-chrome-could-allow-for-arbitrary-code-execution_2026-088</link>
+<guid isPermaLink="false">https://www.cisecurity.org/advisory/multiple-vulnerabilities-in-google-chrome-could-allow-for-arbitrary-code-execution_2026-088</guid>
+<description>Multiple vulnerabilities have been discovered in Google Chrome, the most severe of which could allow for arbitrary code execution. Successful exploitation of the most severe of these vulnerabilities could allow for arbitrary code execution …</description>
+<pubDate>Sat, 5 Sep 2026 05:15:53 +0000</pubDate>
+</item>
+</channel>
+</rss>
