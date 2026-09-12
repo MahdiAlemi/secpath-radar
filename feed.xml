@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Sat, 12 Sep 2026 15:37:27 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-85200 — The GEO my WP plugin for WordPress is vulnerable to Local File Inclusion in…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-85200</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-85200</guid>
+<description>The GEO my WP plugin for WordPress is vulnerable to Local File Inclusion in all versions up to, and including, 4.5.5.3 via the gmw_posts_locator_ajax_info_window_loader function. This makes it possible for unauthenticated attackers to include and execute arbit…</description>
+</item>
+<item>
+<title>CVE-2026-85706: GitLab has remediated an issue in GitLab CE/EE affecting all versions from 18</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-85706</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-85706</guid>
+<description>GitLab has remediated an issue in GitLab CE/EE affecting all versions from 18.7 before 19.1.8, 19.2 before 19.2.6, and 19.3 before 19.3.2 that, under certain conditions, an unauthenticated user could have read arbitrary files from the GitLab server due to impr…</description>
+</item>
+<item>
+<title>CVE-2026-87719: GitLab has remediated an issue in GitLab EE affecting all versions from 18</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-87719</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-87719</guid>
+<description>GitLab has remediated an issue in GitLab EE affecting all versions from 18.3 before 19.1.8, 19.2 before 19.2.6, and 19.3 before 19.3.2 that under certain conditions could allow an authenticated user with Duo Chat access to obtain Advanced Search instance confi…</description>
+</item>
+<item>
+<title>CVE-2026-89266: stb_vorbis through 1</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-89266</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-89266</guid>
+<description>stb_vorbis through 1.22 contains a heap buffer overflow in start_decoder() where the codebook multiplicands allocation size is truncated from size_t to int. Attackers can craft a malicious Ogg Vorbis file with large entries and dimensions values to trigger out…</description>
+</item>
+<item>
+<title>CVE-2026-78006: The The Events Calendar plugin for WordPress is vulnerable to Remote Code Execution …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-78006</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-78006</guid>
+<description>The The Events Calendar plugin for WordPress is vulnerable to Remote Code Execution in all versions up to, and including, 6.17.4 via the is_safe_widget_instance function. This is due to insufficient protection in is_safe_widget_instance, which can be bypassed …</description>
+</item>
+<item>
+<title>CVE-2026-78159: The The Events Calendar plugin for WordPress is vulnerable to Remote Code Execution …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-78159</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-78159</guid>
+<description>The The Events Calendar plugin for WordPress is vulnerable to Remote Code Execution in all versions up to, and including, 6.17.3 via the parse_array function. This is due to insufficient validation of the widget &apos;classes&apos; map, allowing a plain-array payload to…</description>
+</item>
+<item>
+<title>CVE-2026-78175: The Tutor LMS – eLearning and online course solution plugin for WordPress is vulnera…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-78175</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-78175</guid>
+<description>The Tutor LMS – eLearning and online course solution plugin for WordPress is vulnerable to PHP Object Injection in all versions up to, and including, 4.0.7 via the `withdraw_method_field` parameter of the `tutor_save_withdraw_account` AJAX handler. This is due…</description>
+</item>
+<item>
+<title>CVE-2026-16482: The rtMedia for WordPress, BuddyPress and bbPress plugin for WordPress is vulnerable…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-16482</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-16482</guid>
+<description>The rtMedia for WordPress, BuddyPress and bbPress plugin for WordPress is vulnerable to time-based blind SQL Injection via the &apos;compare&apos; parameter in all versions up to, and including, 4.7.11 due to insufficient escaping on the user supplied parameter and lack…</description>
+</item>
+<item>
+<title>CVE-2026-85200: The GEO my WP plugin for WordPress is vulnerable to Local File Inclusion in all vers…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-85200</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-85200</guid>
+<description>The GEO my WP plugin for WordPress is vulnerable to Local File Inclusion in all versions up to, and including, 4.5.5.3 via the gmw_posts_locator_ajax_info_window_loader function. This makes it possible for unauthenticated attackers to include and execute arbit…</description>
+</item>
+<item>
+<title>CVE-2026-0250 GlobalProtect App: Buffer Overflow Vulnerability during connection to Port…</title>
+<link>https://security.paloaltonetworks.com/CVE-2026-0250</link>
+<guid isPermaLink="false">https://security.paloaltonetworks.com/CVE-2026-0250</guid>
+<description>Insufficient details in source; check the original advisory.</description>
+<pubDate>Sat, 12 Sep 2026 00:30:00 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-0296 GlobalProtect App: Improper Certificate Validation Bypass Vulnerability (S…</title>
+<link>https://security.paloaltonetworks.com/CVE-2026-0296</link>
+<guid isPermaLink="false">https://security.paloaltonetworks.com/CVE-2026-0296</guid>
+<description>Insufficient details in source; check the original advisory.</description>
+<pubDate>Sat, 12 Sep 2026 00:30:00 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-0297 GlobalProtect App: Buffer Overflow Vulnerability during UDP Tunnel Handsha…</title>
+<link>https://security.paloaltonetworks.com/CVE-2026-0297</link>
+<guid isPermaLink="false">https://security.paloaltonetworks.com/CVE-2026-0297</guid>
+<description>Insufficient details in source; check the original advisory.</description>
+<pubDate>Sat, 12 Sep 2026 00:30:00 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-0298 GlobalProtect App: Code Execution Vulnerability in Windows Pre-Logon Acces…</title>
+<link>https://security.paloaltonetworks.com/CVE-2026-0298</link>
+<guid isPermaLink="false">https://security.paloaltonetworks.com/CVE-2026-0298</guid>
+<description>Insufficient details in source; check the original advisory.</description>
+<pubDate>Sat, 12 Sep 2026 00:30:00 +0000</pubDate>
+</item>
+<item>
+<title>Common C/C++ Vulnerabilities: A Practical Guide to Prevention | Blog | Endor Labs</title>
+<link>https://www.endorlabs.com/learn/cpp-security</link>
+<guid isPermaLink="false">https://www.endorlabs.com/learn/cpp-security</guid>
+<description>C++ security vulnerabilities like buffer overflows, use-after-free, and integer overflow cause 70% of critical exploits. Learn how to detect and prevent them.</description>
+<pubDate>Fri, 11 Sep 2026 21:16:20 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-0295 GlobalProtect App: Local Privilege Escalation via Race Condition on macOS …</title>
+<link>https://security.paloaltonetworks.com/CVE-2026-0295</link>
+<guid isPermaLink="false">https://security.paloaltonetworks.com/CVE-2026-0295</guid>
+<description>Insufficient details in source; check the original advisory.</description>
+<pubDate>Sat, 12 Sep 2026 00:30:00 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-0299 GlobalProtect App: Local Privilege Escalation Vulnerabilities (Severity: M…</title>
+<link>https://security.paloaltonetworks.com/CVE-2026-0299</link>
+<guid isPermaLink="false">https://security.paloaltonetworks.com/CVE-2026-0299</guid>
+<description>Insufficient details in source; check the original advisory.</description>
+<pubDate>Sat, 12 Sep 2026 00:30:00 +0000</pubDate>
+</item>
+<item>
+<title>Weekly Update 521: Breach Perception v. Reality</title>
+<link>https://www.troyhunt.com/weekly-update-521/</link>
+<guid isPermaLink="false">https://www.troyhunt.com/weekly-update-521/</guid>
+<description>I think what really resonates with me this week is being able to completely turn the tables on perceptions around things like AI being the big bad hacking tool the news would have you believe. There&apos;s the stat I talk about where it&apos;s had li…</description>
+<pubDate>Fri, 11 Sep 2026 20:37:33 +0000</pubDate>
+</item>
+</channel>
+</rss>
