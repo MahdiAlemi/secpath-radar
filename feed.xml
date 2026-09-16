@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Wed, 16 Sep 2026 00:27:17 +0000</lastBuildDate>
+<item>
+<title>Acronis warns of actively exploited flaw in its cPanel backup plugin</title>
+<link>https://www.bleepingcomputer.com/news/security/acronis-warns-of-actively-exploited-flaw-in-its-cpanel-backup-plugin/</link>
+<guid isPermaLink="false">https://www.bleepingcomputer.com/news/security/acronis-warns-of-actively-exploited-flaw-in-its-cpanel-backup-plugin/</guid>
+<description>Acronis disclosed a high-severity Linux local privilege escalation vulnerability in its backup plugin for cPanel, WebHost Manager (WHM), and Plesk that may be exploited in the wild. [...]</description>
+</item>
+<item>
+<title>U.S. CISA adds Cisco Secure Email Gateway flaw to its Known Exploited Vulnerabilities ca…</title>
+<link>https://securityaffairs.com/199156/security/u-s-cisa-adds-cisco-secure-email-gateway-flaw-to-its-known-exploited-vulnerabilities-catalog.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/199156/security/u-s-cisa-adds-cisco-secure-email-gateway-flaw-to-its-known-exploited-vulnerabilities-catalog.html</guid>
+<description>U.S. Cybersecurity and Infrastructure Security Agency (CISA) adds Cisco Secure Email Gateway flaw to its Known Exploited Vulnerabilities catalog. The U.S. Cybersecurity and Infrastructure Security Agency (CISA) added a Cisco Secure Email Ga…</description>
+<pubDate>Tue, 15 Sep 2026 20:46:41 +0000</pubDate>
+</item>
+<item>
+<title>Oracle September 2026 Critical Security Patch Update addresses 672 CVEs</title>
+<link>https://www.tenable.com/blog/oracle-september-2026-critical-security-patch-update-addresses-672-cves</link>
+<guid isPermaLink="false">https://www.tenable.com/blog/oracle-september-2026-critical-security-patch-update-addresses-672-cves</guid>
+<description>Oracle addresses 672 CVEs in its September 2026 Critical Security Patch Update with 673 patches, including 104 critical updates.Key TakeawaysThe September 2026 Critical Security Patch Update (CSPU) contains fixes for 672 unique CVEs in 673 …</description>
+<pubDate>Tue, 15 Sep 2026 21:00:28 +0000</pubDate>
+</item>
+<item>
+<title>Malcious Admin Menu Editor Pro plugin backdoors 1,500 WordPress sites</title>
+<link>https://www.bleepingcomputer.com/news/security/malcious-admin-menu-editor-pro-plugin-backdoors-1-500-wordpress-sites/</link>
+<guid isPermaLink="false">https://www.bleepingcomputer.com/news/security/malcious-admin-menu-editor-pro-plugin-backdoors-1-500-wordpress-sites/</guid>
+<description>Malicious versions of the Admin Menu Editor Pro plugin for WordPress have been distributed to more than 200 customers after a threat actor compromised the maintainer&apos;s website and pushed updates that created a hidden user account. [...]</description>
+<pubDate>Tue, 15 Sep 2026 20:34:15 +0000</pubDate>
+</item>
+<item>
+<title>AWS STS simplifies session token size limits and adds session token size monitoring</title>
+<link>https://aws.amazon.com/blogs/security/aws-sts-simplifies-session-token-size-limits-and-adds-session-token-size-monitoring/</link>
+<guid isPermaLink="false">https://aws.amazon.com/blogs/security/aws-sts-simplifies-session-token-size-limits-and-adds-session-token-size-monitoring/</guid>
+<description>AWS Security Token Service (AWS STS) has simplified session token size limits, giving you more room for your session policies and session tags. STS has replaced the packed policy size and the overall session token size limits with a single …</description>
+<pubDate>Tue, 15 Sep 2026 22:21:59 +0000</pubDate>
+</item>
+</channel>
+</rss>

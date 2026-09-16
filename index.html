@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecPath Radar — 2026-09-16</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="stylesheet" href="assets/css/radar.css" />
+  <link rel="alternate" type="application/rss+xml" title="SecPath Radar RSS" href="feed.xml" />
+  <link rel="alternate" type="application/json" title="SecPath Radar JSON API" href="api/summary.json" />
+  <script src="assets/js/radar.js" defer></script>
+</head>
+<body>
+
+
+
+
+
+
+
+<header class="topbar topbar-redesign">
+  <div class="brand brand-redesign">
+    <img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" />
+    <div class="brand-copy"><strong>SecPath Radar</strong><span class="brand-sub">Passive Cyber Threat Monitoring</span></div>
+  </div>
+  <div class="topbar-status">
+    <span class="live-chip" id="today-chip" data-today="2026-09-16"><i class="live-dot"></i><span>Today &middot; 2026-09-16</span></span>
+  </div>
+  <div class="topbar-actions">
+    
+    <a class="ui-chip icon-chip" href="https:&#x2f;&#x2f;github.com&#x2f;MahdiAlemi&#x2f;secpath-radar" rel="noopener noreferrer" target="_blank" aria-label="Open GitHub repository">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.5 21.6c.55.1.75-.24.75-.53v-2.1c-3.05.67-3.7-1.3-3.7-1.3-.5-1.25-1.22-1.58-1.22-1.58-1-.68.08-.67.08-.67 1.1.08 1.68 1.14 1.68 1.14.98 1.67 2.57 1.19 3.2.91.1-.71.38-1.19.69-1.46-2.43-.28-4.99-1.22-4.99-5.43 0-1.2.43-2.18 1.13-2.95-.11-.28-.49-1.4.11-2.91 0 0 .92-.3 3.02 1.13A10.3 10.3 0 0 1 12 6.38c.94 0 1.88.13 2.76.37 2.1-1.43 3.02-1.13 3.02-1.13.6 1.51.22 2.63.11 2.91.7.77 1.13 1.75 1.13 2.95 0 4.22-2.57 5.15-5.02 5.42.4.35.75 1.02.75 2.06v3.01c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"/></svg>
+      <span>GitHub</span>
+    </a>
+    
+    <a class="ui-chip icon-chip feed-chip" href="feed.xml" rel="noopener noreferrer" aria-label="Open RSS XML feed">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.1 17.7a2.2 2.2 0 1 1 0 4.4 2.2 2.2 0 0 1 0-4.4Zm-2-7.25c6.4 0 11.6 5.2 11.6 11.6h-3.15a8.45 8.45 0 0 0-8.45-8.45v-3.15Zm0-7.1c10.32 0 18.7 8.38 18.7 18.7h-3.2c0-8.55-6.95-15.5-15.5-15.5v-3.2Z"/></svg>
+      <span>RSS XML</span>
+    </a>
+    <a class="ui-chip icon-chip api-chip" href="api/summary.json" rel="noopener noreferrer" aria-label="Open JSON summary API">
+      <span class="json-glyph">{ }</span>
+      <span>JSON API</span>
+    </a>
+  </div>
+</header>
+
+<main class="shell">
+
+  <section class="radar-overview" aria-label="One-glance radar overview">
+    <div class="overview-card overview-risk risk-medium"><span>Today Risk</span><b>60</b><small>Medium</small></div>
+    <div class="overview-card"><span>CVEs Today</span><b>0</b><small>0 Critical · 0 KEV</small></div>
+    <div class="overview-card"><span>Exploit Watch</span><b>0</b><small>PoC repos · 0 EPSS↑</small></div>
+    <div class="overview-card"><span>News / Writeups</span><b>5</b><small>1 Breaking · 4 Writeups</small></div>
+    <div class="overview-card"><span>Threat Telemetry</span><b>36</b><small>5 C2 · 24 Phishing</small></div>
+    <div class="overview-card"><span>Templates</span><b>0%</b><small>0 CVE covered</small></div>
+  </section>
+
+  <section class="top-layout top-layout-columns top-layout-balanced" aria-label="Balanced dashboard intelligence columns">
+    <div class="top-column top-column-breaking" aria-label="Breaking, coverage, and advisory context">
+    <section id="breaking-news" class="panel panel-breaking panel-breaking-col panel-column-fill">
+      <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><span class="chip chip-risk">1</span></div>
+      
+      <div class="breaking-scroll">
+        
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;www.bleepingcomputer.com&#x2f;news&#x2f;security&#x2f;acronis-warns-of-actively-exploited-flaw-in-its-cpanel-backup-plugin&#x2f;" rel="noopener noreferrer" target="_blank">Acronis warns of actively exploited flaw in its cPanel backup plugin</a>
+  </div>
+  <p class="news-excerpt">Acronis disclosed a high-severity Linux local privilege escalation vulnerability in its backup plugin for cPanel, WebHost Manager (WHM), and Plesk that may be exploited in the wild. [...]</p>
+  <div class="meta">
+    <span class="breaking-source">BleepingComputer</span>
+    <span class="tag">Active Exploit</span><span class="tag">Vulnerability</span><span class="tag">Exploit</span>
+  </div>
+  <div class="meta">
+    <span>2026-09-16 01:07 Tehran · 2026-09-15 21:37 UTC</span>
+  </div>
+</article>
+
+      </div>
+      
+    </section>
+
+      <section id="nuclei-coverage" class="panel panel-intel-card panel-nuclei-card risk-watch">
+        <div class="panel-head">
+          <div><span class="eyebrow">Nuclei Coverage</span><h2>Template Coverage</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">0%</span>
+            <span class="chip chip-muted">Idle</span>
+          </div>
+        </div>
+        <div class="intel-metric-row">
+          <div><b>0</b><span>covered CVE</span></div>
+          <div><b>0</b><span>missing CVE</span></div>
+          <div><b>4480</b><span>template paths</span></div>
+        </div>
+        <div class="intel-meter"><b style="width: 0%"></b></div>
+        <p class="lede lede-tight">No current-day CVEs to assess against public nuclei-template metadata.</p>
+        <div class="intel-kv-row">
+          <span>Missing critical <b>0</b></span>
+          <span>Missing high <b>0</b></span>
+          <span>Top protocol <b>http</b></span>
+        </div>
+        
+        <div class="meta"><span>ProjectDiscovery nuclei-templates Git tree</span><span>metadata only · no scan</span></div>
+      </section>
+
+      
+      <section id="csaf-pulse" class="panel panel-intel-card panel-csaf-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">CSAF</span><h2>Vendor Advisories</h2></div>
+          <div class="panel-head-actions"><span class="chip">6 advisory</span><span class="chip chip-muted">CVSS 9.4</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>6</b><span>Important+</span></div>
+          <div><b>178</b><span>Remediation</span></div>
+          <div><b>365</b><span>Products</span></div>
+        </div>
+        
+        <div class="advisory-spotlight risk-high">
+          <div><span>Top advisory</span><a href="https:&#x2f;&#x2f;access.redhat.com&#x2f;errata&#x2f;RHSA-2026:47388" rel="noopener noreferrer" target="_blank">RHSA-2026:47388</a></div>
+          <strong>critical</strong>
+        </div>
+        <p class="lede lede-tight">Red Hat Security Advisory: multicluster engine for Kubernetes v2.10.4 security update</p>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Product</b> Red Hat Trusted Artifact Signer</span><span><b>CVE</b> CVE-2026-39828</span><span><b>Fix</b> Fix metadata present</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Severity</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">important</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">5</span></div>
+  
+  <div class="bar-row"><span class="bar-label">critical</span><span class="bar-track"><b style="width: 20%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Products</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Red Hat Trusted Artifact Signer</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Red Hat Trusted Artifact Signer 1.4</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">amd64 darwin</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Red Hat CSAF v2</span><span>official CSAF metadata</span></div>
+      </section>
+      
+
+      
+      <section id="supply-chain-radar" class="panel panel-intel-card panel-supply-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Supply Chain</span><h2>Supply Chain Advisories</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">21 advisory</span>
+            <span class="chip chip-muted">High</span>
+          </div>
+        </div>
+        <div class="intel-metric-row">
+          <div><b>9</b><span>high</span></div>
+          <div><b>0</b><span>fix listed</span></div>
+          <div><b>0</b><span>EPSS hot</span></div>
+        </div>
+        
+        <article class="supply-spotlight risk-high">
+          <div class="supply-titleline">
+            <a href="https:&#x2f;&#x2f;github.com&#x2f;advisories&#x2f;GHSA-rqfv-2mw9-78g2" rel="noopener noreferrer" target="_blank">CVE-2026-59971</a>
+            <span class="tag">critical</span>
+          </div>
+          <p>MySQL MCP Server: Missing Origin&#x2f;Host Validation in SSE Transport Enables Unauthenticated SQL Ex…</p>
+          <div class="supply-meta"><span>pip / mysql-mcp-server</span><span>CVSS 10.0</span><span>EPSS 0%</span></div>
+        </article>
+        
+        <div class="intel-kv-row">
+          <span>Top ecosystem <b>composer</b></span>
+          <span>Top package <b>@zereight&#x2f;mcp-gitlab</b></span>
+          <span>Unfixed <b>21</b></span>
+        </div>
+        <div class="intel-list-title">Ecosystem mix</div>
+        
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">composer</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">go</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">maven</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">npm</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">nuget</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+</div>
+
+        <div class="meta"><span>GitHub Global Advisories + OSV references</span><span>GitHub Advisory API + OSV links</span></div>
+      </section>
+      
+
+      <section id="drop-pulse" class="panel panel-intel-card panel-drop-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">DROP</span><h2>Hostile IP Ranges</h2></div>
+          <div class="panel-head-actions"><span class="chip">1724 ranges</span><span class="chip chip-muted">14M IPs</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>192</b><span>Large ranges</span></div>
+          <div><b>6</b><span>RIRs</span></div>
+          <div><b>790</b><span>High spread</span></div>
+        </div>
+        
+        <div class="advisory-spotlight drop-spotlight risk-high">
+          <div><span>Largest netblock</span><b dir="ltr">42[.]128[.]0[.]0&#x2f;12</b></div>
+          <strong>APNIC</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Top RIR</b> ARIN</span><span><b>Largest</b> 42[.]128[.]0[.]0&#x2f;12</span><span><b>Route</b> Large blocked netblocks present</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>RIR mix</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">ARIN</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">712</span></div>
+  
+  <div class="bar-row"><span class="bar-label">RIPENCC</span><span class="bar-track"><b style="width: 72%"></b></span><span class="bar-count">514</span></div>
+  
+  <div class="bar-row"><span class="bar-label">APNIC</span><span class="bar-track"><b style="width: 51%"></b></span><span class="bar-count">364</span></div>
+  
+</div>
+</div>
+          <div><span>Prefix size</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">&#x2f;21–&#x2f;24</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">1353</span></div>
+  
+  <div class="bar-row"><span class="bar-label">&#x2f;17–&#x2f;20</span><span class="bar-track"><b style="width: 18%"></b></span><span class="bar-count">248</span></div>
+  
+  <div class="bar-row"><span class="bar-label">&#x2f;16 or wider</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">123</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Spamhaus DROP v4</span><span>defanged · denylist metadata</span></div>
+      </section>
+      <section id="attack-pressure" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>Attack Pressure</h2></div><span class="chip">High</span></div>
+        <p class="lede">Multiple sensitive ports repeated in DShield feeds; high internet scan pressure assessed.</p>
+        
+        <div class="row risk-high">
+          <div class="row-head"><b>Port 23 &middot; telnet</b><span>Telnet</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-high">
+          <div class="row-head"><b>Port 22 &middot; ssh</b><span>SSH Remote Login Protocol</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 2222 &middot; ssh</b><span>alternative ssh (Cowrie)</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 443 &middot; https</b><span>HTTP protocol over TLS SSL</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 80 &middot; www</b><span>World Wide Web HTTP</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 8080 &middot; http-alt</b><span>HTTP Alternate (see port 80)</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 8000 &middot; irdmi</b><span>iRDMI</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-watch">
+          <div class="row-head"><b>Port 16767 &middot; unknown</b><span>---</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="meta"><span>SANS ISC &#x2f; DShield</span></div>
+      </section>
+
+      <section class="panel panel-intel-card panel-meta-card panel-data-card">
+        <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
+        <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
+        <div class="meta"><span>118 news feeds</span><span>17 telemetry sources</span></div>
+        <div class="meta">
+          <span>Intel cache: fresh</span>
+          <span>oldest source: 0 min</span>
+          <span>0 stale / 51 tracked</span>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="top-column top-column-weekly" aria-label="Weekly and infrastructure telemetry context">
+    <section class="panel panel-top-card panel-weekly-right panel-weekly-top weekly-compact">
+      <div class="panel-head">
+        <div><span class="eyebrow">WEEKLY</span><h2>Week at a Glance</h2></div>
+        <span class="chip">7d</span>
+      </div>
+
+      <div class="weekly-hero">
+        <div class="weekly-total weekly-total-primary"><b>1058</b><span>CVEs</span></div>
+        <div class="weekly-total"><b>286</b><span>News</span></div>
+        <div class="weekly-total"><b>0</b><span>KEV</span></div>
+      </div>
+      <div class="weekly-block weekly-days">
+        <div class="weekly-block-title"><span>Daily Breakdown</span></div>
+        <div class="weekly-day-strip">
+          
+          <div class="weekly-day">
+            <b>09-10</b>
+            <span><strong>0</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>09-11</b>
+            <span><strong>150</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>09-12</b>
+            <span><strong>80</strong> CVE</span>
+            <span><strong>38</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>09-13</b>
+            <span><strong>75</strong> CVE</span>
+            <span><strong>4</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>09-14</b>
+            <span><strong>390</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>09-15</b>
+            <span><strong>363</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>09-16</b>
+            <span><strong>0</strong> CVE</span>
+            <span><strong>4</strong> News</span>
+          </div>
+          
+        </div>
+      </div>
+
+      <div class="weekly-two-up">
+        <div class="weekly-block weekly-today">
+          <div class="weekly-block-title"><span>Today</span></div>
+          <div class="weekly-pill-row">
+            <span><b class="c-red">1</b> Breaking</span>
+            <span><b class="c-amber">0</b> EPSS&uarr;</span>
+            <span><b>0</b> PoC</span>
+          </div>
+        </div>
+
+        <div class="weekly-block weekly-snapshot">
+          <div class="weekly-block-title"><span>60-Second</span><b>60/100</b></div>
+          <div class="weekly-risk-list">
+            
+            <div class="weekly-risk-row"><span>Vulnerability Risk</span><b>0 critical &#x2f; 0 CVE &#x2f; 0 PoC</b></div>
+            
+            <div class="weekly-risk-row"><span>IOC &amp; Suspicious Infrastructure</span><b>36 IOC &#x2f; 5 C2 &#x2f; 24 phish &#x2f; 12 ICS</b></div>
+            
+            <div class="weekly-risk-row"><span>Supply Chain &amp; Ransomware</span><b>21 advisory &#x2f; 30 claims</b></div>
+            
+          </div>
+        </div>
+      </div>
+
+      <div class="weekly-block weekly-trend">
+        <div class="weekly-block-title"><span>Trend</span><b>14r</b></div>
+        
+        <div class="weekly-trend-list">
+          
+          <div class="weekly-trend-row delta-down">
+            <span>Risk Score</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,18.4 7.7,3.0 15.4,3.0 23.1,25.0 30.8,25.0 38.5,3.0 46.2,3.0 53.8,3.0 61.5,25.0 69.2,3.0 76.9,3.0 84.6,3.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>-12</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-down">
+            <span>CVE</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,24.5 7.7,23.0 15.4,20.8 23.1,25.0 30.8,25.0 38.5,22.2 46.2,14.5 53.8,3.0 61.5,25.0 69.2,23.2 76.9,19.4 84.6,4.5 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>-9</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-down">
+            <span>Writeup</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,16.9 7.7,7.6 15.4,5.3 23.1,25.0 30.8,18.1 38.5,15.7 46.2,9.9 53.8,7.6 61.5,25.0 69.2,18.1 76.9,15.7 84.6,8.8 92.3,3.0 100.0,21.5" vector-effect="non-scaling-stroke"/></svg>
+            <b>-4</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-up">
+            <span>Global News</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,24.6 15.4,23.9 23.1,23.5 30.8,25.0 38.5,23.9 46.2,9.7 53.8,3.0 61.5,22.8 69.2,20.5 76.9,8.6 84.6,3.0 92.3,24.6 100.0,23.9" vector-effect="non-scaling-stroke"/></svg>
+            <b>+3</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-down">
+            <span>PoC Public Metadata</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,18.4 7.7,3.0 15.4,9.6 23.1,25.0 30.8,22.8 38.5,18.4 46.2,7.4 53.8,5.2 61.5,25.0 69.2,20.6 76.9,14.0 84.6,9.6 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>-3</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-down">
+            <span>GreyNoise Malicious</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,6.1 7.7,6.1 15.4,12.4 23.1,6.1 30.8,3.0 38.5,12.4 46.2,12.4 53.8,25.0 61.5,6.1 69.2,6.1 76.9,3.0 84.6,15.6 92.3,9.3 100.0,12.4" vector-effect="non-scaling-stroke"/></svg>
+            <b>-2</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Critical CVE</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,23.7 23.1,25.0 30.8,25.0 38.5,24.4 46.2,21.8 53.8,7.5 61.5,25.0 69.2,25.0 76.9,20.5 84.6,3.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>IOC</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Botnet C2</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Malicious TLS</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Phishing URLs</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>ICS&#x2f;OT Advisory</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Supply Chain</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Ransomware Claim</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Failed RSS</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+        </div>
+        
+      </div>
+    </section>
+
+      <section id="ioc-radar" class="panel panel-intel-card panel-ioc-radar risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">IOC Radar</span><h2>Active Threats</h2></div>
+          <div class="panel-head-actions"><span class="chip">36 IOC</span><span class="chip chip-muted">High</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>15</b><span>high risk</span></div>
+          <div><b>32</b><span>high confidence</span></div>
+          <div><b>12</b><span>families</span></div>
+        </div>
+        <div class="ioc-insight-strip">
+          <span>Top family <b>mips</b></span>
+          <span>Type <b>url</b></span>
+          <span>Source <b>ThreatFox</b></span>
+        </div>
+        <div class="intel-list-title">Highest signal indicators</div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">123[.]60[.]142[.]164:80</b><span>100/100</span></div>
+          <small>ThreatFox · ip · Cobalt Strike · conf 100%</small>
+        </div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">123[.]60[.]142[.]164:8081</b><span>100/100</span></div>
+          <small>ThreatFox · ip · Cobalt Strike · conf 100%</small>
+        </div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">geveby[.]workers[.]dev</b><span>100/100</span></div>
+          <small>ThreatFox · domain · php.shin webshell · conf 50%</small>
+        </div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">123[.]60[.]142[.]164:443</b><span>97/100</span></div>
+          <small>ThreatFox · ip · Cobalt Strike · conf 100%</small>
+        </div>
+        
+        <div class="split-bars">
+          <div><span>Malware mix</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">mips</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">9</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Cobalt Strike</span><span class="bar-track"><b style="width: 56%"></b></span><span class="bar-count">5</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Unknown Loader</span><span class="bar-track"><b style="width: 56%"></b></span><span class="bar-count">5</span></div>
+  
+</div>
+</div>
+          <div><span>Indicator types</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">url</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">22</span></div>
+  
+  <div class="bar-row"><span class="bar-label">domain</span><span class="bar-track"><b style="width: 41%"></b></span><span class="bar-count">9</span></div>
+  
+  <div class="bar-row"><span class="bar-label">ip</span><span class="bar-track"><b style="width: 23%"></b></span><span class="bar-count">5</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>abuse.ch URLhaus + ThreatFox</span><span>defanged · passive</span></div>
+      </section>
+
+      
+      <section id="greynoise-context" class="panel panel-intel-card panel-greynoise-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">GreyNoise</span><h2>Scanner Context</h2></div>
+          <div class="panel-head-actions"><span class="chip">8 IP</span><span class="chip chip-muted">High</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>5</b><span>malicious</span></div>
+          <div><b>6</b><span>noise</span></div>
+          <div><b>0</b><span>RIOT</span></div>
+        </div>
+        <div class="grey-verdict">5 malicious IP(s) in selected infrastructure</div>
+        
+        <div class="infra-spotlight grey-spotlight risk-high">
+          <div><span>Top context</span><b dir="ltr">125[.]44[.]18[.]250</b></div>
+          <strong>malicious</strong>
+        </div>
+        
+        <div class="intel-list-title">Selected IP context</div>
+        
+        <div class="intel-row grey-row risk-high">
+          <div><b dir="ltr">125[.]44[.]18[.]250</b><span>92/100</span></div>
+          <small>malicious · noise · URLhaus · 2026-09-15</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-high">
+          <div><b dir="ltr">175[.]165[.]153[.]80</b><span>92/100</span></div>
+          <small>malicious · noise · URLhaus · 2026-09-15</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-high">
+          <div><b dir="ltr">176[.]65[.]139[.]206</b><span>92/100</span></div>
+          <small>malicious · noise · URLhaus · 2026-09-16</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-high">
+          <div><b dir="ltr">182[.]117[.]79[.]51</b><span>92/100</span></div>
+          <small>malicious · noise · URLhaus · 2026-09-15</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-high">
+          <div><b dir="ltr">222[.]138[.]151[.]181</b><span>92/100</span></div>
+          <small>malicious · noise · URLhaus · 2026-09-15</small>
+        </div>
+        
+        <div class="split-bars">
+          <div><span>Classification</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">malicious</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">5</span></div>
+  
+  <div class="bar-row"><span class="bar-label">unknown</span><span class="bar-track"><b style="width: 60%"></b></span><span class="bar-count">3</span></div>
+  
+</div>
+</div>
+          <div><span>Lookup source</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">URLhaus</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">8</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>GreyNoise Community API</span><span>passive lookup</span></div>
+      </section>
+      
+
+      
+      <section id="infrastructure-radar" class="panel panel-intel-card panel-infra-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Infrastructure</span><h2>Exposure Radar</h2></div>
+          <div class="panel-head-actions"><span class="chip">12 host</span><span class="chip chip-muted">High</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>2</b><span>high risk</span></div>
+          <div><b>5</b><span>risky ports</span></div>
+          <div><b>2</b><span>vuln hosts</span></div>
+        </div>
+        
+        <div class="infra-spotlight risk-high">
+          <div><span>Top exposed</span><b dir="ltr">176.65.139.206</b></div>
+          <strong>100/100</strong>
+        </div>
+        
+        <div class="intel-kv-row">
+          <span>Observed ports <b>14</b></span>
+          <span>Exposed hosts <b>6</b></span>
+          <span>Scanner-only <b>0</b></span>
+        </div>
+        <div class="intel-list-title">Highest exposure hosts</div>
+        
+        <div class="intel-row infra-host-row risk-high">
+          <div><b dir="ltr">176.65.139.206</b><span>100/100</span></div>
+          <small>URLhaus · arm · url · 3 ports · 5 vulns</small>
+        </div>
+        
+        <div class="intel-row infra-host-row risk-high">
+          <div><b dir="ltr">91.92.242.236</b><span>86/100</span></div>
+          <small>URLhaus · 9d2ca3 · url · 2 ports · 2 vulns</small>
+        </div>
+        
+        <div class="intel-row infra-host-row risk-medium">
+          <div><b dir="ltr">45.138.16.56</b><span>50/100</span></div>
+          <small>URLhaus · d52f85 · url · 4 ports</small>
+        </div>
+        
+        <div class="intel-row infra-host-row risk-medium">
+          <div><b dir="ltr">194.41.112.119</b><span>42/100</span></div>
+          <small>URLhaus · mirai · url · 3 ports</small>
+        </div>
+        
+        <div class="split-bars">
+          <div><span>Risky ports</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">22 SSH</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">21 FTP</span><span class="bar-track"><b style="width: 33%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">3389 RDP</span><span class="bar-track"><b style="width: 33%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Source mix</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">URLhaus</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">12</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Shodan InternetDB + DShield top IPs</span><span>passive · no scan</span></div>
+      </section>
+      
+
+      
+      <section id="ics-ot-pulse" class="panel panel-intel-card panel-ics-card risk-">
+        <div class="panel-head">
+          <div><span class="eyebrow">ICS / OT</span><h2>Industrial Advisories</h2></div>
+          <div class="panel-head-actions"><span class="chip">12 advisory</span><span class="chip chip-muted">CVSS 3.0</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>0</b><span>High</span></div>
+          <div><b>7</b><span>Remote</span></div>
+          <div><b>17</b><span>CVE</span></div>
+        </div>
+        
+        <div class="advisory-spotlight ics-spotlight risk-watch">
+          <div><span>Top equipment</span><b>Digital Watchdog · Digital Watchdog VMAX A1 G4 DVRs: vers:all…</b></div>
+          <strong>3.0</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Vendor</b> CareCam</span><span><b>Sector</b> Commercial Facilities</span><span><b>Deployment</b> Worldwide</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Vendors</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">CareCam</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">2</span></div>
+  
+  <div class="bar-row"><span class="bar-label">AVEVA Pipeline Integrity</span><span class="bar-track"><b style="width: 50%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Digital Watchdog</span><span class="bar-track"><b style="width: 50%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Sectors</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Commercial Facilities</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Critical Manufacturing</span><span class="bar-track"><b style="width: 33%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Transportation Systems</span><span class="bar-track"><b style="width: 33%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>CISA ICS Advisories</span><span>metadata only · no scan</span></div>
+      </section>
+      
+
+    </div>
+
+    <div class="top-column top-column-vuln" aria-label="Vulnerability exploitation and research stream">
+      
+      <section id="ai-briefing" class="panel panel-top-card panel-ai-briefing">
+        <div class="panel-head">
+          <div><span class="eyebrow">AI BRIEFING</span><h2>Executive Briefing</h2></div>
+          <span class="chip chip-ai"> gemini-2.5-flash </span>
+        </div>
+        <div class="ai-briefing-body">
+          <p class="ai-briefing-headline"> Actively exploited Acronis flaw, WordPress plugin backdoor, and major Oracle patch update </p>
+          <p class="ai-briefing-narrative"> An actively exploited Acronis vulnerability in its cPanel backup plugin requires immediate attention. Additionally, a malicious WordPress plugin has backdoored numerous sites, necessitating urgent review and remediation. Organizations should also prioritize applying Oracle&#x27;s extensive September Critical Security Patch Update to address 672 CVEs. </p>
+          
+          <ul class="ai-briefing-list">
+            <li>Prioritize patching for the Acronis cPanel backup plugin due to potential active exploitation.</li><li>Immediately identify and remediate compromised WordPress sites using the malicious Admin Menu Editor Pro plugin.</li><li>Apply the Oracle September Critical Security Patch Update to address 672 CVEs across affected products.</li><li>Review and patch Cisco Secure Email Gateway if affected by the flaw added to CISA&#x27;s KEV catalog.</li>
+          </ul>
+          
+          
+          <div class="ai-briefing-watch">
+            <span class="ai-briefing-watch-label">Watch next 24h</span>
+            <ul class="ai-briefing-list">
+              <li>Monitor for further details or exploitation patterns related to the Acronis vulnerability.</li><li>Observe for additional compromises or remediation guidance concerning the malicious WordPress plugin.</li><li>Track any new developments regarding the Cisco Secure Email Gateway flaw.</li>
+            </ul>
+          </div>
+          
+        </div>
+        <div class="meta"><span>AI-generated summary of today's items; verify with the primary advisories.</span></div>
+      </section>
+      
+
+      <section id="cves" class="panel panel-top-card panel-cve-top is-empty">
+      <div class="panel-head">
+        <div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div>
+        <div class="panel-head-actions">
+          <span class="chip">0 CVEs today</span>
+          <span class="chip chip-muted">0 critical</span>
+        </div>
+      </div>
+      <div class="top-card-body">
+        
+        
+        <p class="empty-note">No CVEs were published for 2026-09-16.</p>
+        
+      </div>
+    </section>
+
+      <section id="poc-watch" class="panel panel-top-card panel-poc-top is-empty">
+      <div class="panel-head">
+        <div><span class="eyebrow">PUBLIC POC</span><h2>Fresh Public PoCs</h2></div>
+        <div class="panel-head-actions">
+          <span class="chip chip-poc">0 repos today</span>
+          <span class="chip chip-muted">0 CVEs</span>
+        </div>
+      </div>
+      <div class="top-card-body">
+        
+        <p class="empty-note">No public PoC repositories were published for 2026-09-16.</p>
+        
+      </div>
+    </section>
+
+      <section id="vendor-watchlist" class="panel panel-top-card panel-vendor-top">
+        <div class="panel-head">
+          <div><span class="eyebrow">Vendor Watchlist</span><h2>Vendor Watchlist</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip chip-vendor">2 vendors</span>
+            <span class="chip chip-muted">0 CVE</span>
+          </div>
+        </div>
+        <div class="top-card-body">
+          
+          <div class="vendor-spotlight level-watch">
+            <div>
+              <span class="vendor-spot-kicker">Top exposure</span>
+              <strong>Cisco</strong>
+            </div>
+            <span>News</span>
+          </div>
+          
+          <div class="vendor-mini-stats" aria-label="Vendor watchlist totals">
+            <div><b>0</b><span>Critical</span></div>
+            <div><b>0</b><span>KEV</span></div>
+            <div><b>0</b><span>PoC</span></div>
+          </div>
+          <div class="vendor-top-list" aria-label="Vendor exposure rows">
+            
+            <article class="vendor-card level-watch">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Cisco</strong>
+                  <span class="tag tag-vendor">Watch</span>
+                </div>
+                <div class="vendor-footprint">1 news</div>
+                <div class="vendor-bars" aria-label="Signal mix for Cisco">
+                  
+                  
+                  <span class="vendor-bar-news" style="width: 100%"></span>
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>1</strong>
+                <span>News</span>
+              </div>
+            </article>
+            
+            <article class="vendor-card level-watch">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Oracle</strong>
+                  <span class="tag tag-vendor">Watch</span>
+                </div>
+                <div class="vendor-footprint">1 news</div>
+                <div class="vendor-bars" aria-label="Signal mix for Oracle">
+                  
+                  
+                  <span class="vendor-bar-news" style="width: 100%"></span>
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>1</strong>
+                <span>News</span>
+              </div>
+            </article>
+            
+          </div>
+          <div class="vendor-legend"><span><i class="vendor-bar-cve"></i>CVE</span><span><i class="vendor-bar-poc"></i>PoC</span><span><i class="vendor-bar-news"></i>News</span></div>
+        </div>
+      </section>
+
+      <section id="attack-matrix" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>Attack Patterns</h2></div><span class="chip">1 techniques</span></div>
+        <p class="lede">This run mapped content to 1 MITRE ATT&amp;CK techniques; top pattern: T1190 · Public Service Exploitation.</p>
+        
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">T1190 · Public Service Exploitation</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+
+        <div class="meta"><span>Keyword mapping to MITRE ATT&amp;CK</span></div>
+      </section>
+
+      <section id="writeups-pulse" class="panel panel-intel-card panel-wide panel-research-priority panel-column-fill">
+        <div class="panel-head">
+          <div><span class="eyebrow">WRITEUPS</span><h2>Writeups</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">4 today</span>
+            <span class="chip chip-muted">2 sources</span>
+          </div>
+        </div>
+        
+        <p class="lede">Writeups from dedicated research feeds. Same-day items are shown first; on quiet days the most recent analyses from the past week are surfaced instead.</p>
+        <div class="grid grid-2 grid-inner writeups-list">
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@victorayangunna7&#x2f;a-photo-upload-field-a-stolen-metadata-token-and-three-weeks-of-silence-2e4c7b84850e?source=rss------ssrf-5" rel="noopener noreferrer">A Photo Upload Field, a Stolen Metadata Token, and Three Weeks of Silence</a></h3><span class="tag">Incident Analysis</span></div>
+            <p>Turning one week of a cloud security internship into a concept, the hands-on work behind it, and the incident that shows why it mattersContinue reading on Medium »</p>
+            <div class="meta"><span>Medium SSRF</span><span>Today 03:46</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;clarkvoss.medium.com&#x2f;i-bypassed-authentication-on-a-government-database-using-soql-injection-9761c9ed6d77?source=rss------bug_bounty-5" rel="noopener noreferrer">I Bypassed Authentication on a Government Database Using SoQL Injection</a></h3><span class="tag">Research Note</span></div>
+            <p>The injection was easy to find. Proving impact took weeks.Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 03:27</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@gabriellakyy14&#x2f;recount-of-day-1-of-blogging-d76adda878f8?source=rss------bug_bounty-5" rel="noopener noreferrer">Recount of Day 1 of blogging</a></h3><span class="tag">Research Note</span></div>
+            <p>I watched this YouTube video in the morning and finished a room on networking conceptsContinue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 02:15</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@andrewdehghan&#x2f;from-directory-listing-to-full-takeover-78b80b5ad1ea?source=rss------bug_bounty-5" rel="noopener noreferrer">From Directory Listing to Full Takeover</a></h3><span class="tag">Research Note</span></div>
+            <p>I started with a simple check, and right away I noticed that the web application had Directory Listing enabled.Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 01:10</span></div>
+          </article>
+          
+        </div>
+        
+      </section>
+
+    </div>
+
+    <div class="top-column top-column-news" aria-label="Daily news and threat activity stream">
+    <section id="global-news" class="panel panel-top-card panel-news-top panel-column-fill">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">TODAY</span>
+            <h2>Today&#x27;s News</h2>
+          </div>
+          <div class="panel-head-actions">
+            <span class="chip chip-news">5 items</span>
+            <span class="chip chip-news-date">2026-09-16</span>
+          </div>
+        </div>
+        <div class="top-card-body">
+          
+          
+          <div class="news-top-list" aria-label="Latest security news">
+            
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.bleepingcomputer.com&#x2f;news&#x2f;security&#x2f;acronis-warns-of-actively-exploited-flaw-in-its-cpanel-backup-plugin&#x2f;" rel="noopener noreferrer" target="_blank">Acronis warns of actively exploited flaw in its cPanel backup plugin</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Acronis disclosed a high-severity Linux local privilege escalation vulnerability in its backup plugin for cPanel, WebHost Manager (WHM), and Plesk that may be exploited in the wild. [...]</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">BleepingComputer</span>
+      <span class="tag">Active Exploit</span><span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-09-16 01:07 Tehran · 2026-09-15 21:37 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;securityaffairs.com&#x2f;199156&#x2f;security&#x2f;u-s-cisa-adds-cisco-secure-email-gateway-flaw-to-its-known-exploited-vulnerabilities-catalog.html" rel="noopener noreferrer" target="_blank">U.S. CISA adds Cisco Secure Email Gateway flaw to its Known Exploited Vulnerabilities ca…</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">U.S. Cybersecurity and Infrastructure Security Agency (CISA) adds Cisco Secure Email Gateway flaw to its Known Exploited Vulnerabilities catalog. The U.S. Cybersecurity and Infrastructure Security Agency (CISA) added a Cisco Secure Email Ga…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Security Affairs</span>
+      <span class="tag">Exploit</span><span class="tag">Cisco</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-09-16 00:16 Tehran · 2026-09-15 20:46 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.tenable.com&#x2f;blog&#x2f;oracle-september-2026-critical-security-patch-update-addresses-672-cves" rel="noopener noreferrer" target="_blank">Oracle September 2026 Critical Security Patch Update addresses 672 CVEs</a>
+      
+    </div>
+    <p class="news-excerpt">Oracle addresses 672 CVEs in its September 2026 Critical Security Patch Update with 673 patches, including 104 critical updates.Key TakeawaysThe September 2026 Critical Security Patch Update (CSPU) contains fixes for 672 unique CVEs in 673 …</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Tenable Blog</span>
+      <span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-09-16 00:30 Tehran · 2026-09-15 21:00 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.bleepingcomputer.com&#x2f;news&#x2f;security&#x2f;malcious-admin-menu-editor-pro-plugin-backdoors-1-500-wordpress-sites&#x2f;" rel="noopener noreferrer" target="_blank">Malcious Admin Menu Editor Pro plugin backdoors 1,500 WordPress sites</a>
+      
+    </div>
+    <p class="news-excerpt">Malicious versions of the Admin Menu Editor Pro plugin for WordPress have been distributed to more than 200 customers after a threat actor compromised the maintainer&#x27;s website and pushed updates that created a hidden user account. [...]</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">BleepingComputer</span>
+      <span class="tag">WordPress</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-09-16 00:04 Tehran · 2026-09-15 20:34 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;aws.amazon.com&#x2f;blogs&#x2f;security&#x2f;aws-sts-simplifies-session-token-size-limits-and-adds-session-token-size-monitoring&#x2f;" rel="noopener noreferrer" target="_blank">AWS STS simplifies session token size limits and adds session token size monitoring</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">AWS Security Token Service (AWS STS) has simplified session token size limits, giving you more room for your session policies and session tags. STS has replaced the packed policy size and the overall session token size limits with a single …</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">AWS Security Blog</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-09-16 01:51 Tehran · 2026-09-15 22:21 UTC</span>
+    </div>
+  </div>
+</article>
+
+          </div>
+          
+        </div>
+      </section>
+
+      <section id="botnet-c2-pulse" class="panel panel-intel-card panel-botnet-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Botnet C2</span><h2>C2 Infrastructure</h2></div>
+          <div class="panel-head-actions"><span class="chip">5 C2</span><span class="chip chip-muted">16 TLS</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact threat-metric-row">
+          <div><b>19</b><span>High signal</span></div>
+          <div><b>1</b><span>Online C2</span></div>
+          <div><b>15</b><span>JA3</span></div>
+        </div>
+        
+        <div class="threat-spotlight risk-high">
+          <div><span>Top C2</span><b dir="ltr">50[.]16[.]16[.]211:443</b></div>
+          <strong>QakBot</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Family</b> QakBot</span><span><b>Port</b> 443 HTTPS</span><span><b>TLS</b> TrickBot</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Families</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">QakBot</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">4</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Emotet</span><span class="bar-track"><b style="width: 25%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Ports</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">443 HTTPS</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">4</span></div>
+  
+  <div class="bar-row"><span class="bar-label">8080 HTTP-alt</span><span class="bar-track"><b style="width: 25%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Feodo Tracker + SSLBL</span><span>passive · defanged</span></div>
+      </section>
+
+      <section id="phishing-pulse" class="panel panel-intel-card panel-phishing-card risk-medium">
+        <div class="panel-head">
+          <div><span class="eyebrow">Phishing</span><h2>Credential & Brand Lures</h2></div>
+          <div class="panel-head-actions"><span class="chip">24 URL</span><span class="chip chip-muted">0 high</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact threat-metric-row">
+          <div><b>1</b><span>Credential</span></div>
+          <div><b>0</b><span>Deep path</span></div>
+          <div><b>9</b><span>HTTP</span></div>
+        </div>
+        
+        <div class="threat-spotlight risk-medium">
+          <div><span>Top lure</span><b dir="ltr">reservationupdate[.]com</b></div>
+          <strong>Unknown target</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Target</b> Credential Harvest</span><span><b>TLD</b> .com</span><span><b>Defanged</b> yes</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Targets</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Unknown target</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">23</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Credential Harvest</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Risk</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">watch</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">14</span></div>
+  
+  <div class="bar-row"><span class="bar-label">medium</span><span class="bar-track"><b style="width: 71%"></b></span><span class="bar-count">10</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>OpenPhish Community Feed</span><span>defanged URLs</span></div>
+      </section>
+
+      <section id="malware-pulse" class="panel panel-intel-card panel-malware-card risk-medium">
+        <div class="panel-head">
+          <div><span class="eyebrow">Malware</span><h2>Malware Samples</h2></div>
+          <div class="panel-head-actions"><span class="chip">14 samples</span><span class="chip chip-muted">hash-only</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact threat-metric-row">
+          <div><b>0</b><span>Named family</span></div>
+          <div><b>10</b><span>Executable</span></div>
+          <div><b>0</b><span>High signal</span></div>
+        </div>
+        
+        <div class="threat-spotlight risk-medium">
+          <div><span>Top sample</span><b dir="ltr">d0fe419907…9a9aab4695</b></div>
+          <strong>DCAgentRMM</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Family</b> No named family</span><span><b>Type</b> exe</span><span><b>Display</b> metadata only</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Families</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">unclassified</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">10</span></div>
+  
+  <div class="bar-row"><span class="bar-label">JOMANGY</span><span class="bar-track"><b style="width: 30%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">DCAgentRMM</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>File types</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">exe</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">10</span></div>
+  
+  <div class="bar-row"><span class="bar-label">sh</span><span class="bar-track"><b style="width: 30%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">zip</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>MalwareBazaar (abuse.ch)</span><span>hash-only</span></div>
+      </section>
+
+      <section id="ransomware-pulse" class="panel panel-intel-card panel-ransomware-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Ransomware</span><h2>Victim Claims</h2></div>
+          <div class="panel-head-actions"><span class="chip">30 in 7d</span><span class="chip chip-muted">11 groups</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>27</b><span>24h claims</span></div>
+          <div><b>13</b><span>Critical sector</span></div>
+          <div><b>11</b><span>Countries</span></div>
+        </div>
+        
+        <div class="advisory-spotlight ransomware-spotlight risk-high">
+          <div><span>Newest claim</span><b>Honda (Peru)</b></div>
+          <strong>Panzer</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Group</b> safepay</span><span><b>Country</b> US</span><span><b>Sector</b> Manufacturing</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Groups</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">safepay</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">8</span></div>
+  
+  <div class="bar-row"><span class="bar-label">qilin</span><span class="bar-track"><b style="width: 88%"></b></span><span class="bar-count">7</span></div>
+  
+  <div class="bar-row"><span class="bar-label">akira</span><span class="bar-track"><b style="width: 50%"></b></span><span class="bar-count">4</span></div>
+  
+</div>
+</div>
+          <div><span>Sectors</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Manufacturing</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">10</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Not Found</span><span class="bar-track"><b style="width: 40%"></b></span><span class="bar-count">4</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Other</span><span class="bar-track"><b style="width: 30%"></b></span><span class="bar-count">3</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Ransomware.live public API</span><span>public claims · passive</span></div>
+      </section>
+
+      <section class="panel panel-intel-card panel-meta-card panel-project-card">
+        <div class="panel-head"><div><span class="eyebrow">Project</span><h2>About the Project</h2></div></div>
+        <p class="note">SecPath Radar is a static, read-only dashboard for daily monitoring of the cyber threat landscape; no visitor data is collected.</p>
+        <div class="meta"><span>Design &amp; Development: Mahdi Alemi</span><span>v1.1.0</span></div>
+      </section>
+
+    </div>
+  </section>
+
+  <footer class="footer footer-redesign">
+    <div class="footer-brand"><strong>SecPath Radar</strong><span>Static read-only cyber intelligence dashboard</span></div>
+    <div class="footer-version">v2.0.0</div>
+    <div class="footer-credit">Design &amp; Development: Mahdi Alemi</div>
+  </footer>
+</main>
+</body>
+</html>
