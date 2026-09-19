@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Sat, 19 Sep 2026 17:21:14 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-13354 — The Asset CleanUp: Page Speed Booster plugin for WordPress is vulnerable to…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-13354</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-13354</guid>
+<description>The Asset CleanUp: Page Speed Booster plugin for WordPress is vulnerable to Stored Cross-Site Scripting via Comment Content in all versions up to, and including, 1.4.0.5 due to insufficient input sanitization and output escaping. This makes it possible for una…</description>
+</item>
+<item>
+<title>CVE-2026-84434: The Gravity Forms plugin for WordPress is vulnerable to Arbitrary File Upload in all…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-84434</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-84434</guid>
+<description>The Gravity Forms plugin for WordPress is vulnerable to Arbitrary File Upload in all versions up to, and including, 3.1.0.4 via the upload_file function. This is due to a mismatch between the field validation pipeline and the file persistence pipeline, where h…</description>
+</item>
+<item>
+<title>CVE-2026-93741: A security flaw has been discovered in Totolink A3002MU Hh-B20211125</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-93741</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-93741</guid>
+<description>A security flaw has been discovered in Totolink A3002MU Hh-B20211125.1046. Affected by this vulnerability is the function formWlWds of the file /boafrm/formWlWds. The manipulation of the argument submit-url results in buffer overflow. It is possible to launch …</description>
+</item>
+<item>
+<title>CVE-2026-89274: The WP Recipe Maker plugin for WordPress is vulnerable to Arbitrary Shortcode Execut…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-89274</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-89274</guid>
+<description>The WP Recipe Maker plugin for WordPress is vulnerable to Arbitrary Shortcode Execution in all versions up to, and including, 10.8.1. The vulnerability exists because `WPRM_Metadata::sanitize_metadata()` recursively calls `do_shortcode()` on every scalar field…</description>
+</item>
+<item>
+<title>CVE-2026-92229: The The Forminator Forms – Contact Form, Payment Form &amp; Custom Form Builder plugin f…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-92229</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-92229</guid>
+<description>The The Forminator Forms – Contact Form, Payment Form &amp; Custom Form Builder plugin for WordPress is vulnerable to arbitrary shortcode execution in all versions up to, and including, 1.57.2. This is due to the software allowing users to execute an action that d…</description>
+</item>
+<item>
+<title>CVE-2026-92807: The Save as PDF Plugin by PDFCrowd plugin for WordPress is vulnerable to Arbitrary F…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-92807</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-92807</guid>
+<description>The Save as PDF Plugin by PDFCrowd plugin for WordPress is vulnerable to Arbitrary Function Invocation in all versions up to, and including, 4.6.1 via the `pdf_created_callback` shortcode attribute. The `eval_shortcode()` function copies any non-`button_`/non-…</description>
+</item>
+<item>
+<title>CVE-2026-93922: SiYuan through 3</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-93922</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-93922</guid>
+<description>SiYuan through 3.8.4 renders notebook names as raw HTML in the Daily Note picker dialog without escaping, allowing stored cross-site scripting in the Electron renderer. Attackers can create notebooks with HTML payloads in names that execute JavaScript with Nod…</description>
+</item>
+<item>
+<title>CVE-2026-93923: SiYuan through 3</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-93923</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-93923</guid>
+<description>SiYuan through 3.8.4 fails to escape heading style attributes when rendering outline and bookmark dock HTML, allowing stored cross-site scripting. Attackers can supply crafted notebooks or call administrative endpoints to inject malicious style values that exe…</description>
+</item>
+<item>
+<title>CVE-2026-87909: The WP Photo Album Plus plugin for WordPress is vulnerable to Remote Code Execution …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-87909</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-87909</guid>
+<description>The WP Photo Album Plus plugin for WordPress is vulnerable to Remote Code Execution in all versions via the wppa_image_magick function. This is due to insufficient sanitization of the multipart upload filename before concatenation into an ImageMagick command s…</description>
+</item>
+<item>
+<title>Brevo Supply-Chain Attack Infected Over 100,000 Websites</title>
+<link>https://securityaffairs.com/199355/hacking/brevo-supply-chain-attack-infected-over-100000-websites.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/199355/hacking/brevo-supply-chain-attack-infected-over-100000-websites.html</guid>
+<description>A Brevo supply-chain attack used compromised Cloudflare access to inject malware into websites, potentially affecting over 100,000 sites. Brevo, formerly known as Sendinblue, is a French cloud-based marketing and customer communication plat…</description>
+<pubDate>Fri, 18 Sep 2026 21:38:15 +0000</pubDate>
+</item>
+<item>
+<title>Identity Visibility in 2026: The Foundation of Identity Security</title>
+<link>https://thehackernews.com/2026/09/identity-visibility-in-2026-foundation.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/09/identity-visibility-in-2026-foundation.html</guid>
+<description>Identity visibility is a starting point for modern identity security, because stolen and misused credentials are among the most frequently reported initial access vectors in breach research, including Verizon&apos;s annual Data Breach Investigat…</description>
+<pubDate>Sat, 19 Sep 2026 13:28:41 +0000</pubDate>
+</item>
+<item>
+<title>AI-Powered RatHat Android Trojan Steals Bank Credentials, PINs and MFA Codes</title>
+<link>https://gbhackers.com/ai-powered-rathat-android-trojan-steals-bank-credentials/</link>
+<guid isPermaLink="false">https://gbhackers.com/ai-powered-rathat-android-trojan-steals-bank-credentials/</guid>
+<description>Researchers have identified a new Android banking Trojan called RatHat that utilizes artificial intelligence to automate device compromise and steal financial credentials, PINs, and one-time passcodes. Zimperium’s zLabs researchers analyzed…</description>
+<pubDate>Sat, 19 Sep 2026 08:29:06 +0000</pubDate>
+</item>
+<item>
+<title>CrowdSec Says TanStack npm Attack Led to Copy of 170 Private GitHub Repositories</title>
+<link>https://thehackernews.com/2026/09/crowdsec-says-tanstack-npm-attack-led.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/09/crowdsec-says-tanstack-npm-attack-led.html</guid>
+<description>An attacker copied about 170 of CrowdSec&apos;s private GitHub repositories on May 22 using the account of an employee who had just left, CrowdSec said on September 18. The French security company had kept his GitHub access open. CrowdSec says h…</description>
+<pubDate>Sat, 19 Sep 2026 07:14:54 +0000</pubDate>
+</item>
+<item>
+<title>PowerShell Malware Abuses Registry and DNS TXT Records to Deploy XMRig Crypto Miner</title>
+<link>https://gbhackers.com/powershell-malware-abuses-registry-and-dns-txt-records/</link>
+<guid isPermaLink="false">https://gbhackers.com/powershell-malware-abuses-registry-and-dns-txt-records/</guid>
+<description>A sophisticated cryptomining campaign is employing multiple layers of obfuscation to conceal malicious PowerShell payloads and ultimately deploy an XMRig-based cryptocurrency miner. This obfuscation includes Windows Registry entries, DNS TX…</description>
+<pubDate>Sat, 19 Sep 2026 07:11:04 +0000</pubDate>
+</item>
+<item>
+<title>AI Helps Hackers Hijack OpenAI Staff Accounts Through a Forum</title>
+<link>https://securityaffairs.com/199378/ai/ai-helps-hackers-hijack-openai-staff-accounts-through-a-forum.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/199378/ai/ai-helps-hackers-hijack-openai-staff-accounts-through-a-forum.html</guid>
+<description>AI helped researchers exploit a Discourse flaw in under 72 hours, hijacking OpenAI staff accounts and exposing the risks of shared SSO. Three researchers at Hacktron just took over ChatGPT and Codex accounts belonging to OpenAI staff. The a…</description>
+<pubDate>Sat, 19 Sep 2026 13:01:08 +0000</pubDate>
+</item>
+<item>
+<title>Friday Squid Blogging: On Squid Egg Sacs</title>
+<link>https://www.schneier.com/blog/archives/2026/09/friday-squid-blogging-on-squid-egg-sacs.html</link>
+<guid isPermaLink="false">https://www.schneier.com/blog/archives/2026/09/friday-squid-blogging-on-squid-egg-sacs.html</guid>
+<description>Short essay about squid egg sacs. As usual, you can also use this squid post to talk about the security stories in the news that I haven’t covered. Blog moderation policy.</description>
+<pubDate>Fri, 18 Sep 2026 21:06:00 +0000</pubDate>
+</item>
+<item>
+<title>HTTP QUERY Method: The Grey Zone Between GET And POST., (Fri, Sep 18th)</title>
+<link>https://isc.sans.edu/diary/rss/33352</link>
+<guid isPermaLink="false">https://isc.sans.edu/diary/rss/33352</guid>
+<description>In June 2026 the IETF published RFC 10008[1], defining a new HTTP method: &quot;QUERY&quot;. The HTTP protocol faced already by changes (HTTP/2, HTTP/3) but it&amp;#x27s the first new standard HTTP verb since &quot;PATCH&quot; in 2010!</description>
+<pubDate>Sat, 19 Sep 2026 04:51:46 +0000</pubDate>
+</item>
+</channel>
+</rss>
