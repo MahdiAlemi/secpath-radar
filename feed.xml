@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Sat, 26 Sep 2026 16:29:44 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-100560 — OpenClaw versions before 2026</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100560</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100560</guid>
+<description>OpenClaw versions before 2026.8.1 contain an authorization bypass vulnerability where Allow Always approvals for exact commands persist as path-only grants on macOS and Linux. Attackers can reuse the same executable with different arguments to execute commands…</description>
+</item>
+<item>
+<title>CVE-2026-100551: OpenClaw for iOS versions = 2026</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100551</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100551</guid>
+<description>OpenClaw for iOS versions = 2026.7.1 and</description>
+</item>
+<item>
+<title>CVE-2026-100567: OpenClaw is an agent gateway distributed as the npm package &apos;openclaw&apos;</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100567</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100567</guid>
+<description>OpenClaw is an agent gateway distributed as the npm package &apos;openclaw&apos;. In versions = 2026.4.5 and</description>
+</item>
+<item>
+<title>CVE-2026-100597: OpenClaw (npm package &apos;openclaw&apos;) before 2026</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100597</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100597</guid>
+<description>OpenClaw (npm package &apos;openclaw&apos;) before 2026.7.1 is vulnerable to a time-of-check time-of-use race condition in OpenShell local mirror filesystem mutation operations. The remove, mkdir, and rename operations could act on a different filesystem target after Op…</description>
+</item>
+<item>
+<title>CVE-2026-100520: Laranode versions before 1</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100520</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100520</guid>
+<description>Laranode versions before 1.2.1 contain a path traversal vulnerability in the POST /filemanager/upload-file endpoint that allows authenticated users to write arbitrary files outside their home directory. Attackers can supply directory traversal sequences in the…</description>
+</item>
+<item>
+<title>CVE-2026-100544: openclaw&apos;s @openclaw/voice-call package before 2026</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100544</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100544</guid>
+<description>openclaw&apos;s @openclaw/voice-call package before 2026.8.1 launches the configured agent for classic inbound voice calls without propagating the caller&apos;s identity or non-owner status. As a result, owner-only tool filtering can fail open and expose the agent&apos;s nor…</description>
+</item>
+<item>
+<title>CVE-2026-100552: OpenClaw (npm package &apos;openclaw&apos;) before 2026</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100552</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100552</guid>
+<description>OpenClaw (npm package &apos;openclaw&apos;) before 2026.8.1 does not correctly enforce per-chat tool policies for Codex app-server runtime tools. A conversation-level tools.allow rule filtered OpenClaw tools but did not restrict the shell, process, file, and patch tools…</description>
+</item>
+<item>
+<title>CVE-2026-100557: OpenClaw versions before 2026</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100557</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100557</guid>
+<description>OpenClaw versions before 2026.8.1 contain an authorization bypass vulnerability in skill tool dispatch that fails to carry the sender&apos;s owner status. Non-owner senders authorized to invoke skill commands can access owner-only tools and server credentials reser…</description>
+</item>
+<item>
+<title>CVE-2026-100558: OpenClaw versions before 2026</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-100558</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-100558</guid>
+<description>OpenClaw versions before 2026.8.1 contain a resource exhaustion vulnerability in the Gateway listener that allows unauthenticated clients to retain response sockets by sending WebSocket upgrade requests without matching connection semantics. Attackers can repe…</description>
+</item>
+<item>
+<title>ShinyHunters hacked Clop leak site using Grav CMS path traversal flaw</title>
+<link>https://www.bleepingcomputer.com/news/security/shinyhunters-hacked-clop-leak-site-using-grav-cms-path-traversal-flaw/</link>
+<guid isPermaLink="false">https://www.bleepingcomputer.com/news/security/shinyhunters-hacked-clop-leak-site-using-grav-cms-path-traversal-flaw/</guid>
+<description>The Clop ransomware gang has moved its data leak site to a new Tor address after confirming its previous server was compromised and defaced through an unpatched Grav CMS flaw that BleepingComputer has learned is an unauthenticated path trav…</description>
+<pubDate>Fri, 25 Sep 2026 20:57:55 +0000</pubDate>
+</item>
+<item>
+<title>ShinyHunters Bypass WAF Rules to Resume Oracle PeopleSoft Attacks</title>
+<link>https://hackread.com/shinyhunters-bypass-waf-rules-oracle-peoplesoft-attacks/</link>
+<guid isPermaLink="false">https://hackread.com/shinyhunters-bypass-waf-rules-oracle-peoplesoft-attacks/</guid>
+<description>ShinyHunters exploit CVE-2026-35273 in Oracle PeopleSoft using URL encoding to bypass WAF rules, deploy web shells and spread the SIDEEYE backdoor.</description>
+<pubDate>Sat, 26 Sep 2026 13:36:11 +0000</pubDate>
+</item>
+<item>
+<title>Kiteworks Warns Users to Take Systems Offline Amid Suspected Zero-Day Threat</title>
+<link>https://gbhackers.com/kiteworks-systems-offline-amid-suspected-zero-day/</link>
+<guid isPermaLink="false">https://gbhackers.com/kiteworks-systems-offline-amid-suspected-zero-day/</guid>
+<description>Kiteworks has urged customers worldwide to temporarily shut down their servers after receiving credible law-enforcement intelligence that a threat actor may target Kiteworks deployments over the weekend. The emergency advisory is preventive…</description>
+<pubDate>Sat, 26 Sep 2026 07:45:21 +0000</pubDate>
+</item>
+<item>
+<title>Kiteworks urges 6-hour server shutdown over potential zero-day attacks</title>
+<link>https://www.bleepingcomputer.com/news/security/kiteworks-urges-6-hour-server-shutdown-over-potential-zero-day-attacks/</link>
+<guid isPermaLink="false">https://www.bleepingcomputer.com/news/security/kiteworks-urges-6-hour-server-shutdown-over-potential-zero-day-attacks/</guid>
+<description>Secure file-sharing software company Kiteworks is urging customers worldwide to temporarily shut down their servers on Saturday for a six-hour window after receiving threat intelligence warning of a potentially imminent cyberattack. [...]</description>
+<pubDate>Fri, 25 Sep 2026 21:41:07 +0000</pubDate>
+</item>
+<item>
+<title>U.S. CISA adds Microsoft SharePoint and Mikrotik RouterOS flaws to its Known Exploited V…</title>
+<link>https://securityaffairs.com/199777/hacking/u-s-cisa-adds-microsoft-sharepoint-and-mikrotik-routeros-flaws-to-its-known-exploited-vulnerabilities-catalog.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/199777/hacking/u-s-cisa-adds-microsoft-sharepoint-and-mikrotik-routeros-flaws-to-its-known-exploited-vulnerabilities-catalog.html</guid>
+<description>U.S. Cybersecurity and Infrastructure Security Agency (CISA) adds Microsoft SharePoint and Mikrotik RouterOS flaws flaws to its Known Exploited Vulnerabilities catalog. The U.S. Cybersecurity and Infrastructure Security Agency (CISA) added …</description>
+<pubDate>Fri, 25 Sep 2026 21:03:44 +0000</pubDate>
+</item>
+<item>
+<title>Elementor CSRF Flaw Lets Attackers Take Over Sites After Admin Clicks Crafted Link</title>
+<link>https://thehackernews.com/2026/09/elementor-csrf-flaw-lets-attackers-take.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/09/elementor-csrf-flaw-lets-attackers-take.html</guid>
+<description>Details have emerged about a high-severity security flaw in the Elementor Website Builder WordPress plugin that could be exploited by an unauthenticated attacker to create rogue administrator accounts and take control of a site. The cross-s…</description>
+<pubDate>Sat, 26 Sep 2026 09:55:22 +0000</pubDate>
+</item>
+<item>
+<title>Storm-3168 Hackers Abuse Compromised Service Principals to Destroy Azure Cloud Resources</title>
+<link>https://gbhackers.com/storm-3168-hackers-abuse-compromised-service-principals/</link>
+<guid isPermaLink="false">https://gbhackers.com/storm-3168-hackers-abuse-compromised-service-principals/</guid>
+<description>Microsoft has uncovered a destructive Azure campaign linked to Storm-3168, also known as JADEPUFFER, in which attackers abused compromised service principals to map cloud environments, delete critical resources, target recovery safeguards, …</description>
+<pubDate>Sat, 26 Sep 2026 07:09:54 +0000</pubDate>
+</item>
+<item>
+<title>3 Consulting Myths Debunked by Unit 42 Experts</title>
+<link>https://unit42.paloaltonetworks.com/3-consulting-myths-debunked-by-unit-42-experts/</link>
+<guid isPermaLink="false">https://unit42.paloaltonetworks.com/3-consulting-myths-debunked-by-unit-42-experts/</guid>
+<description>Unit 42 security experts address critical cybersecurity misconceptions, offering practical insights to help your organization reinforce its enterprise defenses. The post 3 Consulting Myths Debunked by Unit 42 Experts appeared first on Unit …</description>
+<pubDate>Fri, 25 Sep 2026 23:00:28 +0000</pubDate>
+</item>
+</channel>
+</rss>
