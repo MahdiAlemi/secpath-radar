@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Sat, 10 Oct 2026 18:42:26 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-91136 — The Divi Plus plugin for WordPress is vulnerable to Arbitrary File Read in …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-91136</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-91136</guid>
+<description>The Divi Plus plugin for WordPress is vulnerable to Arbitrary File Read in versions up to, and including, 2.4.0 via the &apos;svg_image&apos; parameter of the /wp-json/elicus/v1/dipl-modules/svg-animator REST endpoint. This is due to the endpoint&apos;s permission callback (…</description>
+</item>
+<item>
+<title>CVE-2026-108474: In JetBrains Exposed before 1</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-108474</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-108474</guid>
+<description>In JetBrains Exposed before 1.5.1 sQL injection was possible via unescaped string arguments of several SQL functions</description>
+</item>
+<item>
+<title>CVE-2026-104732: The Advanced IP Blocker plugin for WordPress is vulnerable to Authentication Bypass …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-104732</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-104732</guid>
+<description>The Advanced IP Blocker plugin for WordPress is vulnerable to Authentication Bypass in all versions up to, and including, 8.13.13 The vulnerability exists because `handle_login_action()` performs no server-side check — via transient, session marker, or equival…</description>
+</item>
+<item>
+<title>CVE-2026-94589: The Extensions For CF7 (Contact form 7 Database, Conditional Fields and Redirection)…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-94589</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-94589</guid>
+<description>The Extensions For CF7 (Contact form 7 Database, Conditional Fields and Redirection) plugin for WordPress is vulnerable to Arbitrary File Upload in all versions up to, and including, 3.4.5 via the extcf7_submit function. This is due to missing file extension, …</description>
+</item>
+<item>
+<title>CVE-2026-107645: The Blocksy Companion plugin for WordPress is vulnerable to privilege escalation in …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-107645</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-107645</guid>
+<description>The Blocksy Companion plugin for WordPress is vulnerable to privilege escalation in versions up to, and including, 2.1.58 This is due to the implement_user_registration() AJAX handler explicitly disabling Dokan&apos;s vendor-registration nonce check (via add_filter…</description>
+</item>
+<item>
+<title>CVE-2026-104797: The Advanced Form Integration — Connect Forms to 300+ Apps plugin for WordPress is v…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-104797</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-104797</guid>
+<description>The Advanced Form Integration — Connect Forms to 300+ Apps plugin for WordPress is vulnerable to Authentication Bypass via Unverified Password Change in all versions up to, and including, 2.9.0 The `adfoin_ultimatememberac_send_data` function, which powers the…</description>
+</item>
+<item>
+<title>CVE-2026-103889: The 3D Product configurator for WooCommerce plugin for WordPress is vulnerable to Re…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-103889</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-103889</guid>
+<description>The 3D Product configurator for WooCommerce plugin for WordPress is vulnerable to Remote Code Execution in all versions up to, and including, 2.16.2 via the &apos;xpv_image&apos; parameter parameter. This is due to missing authentication and nonce checks on the wp_loade…</description>
+</item>
+<item>
+<title>CVE-2026-104803: The WPCOM Member plugin for WordPress is vulnerable to Authentication Bypass in all …</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-104803</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-104803</guid>
+<description>The WPCOM Member plugin for WordPress is vulnerable to Authentication Bypass in all versions up to, and including, 1.7.27 via the `uuid` and `code` parameters of the social-login callback handler registered on the `init` hook. The vulnerability exists because …</description>
+</item>
+<item>
+<title>CVE-2026-62045: Deserialization of Untrusted Data vulnerability in ThemeREX Group Booklovers booklov…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-62045</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-62045</guid>
+<description>Deserialization of Untrusted Data vulnerability in ThemeREX Group Booklovers booklovers allows Object Injection.This issue affects Booklovers: from n/a through 2.13.0.</description>
+</item>
+<item>
+<title>A Vulnerability in Citrix NetScaler ADC and Citrix NetScaler Gateway Could Allow for Rem…</title>
+<link>https://www.cisecurity.org/advisory/a-vulnerability-in-citrix-netscaler-adc-and-citrix-netscaler-gateway-could-allow-for-remote-code-execution_2026-110</link>
+<guid isPermaLink="false">https://www.cisecurity.org/advisory/a-vulnerability-in-citrix-netscaler-adc-and-citrix-netscaler-gateway-could-allow-for-remote-code-execution_2026-110</guid>
+<description>A vulnerability has been discovered in Citrix NetScaler Application Delivery Controller (ADC) and Citrix NetScaler Gateway that could allow for remote code execution. Citrix NetScaler ADC (Application Delivery Controller) is an enterprise n…</description>
+<pubDate>Fri, 9 Oct 2026 21:02:14 +0000</pubDate>
+</item>
+<item>
+<title>ASOS Breach Reveals the Risks in Customer-Facing SaaS</title>
+<link>https://www.darkreading.com/cyberattacks-data-breaches/asos-breach-risks-customer-facing-saas</link>
+<guid isPermaLink="false">https://www.darkreading.com/cyberattacks-data-breaches/asos-breach-risks-customer-facing-saas</guid>
+<description>The attack on the British retailer shows that compromising a single identity can lead to much deeper penetration of the corporate network.</description>
+<pubDate>Fri, 9 Oct 2026 20:58:32 +0000</pubDate>
+</item>
+<item>
+<title>Anthropic Cuts Live Internet Access for Internal AI Tests After Claude Exploits Injectio…</title>
+<link>https://thehackernews.com/2026/10/anthropic-cuts-live-internet-access-for.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/10/anthropic-cuts-live-internet-access-for.html</guid>
+<description>Anthropic on Friday said it&apos;s cutting off live internet access for all its internal evaluations following the discovery of new incidents in which its artificial intelligence (AI) models exhibited misaligned behavior and targeted real websit…</description>
+<pubDate>Sat, 10 Oct 2026 09:18:45 +0000</pubDate>
+</item>
+<item>
+<title>Iranian VPN-over-DNS Activity Generates 40 Billion DNS Observations During Military Conf…</title>
+<link>https://gbhackers.com/iranian-vpn-over-dns-activity-generates-40-billion/</link>
+<guid isPermaLink="false">https://gbhackers.com/iranian-vpn-over-dns-activity-generates-40-billion/</guid>
+<description>A newly disclosed unprecedented surge in suspected Iranian VPN-over-DNS activity, with one domain generating 40 billion passive DNS observations within days. Published October 9, 2026, the investigation documents infrastructure expanding ac…</description>
+<pubDate>Sat, 10 Oct 2026 07:50:12 +0000</pubDate>
+</item>
+<item>
+<title>Silent Ransom Group Allegedly Extorted $207 Million Without Encrypting Files</title>
+<link>https://securityaffairs.com/200719/cyber-crime/silent-ransom-group-allegedly-extorted-207-million-without-encrypting-files.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/200719/cyber-crime/silent-ransom-group-allegedly-extorted-207-million-without-encrypting-files.html</guid>
+<description>Silent Ransom Group allegedly extorted $207 million from 27 law firms in six months using phone calls and social engineering, not encryption. Silent Ransom Group doesn’t rely on encryption. No malware payload, no locked files, just phone ca…</description>
+<pubDate>Sat, 10 Oct 2026 15:05:54 +0000</pubDate>
+</item>
+<item>
+<title>OpenAI Fires 3 Safety Researchers in Dispute Over AI Risks</title>
+<link>https://www.securityweek.com/openai-fires-3-safety-researchers-in-dispute-over-ai-risks/</link>
+<guid isPermaLink="false">https://www.securityweek.com/openai-fires-3-safety-researchers-in-dispute-over-ai-risks/</guid>
+<description>The ChatGPT maker said the researchers &quot;violated clear policies on handling sensitive information.” The post OpenAI Fires 3 Safety Researchers in Dispute Over AI Risks appeared first on SecurityWeek.</description>
+<pubDate>Fri, 9 Oct 2026 21:07:46 +0000</pubDate>
+</item>
+<item>
+<title>Insider Cyber Extortion Plot Against Industrial Firm Lands Engineer in Prison</title>
+<link>https://www.securityweek.com/insider-cyber-extortion-plot-against-industrial-firm-lands-engineer-in-prison/</link>
+<guid isPermaLink="false">https://www.securityweek.com/insider-cyber-extortion-plot-against-industrial-firm-lands-engineer-in-prison/</guid>
+<description>The former core infrastructure engineer deleted admin accounts, reset hundreds of passwords, and demanded 20 bitcoin to spare the company’s servers. The post Insider Cyber Extortion Plot Against Industrial Firm Lands Engineer in Prison appe…</description>
+<pubDate>Sat, 10 Oct 2026 11:00:00 +0000</pubDate>
+</item>
+<item>
+<title>The Third-Party Agent Problem: Why Security Built for AI You Chose Misses the Agents You…</title>
+<link>https://thehackernews.com/2026/10/the-third-party-agent-problem-why.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/10/the-third-party-agent-problem-why.html</guid>
+<description>In environments studied for the 2026 State of Agent Security Report, roughly 1,280 third-party products now embed AI. About 282 of them sit behind single sign-on. The other thousand are invisible to identity infrastructure by default, not b…</description>
+<pubDate>Sat, 10 Oct 2026 11:00:00 +0000</pubDate>
+</item>
+</channel>
+</rss>
