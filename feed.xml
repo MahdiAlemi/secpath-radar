@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Sat, 17 Oct 2026 15:43:30 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-108123 — The WP Booking System – Booking Calendar plugin for WordPress is vulnerabl…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-108123</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-108123</guid>
+<description>The WP Booking System – Booking Calendar plugin for WordPress is vulnerable to authorization bypass in all versions up to, and including, 2.1.0.3 This is due to the plugin not properly verifying that a user is authorized to perform an action. This makes it pos…</description>
+</item>
+<item>
+<title>CVE-2026-111823: Mage OSS through 0</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-111823</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-111823</guid>
+<description>Mage OSS through 0.9.80 before 76c4f46 can proceed with session creation upon encountering an unknown OAuth provider.</description>
+</item>
+<item>
+<title>CVE-2026-104736: The LearnPress plugin for WordPress is vulnerable to PHP Object Injection in version…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-104736</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-104736</guid>
+<description>The LearnPress plugin for WordPress is vulnerable to PHP Object Injection in versions up to, and including, 4.4.10 via deserialization of untrusted input from the &apos;checkout-email&apos; request parameter during the checkout AJAX action. The value is passed through s…</description>
+</item>
+<item>
+<title>CVE-2026-110653: The Appointment Booking Plugin – LatePoint | Calendar &amp; Scheduling for WordPress plu…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-110653</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-110653</guid>
+<description>The Appointment Booking Plugin – LatePoint | Calendar &amp; Scheduling for WordPress plugin for WordPress is vulnerable to Authentication Bypass via Race Condition in all versions up to, and including, 5.7.4. This is due to a non-atomic read-modify-write on the OT…</description>
+</item>
+<item>
+<title>CVE-2026-111853: An issue was discovered on Tektronix 3 Series MDO devices before 1</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-111853</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-111853</guid>
+<description>An issue was discovered on Tektronix 3 Series MDO devices before 1.21.1. An OS command injection vulnerability exists in the FILESystem:MOUNT:DRIve SCPI command handler. Insufficient neutralization of user-supplied input allows remote attackers to execute arbi…</description>
+</item>
+<item>
+<title>CVE-2026-92798: The User Registration &amp; Membership plugin for WordPress is vulnerable to Arbitrary S…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-92798</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-92798</guid>
+<description>The User Registration &amp; Membership plugin for WordPress is vulnerable to Arbitrary Shortcode Execution in versions up to, and including, 5.2.8 This is due to insufficient input sanitization in the &apos;referrer_url&apos; branch of UR_Smart_Tags::process(), where the at…</description>
+</item>
+<item>
+<title>CVE-2026-107762: The Kirki – Freeform Page Builder, Website Builder &amp; Customizer plugin for WordPress…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-107762</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-107762</guid>
+<description>The Kirki – Freeform Page Builder, Website Builder &amp; Customizer plugin for WordPress is vulnerable to Insecure Direct Object Reference in all versions up to, and including, 6.3.2 via the &apos;context&apos; parameter due to missing validation on a user controlled key. T…</description>
+</item>
+<item>
+<title>CVE-2026-108123: The WP Booking System – Booking Calendar plugin for WordPress is vulnerable to autho…</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-108123</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-108123</guid>
+<description>The WP Booking System – Booking Calendar plugin for WordPress is vulnerable to authorization bypass in all versions up to, and including, 2.1.0.3 This is due to the plugin not properly verifying that a user is authorized to perform an action. This makes it pos…</description>
+</item>
+<item>
+<title>CVE-2026-111854: An issue was discovered on Tektronix 3 Series MDO devices before 1</title>
+<link>https://nvd.nist.gov/vuln/detail/CVE-2026-111854</link>
+<guid isPermaLink="false">https://nvd.nist.gov/vuln/detail/CVE-2026-111854</guid>
+<description>An issue was discovered on Tektronix 3 Series MDO devices before 1.21.1. A path traversal vulnerability in the SCPI FILESystem command interface allows remote attackers to read or modify arbitrary files on the device through insufficient validation of file pat…</description>
+</item>
+<item>
+<title>CVE-2026-0307 GlobalProtect App: Local Privilege Escalation Vulnerabilities (Severity: M…</title>
+<link>https://security.paloaltonetworks.com/CVE-2026-0307</link>
+<guid isPermaLink="false">https://security.paloaltonetworks.com/CVE-2026-0307</guid>
+<description>Insufficient details in source; check the original advisory.</description>
+<pubDate>Sat, 17 Oct 2026 00:55:00 +0000</pubDate>
+</item>
+<item>
+<title>U.S. CISA adds Fortinet Multiple Products and BeyondTrust Remote Support flaws to its Kn…</title>
+<link>https://securityaffairs.com/201178/security/u-s-cisa-adds-fortinet-multiple-products-and-beyondtrust-remote-support-flaws-to-its-known-exploited-vulnerabilities-catalog.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/201178/security/u-s-cisa-adds-fortinet-multiple-products-and-beyondtrust-remote-support-flaws-to-its-known-exploited-vulnerabilities-catalog.html</guid>
+<description>U.S. Cybersecurity and Infrastructure Security Agency (CISA) adds Fortinet Multiple Products and BeyondTrust Remote Support flaws to its Known Exploited Vulnerabilities catalog. The U.S. Cybersecurity and Infrastructure Security Agency (CIS…</description>
+<pubDate>Sat, 17 Oct 2026 10:35:48 +0000</pubDate>
+</item>
+<item>
+<title>SideCopy Hackers Target Indian Organizations With ReverseRAT Malware to Steal Data</title>
+<link>https://gbhackers.com/sidecopy-hackers-target-indian-organizations/</link>
+<guid isPermaLink="false">https://gbhackers.com/sidecopy-hackers-target-indian-organizations/</guid>
+<description>Indian authorities have warned that SideCopy hackers are targeting Indian organizations, including academic institutions, with spear-phishing attacks that deploy ReverseRAT on Windows systems. The October 15, 2026, advisory classifies the t…</description>
+<pubDate>Sat, 17 Oct 2026 08:06:13 +0000</pubDate>
+</item>
+<item>
+<title>New GhostBat Android Malware Targets 60 Banking and UPI Apps to Steal PINs</title>
+<link>https://gbhackers.com/ghostbat-android-malware/</link>
+<guid isPermaLink="false">https://gbhackers.com/ghostbat-android-malware/</guid>
+<description>A new GhostBat RAT variant targets 60 Android financial application packages used in India, combining accessibility-based PIN capture with a transparent overlay that intercepts interactions inside legitimate Google Pay and MobiKwik interfac…</description>
+<pubDate>Sat, 17 Oct 2026 07:14:15 +0000</pubDate>
+</item>
+<item>
+<title>Hackers breach Microsoft 365 tenants via ConnectWise supply-chain attack</title>
+<link>https://www.bleepingcomputer.com/news/security/hackers-breach-microsoft-365-tenants-via-connectwise-supply-chain-attack/</link>
+<guid isPermaLink="false">https://www.bleepingcomputer.com/news/security/hackers-breach-microsoft-365-tenants-via-connectwise-supply-chain-attack/</guid>
+<description>ConnectWise has shut down customer access to its Cloud Backup service (formerly SkyKick Cloud Backup) after hackers accessed application identities and compromised Microsoft 365 tenants. [...]</description>
+<pubDate>Sat, 17 Oct 2026 15:18:51 +0000</pubDate>
+</item>
+<item>
+<title>Drupal patches critical RCE flaws, warns exploits may emerge soon</title>
+<link>https://www.bleepingcomputer.com/news/security/drupal-patches-critical-rce-flaws-warns-exploits-may-emerge-soon/</link>
+<guid isPermaLink="false">https://www.bleepingcomputer.com/news/security/drupal-patches-critical-rce-flaws-warns-exploits-may-emerge-soon/</guid>
+<description>Drupal has patched two critical vulnerabilities that could allow attackers to execute code remotely on websites running any supported version of the content management system. [...]</description>
+<pubDate>Sat, 17 Oct 2026 14:32:48 +0000</pubDate>
+</item>
+<item>
+<title>OpenAI models hacked a crypto wallet and breached more websites</title>
+<link>https://arstechnica.com/security/2026/10/openai-models-hacked-a-crypto-wallet-and-breached-more-websites/</link>
+<guid isPermaLink="false">https://arstechnica.com/security/2026/10/openai-models-hacked-a-crypto-wallet-and-breached-more-websites/</guid>
+<description>The actions could have resulted in criminal charges had humans been behind the keyboard.</description>
+<pubDate>Fri, 16 Oct 2026 20:59:01 +0000</pubDate>
+</item>
+<item>
+<title>New ROMULUS Malware Platform Uses Six Servers to Deliver Multiple Malicious Payloads</title>
+<link>https://gbhackers.com/romulus-malware-platform/</link>
+<guid isPermaLink="false">https://gbhackers.com/romulus-malware-platform/</guid>
+<description>ROMULUS, a shared ClickFix delivery platform operating across six identified servers, with confirmed routes distributing a trojanized Stardock package and LegionLoader. The discovery connects infrastructure from a recently documented ChatGP…</description>
+<pubDate>Sat, 17 Oct 2026 06:54:51 +0000</pubDate>
+</item>
+</channel>
+</rss>
