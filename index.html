@@ -1,0 +1,3115 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecPath Radar — 2026-10-23</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="stylesheet" href="assets/css/radar.css" />
+  <link rel="alternate" type="application/rss+xml" title="SecPath Radar RSS" href="feed.xml" />
+  <link rel="alternate" type="application/json" title="SecPath Radar JSON API" href="api/summary.json" />
+  <script src="assets/js/radar.js" defer></script>
+</head>
+<body>
+
+
+
+
+
+
+
+<header class="topbar topbar-redesign">
+  <div class="brand brand-redesign">
+    <img class="brand-logo" src="assets/logo.svg" alt="" width="34" height="34" />
+    <div class="brand-copy"><strong>SecPath Radar</strong><span class="brand-sub">Passive Cyber Threat Monitoring</span></div>
+  </div>
+  <div class="topbar-status">
+    <span class="live-chip" id="today-chip" data-today="2026-10-23"><i class="live-dot"></i><span>Today &middot; 2026-10-23</span></span>
+  </div>
+  <div class="topbar-actions">
+    
+    <a class="ui-chip icon-chip" href="https:&#x2f;&#x2f;github.com&#x2f;MahdiAlemi&#x2f;secpath-radar" rel="noopener noreferrer" target="_blank" aria-label="Open GitHub repository">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.5 21.6c.55.1.75-.24.75-.53v-2.1c-3.05.67-3.7-1.3-3.7-1.3-.5-1.25-1.22-1.58-1.22-1.58-1-.68.08-.67.08-.67 1.1.08 1.68 1.14 1.68 1.14.98 1.67 2.57 1.19 3.2.91.1-.71.38-1.19.69-1.46-2.43-.28-4.99-1.22-4.99-5.43 0-1.2.43-2.18 1.13-2.95-.11-.28-.49-1.4.11-2.91 0 0 .92-.3 3.02 1.13A10.3 10.3 0 0 1 12 6.38c.94 0 1.88.13 2.76.37 2.1-1.43 3.02-1.13 3.02-1.13.6 1.51.22 2.63.11 2.91.7.77 1.13 1.75 1.13 2.95 0 4.22-2.57 5.15-5.02 5.42.4.35.75 1.02.75 2.06v3.01c0 .29.2.64.76.53A11.1 11.1 0 0 0 12 .9Z"/></svg>
+      <span>GitHub</span>
+    </a>
+    
+    <a class="ui-chip icon-chip feed-chip" href="feed.xml" rel="noopener noreferrer" aria-label="Open RSS XML feed">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.1 17.7a2.2 2.2 0 1 1 0 4.4 2.2 2.2 0 0 1 0-4.4Zm-2-7.25c6.4 0 11.6 5.2 11.6 11.6h-3.15a8.45 8.45 0 0 0-8.45-8.45v-3.15Zm0-7.1c10.32 0 18.7 8.38 18.7 18.7h-3.2c0-8.55-6.95-15.5-15.5-15.5v-3.2Z"/></svg>
+      <span>RSS XML</span>
+    </a>
+    <a class="ui-chip icon-chip api-chip" href="api/summary.json" rel="noopener noreferrer" aria-label="Open JSON summary API">
+      <span class="json-glyph">{ }</span>
+      <span>JSON API</span>
+    </a>
+  </div>
+</header>
+
+<main class="shell">
+
+  <section class="radar-overview" aria-label="One-glance radar overview">
+    <div class="overview-card overview-risk risk-high"><span>Today Risk</span><b>100</b><small>High</small></div>
+    <div class="overview-card"><span>CVEs Today</span><b>22</b><small>2 Critical · 0 KEV</small></div>
+    <div class="overview-card"><span>Exploit Watch</span><b>7</b><small>PoC repos · 0 EPSS↑</small></div>
+    <div class="overview-card"><span>News / Writeups</span><b>60</b><small>10 Breaking · 14 Writeups</small></div>
+    <div class="overview-card"><span>Threat Telemetry</span><b>36</b><small>5 C2 · 24 Phishing</small></div>
+    <div class="overview-card"><span>Templates</span><b>0%</b><small>0 CVE covered</small></div>
+  </section>
+
+  <section class="top-layout top-layout-columns top-layout-balanced" aria-label="Balanced dashboard intelligence columns">
+    <div class="top-column top-column-breaking" aria-label="Breaking, coverage, and advisory context">
+    <section id="breaking-news" class="panel panel-breaking panel-breaking-col panel-column-fill">
+      <div class="panel-head"><div><span class="eyebrow">BREAKING</span><h2>Breaking News</h2></div><span class="chip chip-risk">10</span></div>
+      
+      <div class="breaking-scroll">
+        
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;critical-oracle-java-flaw-with-cvss-9-1-allows-unauthenticated-remote-attacks&#x2f;" rel="noopener noreferrer" target="_blank">Critical Oracle Java Flaw With CVSS 9.1 Allows Unauthenticated Remote Attacks</a>
+  </div>
+  <p class="news-excerpt">Oracle issued a security alert for CVE-2026-91403, a critical vulnerability affecting Oracle Java SE and GraalVM. Attackers can exploit this vulnerability remotely without authentication. The advisory, published on October 21, 2026, assigns…</p>
+  <div class="meta">
+    <span class="breaking-source">GBHackers</span>
+    <span class="tag">Vulnerability</span><span class="tag">CVE</span><span class="tag">Exploit</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 09:41 Tehran · 2026-10-23 06:11 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;attackers-exploit-third-velocloud-orchestrator-zero-day-in-four-months&#x2f;" rel="noopener noreferrer" target="_blank">Attackers Exploit Third VeloCloud Orchestrator Zero-Day in Four Months</a>
+  </div>
+  <p class="news-excerpt">The critical-severity SQL injection flaw allows attackers to access privileged internal functionality and gain operator privileges. The post Attackers Exploit Third VeloCloud Orchestrator Zero-Day in Four Months appeared first on SecurityWe…</p>
+  <div class="meta">
+    <span class="breaking-source">SecurityWeek</span>
+    <span class="tag">Zero-day</span><span class="tag">Vulnerability</span><span class="tag">Exploit</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 13:28 Tehran · 2026-10-23 09:58 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;securityaffairs.com&#x2f;201501&#x2f;apt&#x2f;microsoft-links-connectwise-breach-to-china-linked-group-using-ai-pentesting-tool-artex.html" rel="noopener noreferrer" target="_blank">Microsoft Links ConnectWise Breach to China-Linked Group Using AI Pentesting Tool ARTEX</a>
+  </div>
+  <p class="news-excerpt">China-linked Storm-0940 used AI tool ARTEX to target 2,250 Microsoft 365 tenants, exploiting stolen ConnectWise credentials at machine speed. Microsoft published a detailed technical report naming Storm-0940, a China state-aligned group, as…</p>
+  <div class="meta">
+    <span class="breaking-source">Security Affairs</span>
+    <span class="tag">Breach</span><span class="tag">Exploit</span><span class="tag">Apt</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 00:17 Tehran · 2026-10-22 20:47 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;security.paloaltonetworks.com&#x2f;CVE-2026-109618" rel="noopener noreferrer" target="_blank">CVE-2026-109618 Impact of Critical Vulnerabilities in PHP (CVE-2026-109618, CVE-2026-109…</a>
+  </div>
+  <p class="news-excerpt">Insufficient details in source; check the original advisory.</p>
+  <div class="meta">
+    <span class="breaking-source">Palo Alto Security Advisories</span>
+    <span class="tag">Vulnerability</span><span class="tag">CVE</span><span class="tag">Palo alto</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 07:15 Tehran · 2026-10-23 03:45 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;www.wordfence.com&#x2f;blog&#x2f;2026&#x2f;10&#x2f;attacks-on-php2shell-continue-but-no-known-compromises-as-a-result-yet&#x2f;" rel="noopener noreferrer" target="_blank">Attacks on PHP2Shell Continue, But No Known Compromises as a Result Yet</a>
+  </div>
+  <p class="news-excerpt">On October 21st, 2026, the PHP project released emergency updates for two critical vulnerabilities tracked as CVE-2026-109618 and CVE-2026-109619. We warned site owners before the fixes became available and followed up after our team review…</p>
+  <div class="meta">
+    <span class="breaking-source">Wordfence Blog</span>
+    <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 01:54 Tehran · 2026-10-22 22:24 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;critical-hpe-aruba-aos-8-flaw&#x2f;" rel="noopener noreferrer" target="_blank">Critical HPE Aruba AOS-8 Flaw Allows Hackers to Bypass SSH Authentication and Take Over …</a>
+  </div>
+  <p class="news-excerpt">Hewlett Packard Enterprise (HPE) has addressed a critical authentication-bypass vulnerability in the SSH daemon of its AOS-8 wireless operating system. This vulnerability, tracked as CVE-2026-79855, could let a remote, unauthenticated attac…</p>
+  <div class="meta">
+    <span class="breaking-source">GBHackers</span>
+    <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 15:45 Tehran · 2026-10-23 12:15 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;securityaffairs.com&#x2f;201538&#x2f;hacking&#x2f;php2shell-millions-of-attacks-no-confirmed-successful-exploits-yet.html" rel="noopener noreferrer" target="_blank">PHP2Shell: Millions of Attacks, No Confirmed Successful Exploits Yet</a>
+  </div>
+  <p class="news-excerpt">PHP2Shell attacks have surged into the millions, but no successful exploitation is confirmed. Patch it immediately. On October 21, PHP released emergency patches for two critical vulnerabilities tracked as CVE-2026-109618 and CVE-2026-10961…</p>
+  <div class="meta">
+    <span class="breaking-source">Security Affairs</span>
+    <span class="tag">Vulnerability</span><span class="tag">CVE</span><span class="tag">Exploit</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 14:22 Tehran · 2026-10-23 10:52 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;php-rce-vulnerabilities&#x2f;" rel="noopener noreferrer" target="_blank">PoC Exploit Released for Two Critical PHP RCE Vulnerabilities as Hackers Launch Attacks</a>
+  </div>
+  <p class="news-excerpt">Public proof-of-concept exploit code targeting two critical PHP vulnerabilities has surfaced as attackers scan exposed servers and attempt exploitation. Tracked as CVE-2026-109618 and CVE-2026-109619, the vulnerabilities are collectively ca…</p>
+  <div class="meta">
+    <span class="breaking-source">GBHackers</span>
+    <span class="tag">Vulnerability</span><span class="tag">CVE</span><span class="tag">Exploit</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 13:11 Tehran · 2026-10-23 09:41 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-high">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;risky.biz&#x2f;RBNEWS624&#x2f;" rel="noopener noreferrer" target="_blank">Risky Bulletin: Supply chain attack lets ransomware group inside 40 shipping companies</a>
+  </div>
+  <p class="news-excerpt">A ransomware group used a supply chain compromise to hack around 40 shipping companies, the Pentagon assembles a technology sabotage unit, PHP2Shell exploitation gets underway and GoDaddy revokes 400,000 certs.</p>
+  <div class="meta">
+    <span class="breaking-source">Risky Business</span>
+    <span class="tag">Ransomware</span><span class="tag">Exploit</span><span class="tag">Active Exploit</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 07:05 Tehran · 2026-10-23 03:35 UTC</span>
+  </div>
+</article>
+
+<article class="item risk-medium">
+  <div class="item-head">
+    <a href="https:&#x2f;&#x2f;therecord.media&#x2f;toronto-crime-tips-org-freezes-ops-after-breach" rel="noopener noreferrer" target="_blank">Toronto crime tips org freezes operations after details of data breach come to light</a>
+  </div>
+  <p class="news-excerpt">Late Wednesday night the Toronto chapter of Crime Stoppers broke ranks with the national association, revealing a timeline showing what it knew and when along with an announcement that it will pause operations.</p>
+  <div class="meta">
+    <span class="breaking-source">The Record</span>
+    <span class="tag">Breach</span><span class="tag">Apt</span>
+  </div>
+  <div class="meta">
+    <span>2026-10-23 00:22 Tehran · 2026-10-22 20:52 UTC</span>
+  </div>
+</article>
+
+      </div>
+      
+    </section>
+
+      <section id="nuclei-coverage" class="panel panel-intel-card panel-nuclei-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Nuclei Coverage</span><h2>Template Coverage</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">0%</span>
+            <span class="chip chip-muted">Critical gap</span>
+          </div>
+        </div>
+        <div class="intel-metric-row">
+          <div><b>0</b><span>covered CVE</span></div>
+          <div><b>12</b><span>missing CVE</span></div>
+          <div><b>4573</b><span>template paths</span></div>
+        </div>
+        <div class="intel-meter"><b style="width: 0%"></b></div>
+        <p class="lede lede-tight">No template path matched today&#x27;s 12 CVEs; this may indicate coverage gaps or a limited index&#x2f;cache.</p>
+        <div class="intel-kv-row">
+          <span>Missing critical <b>1</b></span>
+          <span>Missing high <b>5</b></span>
+          <span>Top protocol <b>http</b></span>
+        </div>
+        
+        <div class="intel-list-title">Coverage gaps</div>
+        
+        <div class="intel-row risk-high">
+          <div><b>CVE-2026-53921</b><span>CRITICAL</span></div>
+          <small>odhcpd: Stack buffer overflow in DHCPv6 IA reply serialization (2 independent sites)</small>
+        </div>
+        
+        <div class="intel-row risk-high">
+          <div><b>CVE-2026-53918</b><span>HIGH</span></div>
+          <small>odhcpd DHCPv6 IA dangling first pointer use-after-free</small>
+        </div>
+        
+        <div class="intel-row risk-high">
+          <div><b>CVE-2026-10632</b><span>HIGH</span></div>
+          <small>Zimbra Collaboration Suite Classic Web Client Reflected Cross-Site Scripting via Doc…</small>
+        </div>
+        
+        <div class="intel-row risk-high">
+          <div><b>CVE-2026-50053</b><span>HIGH</span></div>
+          <small>Zimbra Collaboration Suite RestFilter Request Attribute Override via Unauthenticated…</small>
+        </div>
+        
+        
+        <div class="meta"><span>ProjectDiscovery nuclei-templates Git tree</span><span>metadata only · no scan</span></div>
+      </section>
+
+      
+      <section id="csaf-pulse" class="panel panel-intel-card panel-csaf-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">CSAF</span><h2>Vendor Advisories</h2></div>
+          <div class="panel-head-actions"><span class="chip">6 advisory</span><span class="chip chip-muted">CVSS 6.8</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>6</b><span>Important+</span></div>
+          <div><b>12</b><span>Remediation</span></div>
+          <div><b>20</b><span>Products</span></div>
+        </div>
+        
+        <div class="advisory-spotlight risk-high">
+          <div><span>Top advisory</span><a href="https:&#x2f;&#x2f;access.redhat.com&#x2f;errata&#x2f;RHSA-2026:88459" rel="noopener noreferrer" target="_blank">RHSA-2026:88459</a></div>
+          <strong>critical</strong>
+        </div>
+        <p class="lede lede-tight">Red Hat Security Advisory: ca-certificates security update</p>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Product</b> Red Hat Enterprise Linux</span><span><b>CVE</b> CVE-2026-114406</span><span><b>Fix</b> Fix metadata present</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Severity</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">critical</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">6</span></div>
+  
+</div>
+</div>
+          <div><span>Products</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Red Hat Enterprise Linux</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">6</span></div>
+  
+  <div class="bar-row"><span class="bar-label">ca-certificates-0:2026.2.92 v9.0.319…</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">6</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Red Hat Enterprise Linux BaseOS AUS …</span><span class="bar-track"><b style="width: 33%"></b></span><span class="bar-count">2</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Red Hat CSAF v2</span><span>official CSAF metadata</span></div>
+      </section>
+      
+
+      
+      <section id="supply-chain-radar" class="panel panel-intel-card panel-supply-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Supply Chain</span><h2>Supply Chain Advisories</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">21 advisory</span>
+            <span class="chip chip-muted">High</span>
+          </div>
+        </div>
+        <div class="intel-metric-row">
+          <div><b>8</b><span>high</span></div>
+          <div><b>0</b><span>fix listed</span></div>
+          <div><b>0</b><span>EPSS hot</span></div>
+        </div>
+        
+        <article class="supply-spotlight risk-medium">
+          <div class="supply-titleline">
+            <a href="https:&#x2f;&#x2f;github.com&#x2f;advisories&#x2f;GHSA-54mm-6729-r5wp" rel="noopener noreferrer" target="_blank">CVE-2026-85990</a>
+            <span class="tag">high</span>
+          </div>
+          <p>Leantime: Any Authenticated User Can Self-Escalate to Admin via Unauthorized JSON-RPC Methods</p>
+          <div class="supply-meta"><span>composer / leantime&#x2f;leantime</span><span>CVSS 8.8</span><span>EPSS 0%</span></div>
+        </article>
+        
+        <div class="intel-kv-row">
+          <span>Top ecosystem <b>composer</b></span>
+          <span>Top package <b>nuxt</b></span>
+          <span>Unfixed <b>21</b></span>
+        </div>
+        <div class="intel-list-title">Ecosystem mix</div>
+        
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">composer</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">go</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">maven</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">npm</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">nuget</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">3</span></div>
+  
+</div>
+
+        <div class="meta"><span>GitHub Global Advisories + OSV references</span><span>GitHub Advisory API + OSV links</span></div>
+      </section>
+      
+
+      <section id="drop-pulse" class="panel panel-intel-card panel-drop-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">DROP</span><h2>Hostile IP Ranges</h2></div>
+          <div class="panel-head-actions"><span class="chip">1687 ranges</span><span class="chip chip-muted">14M IPs</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>191</b><span>Large ranges</span></div>
+          <div><b>5</b><span>RIRs</span></div>
+          <div><b>781</b><span>High spread</span></div>
+        </div>
+        
+        <div class="advisory-spotlight drop-spotlight risk-high">
+          <div><span>Largest netblock</span><b dir="ltr">42[.]128[.]0[.]0&#x2f;12</b></div>
+          <strong>APNIC</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Top RIR</b> ARIN</span><span><b>Largest</b> 42[.]128[.]0[.]0&#x2f;12</span><span><b>Route</b> Large blocked netblocks present</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>RIR mix</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">ARIN</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">682</span></div>
+  
+  <div class="bar-row"><span class="bar-label">RIPENCC</span><span class="bar-track"><b style="width: 74%"></b></span><span class="bar-count">505</span></div>
+  
+  <div class="bar-row"><span class="bar-label">APNIC</span><span class="bar-track"><b style="width: 54%"></b></span><span class="bar-count">369</span></div>
+  
+</div>
+</div>
+          <div><span>Prefix size</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">&#x2f;21–&#x2f;24</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">1316</span></div>
+  
+  <div class="bar-row"><span class="bar-label">&#x2f;17–&#x2f;20</span><span class="bar-track"><b style="width: 19%"></b></span><span class="bar-count">248</span></div>
+  
+  <div class="bar-row"><span class="bar-label">&#x2f;16 or wider</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">123</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Spamhaus DROP v4</span><span>defanged · denylist metadata</span></div>
+      </section>
+      <section id="attack-pressure" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">Attack Pressure</span><h2>Attack Pressure</h2></div><span class="chip">High</span></div>
+        <p class="lede">Multiple sensitive ports repeated in DShield feeds; high internet scan pressure assessed.</p>
+        
+        <div class="row risk-high">
+          <div class="row-head"><b>Port 22 &middot; ssh</b><span>SSH Remote Login Protocol</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-high">
+          <div class="row-head"><b>Port 23 &middot; telnet</b><span>Telnet</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 443 &middot; https</b><span>HTTP protocol over TLS SSL</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 80 &middot; www</b><span>World Wide Web HTTP</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 2222 &middot; ssh</b><span>alternative ssh (Cowrie)</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 8080 &middot; http-alt</b><span>HTTP Alternate (see port 80)</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-medium">
+          <div class="row-head"><b>Port 8000 &middot; irdmi</b><span>iRDMI</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="row risk-watch">
+          <div class="row-head"><b>Port 16767 &middot; unknown</b><span>---</span></div>
+          <p class="note"></p>
+        </div>
+        
+        <div class="meta"><span>SANS ISC &#x2f; DShield</span></div>
+      </section>
+
+      <section class="panel panel-intel-card panel-meta-card panel-data-card">
+        <div class="panel-head"><div><span class="eyebrow">Data</span><h2>Data Feeds</h2></div></div>
+        <p class="note">Automated collection from trusted security feeds, NVD, CISA KEV, EPSS, and public threat telemetry; all read-only with no active scanning.</p>
+        <div class="meta"><span>118 news feeds</span><span>17 telemetry sources</span></div>
+        <div class="meta">
+          <span>Intel cache: stale</span>
+          <span>oldest source: 2856 min</span>
+          <span>3 stale / 54 tracked</span>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="top-column top-column-weekly" aria-label="Weekly and infrastructure telemetry context">
+    <section class="panel panel-top-card panel-weekly-right panel-weekly-top weekly-compact">
+      <div class="panel-head">
+        <div><span class="eyebrow">WEEKLY</span><h2>Week at a Glance</h2></div>
+        <span class="chip">7d</span>
+      </div>
+
+      <div class="weekly-hero">
+        <div class="weekly-total weekly-total-primary"><b>1319</b><span>CVEs</span></div>
+        <div class="weekly-total"><b>335</b><span>News</span></div>
+        <div class="weekly-total"><b>0</b><span>KEV</span></div>
+      </div>
+      <div class="weekly-block weekly-days">
+        <div class="weekly-block-title"><span>Daily Breakdown</span></div>
+        <div class="weekly-day-strip">
+          
+          <div class="weekly-day">
+            <b>10-17</b>
+            <span><strong>45</strong> CVE</span>
+            <span><strong>27</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>10-18</b>
+            <span><strong>530</strong> CVE</span>
+            <span><strong>8</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>10-19</b>
+            <span><strong>366</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>10-20</b>
+            <span><strong>318</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>10-21</b>
+            <span><strong>33</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>10-22</b>
+            <span><strong>5</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+          <div class="weekly-day">
+            <b>10-23</b>
+            <span><strong>22</strong> CVE</span>
+            <span><strong>60</strong> News</span>
+          </div>
+          
+        </div>
+      </div>
+
+      <div class="weekly-two-up">
+        <div class="weekly-block weekly-today">
+          <div class="weekly-block-title"><span>Today</span></div>
+          <div class="weekly-pill-row">
+            <span><b class="c-red">10</b> Breaking</span>
+            <span><b class="c-amber">0</b> EPSS&uarr;</span>
+            <span><b>7</b> PoC</span>
+          </div>
+        </div>
+
+        <div class="weekly-block weekly-snapshot">
+          <div class="weekly-block-title"><span>60-Second</span><b>100/100</b></div>
+          <div class="weekly-risk-list">
+            
+            <div class="weekly-risk-row"><span>Vulnerability Risk</span><b>2 critical &#x2f; 22 CVE &#x2f; 7 PoC</b></div>
+            
+            <div class="weekly-risk-row"><span>IOC &amp; Suspicious Infrastructure</span><b>36 IOC &#x2f; 5 C2 &#x2f; 24 phish &#x2f; 12 ICS</b></div>
+            
+            <div class="weekly-risk-row"><span>Supply Chain &amp; Ransomware</span><b>21 advisory &#x2f; 30 claims</b></div>
+            
+          </div>
+        </div>
+      </div>
+
+      <div class="weekly-block weekly-trend">
+        <div class="weekly-block-title"><span>Trend</span><b>14r</b></div>
+        
+        <div class="weekly-trend-list">
+          
+          <div class="weekly-trend-row delta-down">
+            <span>CVE</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,3.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,24.1 38.5,22.7 46.2,25.0 53.8,24.7 61.5,24.7 69.2,24.7 76.9,24.9 84.6,24.5 92.3,24.3 100.0,23.5" vector-effect="non-scaling-stroke"/></svg>
+            <b>-296</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-down">
+            <span>Critical CVE</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,3.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,23.9 38.5,22.8 46.2,25.0 53.8,22.8 61.5,22.8 69.2,22.8 76.9,23.9 84.6,23.9 92.3,23.9 100.0,22.8" vector-effect="non-scaling-stroke"/></svg>
+            <b>-18</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-down">
+            <span>PoC Public Metadata</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,3.0 7.7,25.0 15.4,13.4 23.1,10.8 30.8,8.2 38.5,6.9 46.2,22.4 53.8,17.2 61.5,14.6 69.2,13.4 76.9,22.4 84.6,21.1 92.3,14.6 100.0,15.9" vector-effect="non-scaling-stroke"/></svg>
+            <b>-10</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-down">
+            <span>GreyNoise Malicious</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,14.0 7.7,14.0 15.4,3.0 23.1,25.0 30.8,21.3 38.5,21.3 46.2,21.3 53.8,21.3 61.5,21.3 69.2,21.3 76.9,21.3 84.6,21.3 92.3,21.3 100.0,21.3" vector-effect="non-scaling-stroke"/></svg>
+            <b>-2</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Risk Score</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,3.0 7.7,25.0 15.4,16.8 23.1,16.2 30.8,3.0 38.5,3.0 46.2,25.0 53.8,5.8 61.5,3.0 69.2,3.0 76.9,17.9 84.6,12.4 92.3,7.9 100.0,3.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Global News</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,3.0 7.7,23.5 15.4,19.6 23.1,9.6 30.8,3.0 38.5,3.0 46.2,21.5 53.8,17.7 61.5,3.0 69.2,3.0 76.9,25.0 84.6,23.1 92.3,17.7 100.0,3.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Writeup</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,10.3 7.7,25.0 15.4,23.8 23.1,14.0 30.8,7.9 38.5,3.0 46.2,22.6 53.8,14.0 61.5,12.8 69.2,7.9 76.9,3.0 84.6,25.0 92.3,20.1 100.0,10.3" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>IOC</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Botnet C2</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Malicious TLS</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Phishing URLs</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>ICS&#x2f;OT Advisory</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Supply Chain</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Ransomware Claim</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+          <div class="weekly-trend-row delta-flat">
+            <span>Failed RSS</span>
+            <svg viewBox="0 0 60 16" preserveAspectRatio="none"><polyline points="0.0,25.0 7.7,25.0 15.4,25.0 23.1,25.0 30.8,25.0 38.5,25.0 46.2,25.0 53.8,25.0 61.5,25.0 69.2,25.0 76.9,25.0 84.6,25.0 92.3,25.0 100.0,25.0" vector-effect="non-scaling-stroke"/></svg>
+            <b>0</b>
+          </div>
+          
+        </div>
+        
+      </div>
+    </section>
+
+      <section id="ioc-radar" class="panel panel-intel-card panel-ioc-radar risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">IOC Radar</span><h2>Active Threats</h2></div>
+          <div class="panel-head-actions"><span class="chip">36 IOC</span><span class="chip chip-muted">High</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>12</b><span>high risk</span></div>
+          <div><b>36</b><span>high confidence</span></div>
+          <div><b>8</b><span>families</span></div>
+        </div>
+        <div class="ioc-insight-strip">
+          <span>Top family <b>github</b></span>
+          <span>Type <b>url</b></span>
+          <span>Source <b>ThreatFox</b></span>
+        </div>
+        <div class="intel-list-title">Highest signal indicators</div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">hxxps:&#x2f;&#x2f;uki[.]abc212[.]org&#x2f;b2&#x2f;</b><span>100/100</span></div>
+          <small>ThreatFox · url · Vidar · conf 100%</small>
+        </div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">hxxp:&#x2f;&#x2f;125[.]40[.]121[.]194:47436&#x2f;i</b><span>96/100</span></div>
+          <small>URLhaus · url · mips · conf 85%</small>
+        </div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">hxxps:&#x2f;&#x2f;62[.]238[.]55[.]102</b><span>94/100</span></div>
+          <small>ThreatFox · url · Vidar · conf 100%</small>
+        </div>
+        
+        <div class="intel-row ioc-signal-row risk-high">
+          <div><b dir="ltr">hxxps:&#x2f;&#x2f;raw[.]githubusercontent[.]com&#x2f;Alidhsv&#x2f;flyguiscript-alispsil&#x2f;refs&#x2f;heads&#x2f;main&#x2f;gether&#x2f;flygu…</b><span>93/100</span></div>
+          <small>URLhaus · url · github · conf 85%</small>
+        </div>
+        
+        <div class="split-bars">
+          <div><span>Malware mix</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">github</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">17</span></div>
+  
+  <div class="bar-row"><span class="bar-label">SalatStealer</span><span class="bar-track"><b style="width: 35%"></b></span><span class="bar-count">6</span></div>
+  
+  <div class="bar-row"><span class="bar-label">AMOS</span><span class="bar-track"><b style="width: 18%"></b></span><span class="bar-count">3</span></div>
+  
+</div>
+</div>
+          <div><span>Indicator types</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">url</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">20</span></div>
+  
+  <div class="bar-row"><span class="bar-label">hash</span><span class="bar-track"><b style="width: 80%"></b></span><span class="bar-count">16</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>abuse.ch URLhaus + ThreatFox</span><span>defanged · passive</span></div>
+      </section>
+
+      
+      <section id="greynoise-context" class="panel panel-intel-card panel-greynoise-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">GreyNoise</span><h2>Scanner Context</h2></div>
+          <div class="panel-head-actions"><span class="chip">8 IP</span><span class="chip chip-muted">High</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>2</b><span>malicious</span></div>
+          <div><b>5</b><span>noise</span></div>
+          <div><b>0</b><span>RIOT</span></div>
+        </div>
+        <div class="grey-verdict">2 malicious IP(s) in selected infrastructure</div>
+        
+        <div class="infra-spotlight grey-spotlight risk-high">
+          <div><span>Top context</span><b dir="ltr">125[.]40[.]121[.]194</b></div>
+          <strong>malicious</strong>
+        </div>
+        
+        <div class="intel-list-title">Selected IP context</div>
+        
+        <div class="intel-row grey-row risk-high">
+          <div><b dir="ltr">125[.]40[.]121[.]194</b><span>92/100</span></div>
+          <small>malicious · noise · URLhaus · 2026-10-23</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-high">
+          <div><b dir="ltr">204[.]76[.]203[.]212</b><span>92/100</span></div>
+          <small>malicious · noise · DShield Top IPs · 2026-10-23</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-medium">
+          <div><b dir="ltr">79[.]124[.]62[.]126</b><span>68/100</span></div>
+          <small>unknown · noise · DShield Top IPs · 2026-10-23</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-medium">
+          <div><b dir="ltr">79[.]124[.]62[.]134</b><span>68/100</span></div>
+          <small>unknown · noise · DShield Top IPs · 2026-10-23</small>
+        </div>
+        
+        <div class="intel-row grey-row risk-medium">
+          <div><b dir="ltr">79[.]124[.]62[.]230</b><span>68/100</span></div>
+          <small>unknown · noise · DShield Top IPs · 2026-10-23</small>
+        </div>
+        
+        <div class="split-bars">
+          <div><span>Classification</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">unknown</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">6</span></div>
+  
+  <div class="bar-row"><span class="bar-label">malicious</span><span class="bar-track"><b style="width: 33%"></b></span><span class="bar-count">2</span></div>
+  
+</div>
+</div>
+          <div><span>Lookup source</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">DShield Top IPs</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">6</span></div>
+  
+  <div class="bar-row"><span class="bar-label">ThreatFox</span><span class="bar-track"><b style="width: 17%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">URLhaus</span><span class="bar-track"><b style="width: 17%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>GreyNoise Community API</span><span>passive lookup</span></div>
+      </section>
+      
+
+      
+      <section id="infrastructure-radar" class="panel panel-intel-card panel-infra-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Infrastructure</span><h2>Exposure Radar</h2></div>
+          <div class="panel-head-actions"><span class="chip">12 host</span><span class="chip chip-muted">High</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact">
+          <div><b>6</b><span>high risk</span></div>
+          <div><b>7</b><span>risky ports</span></div>
+          <div><b>5</b><span>vuln hosts</span></div>
+        </div>
+        
+        <div class="infra-spotlight risk-high">
+          <div><span>Top exposed</span><b dir="ltr">193.46.255.51</b></div>
+          <strong>100/100</strong>
+        </div>
+        
+        <div class="intel-kv-row">
+          <span>Observed ports <b>75</b></span>
+          <span>Exposed hosts <b>8</b></span>
+          <span>Scanner-only <b>3</b></span>
+        </div>
+        <div class="intel-list-title">Highest exposure hosts</div>
+        
+        <div class="intel-row infra-host-row risk-high">
+          <div><b dir="ltr">193.46.255.51</b><span>100/100</span></div>
+          <small>DShield Top IPs · DShield top scanner · 1 ports · 5 vulns</small>
+        </div>
+        
+        <div class="intel-row infra-host-row risk-high">
+          <div><b dir="ltr">204.76.203.212</b><span>100/100</span></div>
+          <small>DShield Top IPs · DShield top scanner · 61 ports</small>
+        </div>
+        
+        <div class="intel-row infra-host-row risk-high">
+          <div><b dir="ltr">23.94.68.19</b><span>100/100</span></div>
+          <small>DShield Top IPs · DShield top scanner · 5 ports · 4 vulns</small>
+        </div>
+        
+        <div class="intel-row infra-host-row risk-high">
+          <div><b dir="ltr">79.124.62.126</b><span>100/100</span></div>
+          <small>DShield Top IPs · DShield top scanner · 1 ports · 5 vulns</small>
+        </div>
+        
+        <div class="split-bars">
+          <div><span>Risky ports</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">22 SSH</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">5</span></div>
+  
+  <div class="bar-row"><span class="bar-label">1433 MSSQL</span><span class="bar-track"><b style="width: 20%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">1521 Oracle</span><span class="bar-track"><b style="width: 20%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Source mix</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">DShield Top IPs</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">10</span></div>
+  
+  <div class="bar-row"><span class="bar-label">ThreatFox</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">URLhaus</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Shodan InternetDB + DShield top IPs</span><span>passive · no scan</span></div>
+      </section>
+      
+
+      
+      <section id="ics-ot-pulse" class="panel panel-intel-card panel-ics-card risk-">
+        <div class="panel-head">
+          <div><span class="eyebrow">ICS / OT</span><h2>Industrial Advisories</h2></div>
+          <div class="panel-head-actions"><span class="chip">12 advisory</span><span class="chip chip-muted">CVSS 3.1</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>0</b><span>High</span></div>
+          <div><b>3</b><span>Remote</span></div>
+          <div><b>438</b><span>CVE</span></div>
+        </div>
+        
+        <div class="advisory-spotlight ics-spotlight risk-watch">
+          <div><span>Top equipment</span><b>Siemens SIMATIC S7-1500 · CPU 1518(F)-4 PN&#x2f;DP MFP</b></div>
+          <strong>3.0</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Vendor</b> Siemens Industrial Edge</span><span><b>Sector</b> Critical Manufacturing</span><span><b>Deployment</b> Worldwide</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Vendors</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Siemens Industrial Edge</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">2</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Kiloview E3 NDI</span><span class="bar-track"><b style="width: 50%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Siemens APOGEE, TALON</span><span class="bar-track"><b style="width: 50%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Sectors</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Critical Manufacturing</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>CISA ICS Advisories</span><span>metadata only · no scan</span></div>
+      </section>
+      
+
+    </div>
+
+    <div class="top-column top-column-vuln" aria-label="Vulnerability exploitation and research stream">
+      
+      <section id="ai-briefing" class="panel panel-top-card panel-ai-briefing">
+        <div class="panel-head">
+          <div><span class="eyebrow">AI BRIEFING</span><h2>Executive Briefing</h2></div>
+          <span class="chip chip-ai"> gemini-2.5-flash </span>
+        </div>
+        <div class="ai-briefing-body">
+          <p class="ai-briefing-headline"> Critical Patches for odhcpd, HPE, Node.js; Data Exposure Warnings Emerge </p>
+          <p class="ai-briefing-narrative"> Multiple critical and high-severity vulnerabilities require immediate attention, notably in odhcpd (OpenWrt DHCPv6 server), HPE ArubaOS, and Node.js. Concurrently, significant data exposure incidents have been reported by Capcom and Quest Diagnostics, raising concerns about potential phishing and account compromise risks. </p>
+          
+          <ul class="ai-briefing-list">
+            <li>Prioritize patching for odhcpd (OpenWrt DHCPv6 server) due to critical stack buffer overflow and other high-severity issues.</li><li>Apply security updates for HPE ArubaOS to address critical authentication bypass and code execution flaws.</li><li>Patch Node.js installations to mitigate high-severity vulnerabilities, including a Brotli remote code execution flaw.</li><li>Monitor for indicators of compromise related to exposed user data, especially for Capcom ID and Quest Diagnostics users.</li>
+          </ul>
+          
+          
+          <div class="ai-briefing-watch">
+            <span class="ai-briefing-watch-label">Watch next 24h</span>
+            <ul class="ai-briefing-list">
+              <li>Continued monitoring for exploitation attempts targeting odhcpd vulnerabilities.</li><li>Further details on the scope and impact of data exposure incidents at Capcom and Quest Diagnostics.</li>
+            </ul>
+          </div>
+          
+        </div>
+        <div class="meta"><span>AI-generated summary of today's items; verify with the primary advisories.</span></div>
+      </section>
+      
+
+      <section id="cves" class="panel panel-top-card panel-cve-top">
+      <div class="panel-head">
+        <div><span class="eyebrow">VULNERABILITY</span><h2>Patch Priority</h2></div>
+        <div class="panel-head-actions">
+          <span class="chip">22 CVEs today</span>
+          <span class="chip chip-muted">2 critical</span>
+        </div>
+      </div>
+      <div class="top-card-body">
+        
+        <div class="sev-strip" role="img" aria-label="Today CVE severity distribution"><i class="sev-seg sev-critical" style="width: 9.1%" title="critical: 2"></i><i class="sev-seg sev-high" style="width: 45.5%" title="high: 10"></i><i class="sev-seg sev-medium" style="width: 40.9%" title="medium: 9"></i><i class="sev-seg sev-low" style="width: 4.5%" title="low: 1"></i></div>
+        
+        
+        <div class="cve-priority-note">All CVEs published on 2026-10-23, sorted by risk. No older-day CVEs are backfilled into this panel.</div>
+        <div class="cve-priority-list" aria-label="All CVEs published today">
+          
+          <div class="cve-priority-row sev-critical">
+            <div class="cve-priority-rank">1</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-111594" rel="noopener noreferrer">CVE-2026-111594</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">InterSystems Corporation InterSystems IRIS for Health Cleartext Transmission of Sens…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-22</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-critical">
+              <strong>9.2</strong>
+              <span>CRITICAL</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">2</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-93489" rel="noopener noreferrer">CVE-2026-93489</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">Improper Authentication in ASUS router modules allows an unauthenticated nearby user…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>8.7</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">3</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-75779" rel="noopener noreferrer">CVE-2026-75779</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">Improper Neutralization of Special Elements used in an OS Command (“OS Command Injec…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>8.6</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">4</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-75775" rel="noopener noreferrer">CVE-2026-75775</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">Improper Neutralization of Special Elements used in an OS Command in certain ASUS ro…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>7.7</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-critical">
+            <div class="cve-priority-rank">5</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-53921" rel="noopener noreferrer">CVE-2026-53921</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">odhcpd: Stack buffer overflow in DHCPv6 IA reply serialization (2 independent sites)</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-critical">
+              <strong>9.8</strong>
+              <span>CRITICAL</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">6</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-53918" rel="noopener noreferrer">CVE-2026-53918</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">odhcpd DHCPv6 IA dangling first pointer use-after-free</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>8.8</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">7</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-10632" rel="noopener noreferrer">CVE-2026-10632</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">Zimbra Collaboration Suite Classic Web Client Reflected Cross-Site Scripting via Doc…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>8.7</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">8</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-50053" rel="noopener noreferrer">CVE-2026-50053</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">Zimbra Collaboration Suite RestFilter Request Attribute Override via Unauthenticated…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>8.7</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">9</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-53920" rel="noopener noreferrer">CVE-2026-53920</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">odhcpd DHCPv6 Short IA_NA&#x2f;IA_PD Body Stack Disclosure</div>
+              <div class="cve-priority-meta">
+                <span>Risk 10/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>8.7</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">10</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-115484" rel="noopener noreferrer">CVE-2026-115484</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">Open-iscsi: open-iscsi: dhcpv4 option parser heap out-of-bounds read in iscsiuio par…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 9/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>7.6</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">11</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-115486" rel="noopener noreferrer">CVE-2026-115486</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">Open-iscsi: open-iscsi: ipv6 neighbor discovery missing option length validation in …</div>
+              <div class="cve-priority-meta">
+                <span>Risk 8/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>7.1</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-high">
+            <div class="cve-priority-rank">12</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-93631" rel="noopener noreferrer">CVE-2026-93631</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">Zimbra Collaboration Suite OAuth Extension Cross-Site Request Forgery Enables Accoun…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 8/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-high">
+              <strong>7.1</strong>
+              <span>HIGH</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">13</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-55606" rel="noopener noreferrer">CVE-2026-55606</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">odhcpd: Stack buffer overread via DUID length endianness mismatch in memcmp()</div>
+              <div class="cve-priority-meta">
+                <span>Risk 8/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>6.5</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">14</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-114583" rel="noopener noreferrer">CVE-2026-114583</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">tar filter allows writing outside destination via empty-named symlink</div>
+              <div class="cve-priority-meta">
+                <span>Risk 7/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-22</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>6.9</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">15</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-115485" rel="noopener noreferrer">CVE-2026-115485</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">Open-iscsi: open-iscsi: dhcpv6 vendor option strlen heap out-of-bounds read and 1-by…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 6/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>6.3</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">16</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-114620" rel="noopener noreferrer">CVE-2026-114620</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">Authlib: Unvalidated request_uri fetch in JWT-secured authorization request (JAR) le…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 5/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-22</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>5.4</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">17</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-115535" rel="noopener noreferrer">CVE-2026-115535</a>
+                
+                
+              </div>
+              <div class="cve-priority-product">gedelumbung HospitalManagement Settings sistem.php simpan cross site scripting</div>
+              <div class="cve-priority-meta">
+                <span>Risk 5/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>4.8</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">18</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-93627" rel="noopener noreferrer">CVE-2026-93627</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">Zimbra Collaboration Suite Calendar Processing Authentication Bypass via Forged iCal…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 5/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>5.3</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">19</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-93628" rel="noopener noreferrer">CVE-2026-93628</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">Zimbra Collaboration Suite Calendar Processing Authentication Bypass via Forged iCal…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 5/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>5.3</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">20</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-93629" rel="noopener noreferrer">CVE-2026-93629</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">Zimbra Collaboration Suite Calendar Processing Authentication Bypass via Forged iCal…</div>
+              <div class="cve-priority-meta">
+                <span>Risk 5/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>5.3</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-medium">
+            <div class="cve-priority-rank">21</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-93630" rel="noopener noreferrer">CVE-2026-93630</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">Zimbra Collaboration Suite Email HTML Sanitizer Bypass via Hostname Canonicalization</div>
+              <div class="cve-priority-meta">
+                <span>Risk 4/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-medium">
+              <strong>4.3</strong>
+              <span>MEDIUM</span>
+            </div>
+          </div>
+          
+          <div class="cve-priority-row sev-low">
+            <div class="cve-priority-rank">22</div>
+            <div class="cve-priority-main">
+              <div class="cve-priority-topline">
+                <a class="cve-id" href="https:&#x2f;&#x2f;www.cve.org&#x2f;CVERecord?id=CVE-2026-115754" rel="noopener noreferrer">CVE-2026-115754</a>
+                <span class="tag tag-new">NEW</span>
+                
+              </div>
+              <div class="cve-priority-product">serialize-javascript 7.0.1 before 7.1.3 XSS via unescaped</div>
+              <div class="cve-priority-meta">
+                <span>Risk 2/10</span>
+                <span>EPSS 0.0</span>
+                
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="cve-priority-score sev-low">
+              <strong>2.3</strong>
+              <span>LOW</span>
+            </div>
+          </div>
+          
+        </div>
+        
+      </div>
+    </section>
+
+      <section id="poc-watch" class="panel panel-top-card panel-poc-top">
+      <div class="panel-head">
+        <div><span class="eyebrow">PUBLIC POC</span><h2>Fresh Public PoCs</h2></div>
+        <div class="panel-head-actions">
+          <span class="chip chip-poc">7 repos today</span>
+          <span class="chip chip-muted">7 CVEs</span>
+        </div>
+      </div>
+      <div class="top-card-body">
+        
+        <p class="poc-top-note">Public repository metadata published on 2026-10-23 only. Links open the repository; no raw code, clone, or run commands are shown.</p>
+        <div class="poc-top-list" aria-label="Fresh public PoC repository links">
+          
+          <article class="poc-card risk-medium">
+            <div class="poc-kind">PoC</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="https:&#x2f;&#x2f;github.com&#x2f;skydwn&#x2f;CVE-2026-109618" rel="noopener noreferrer" target="_blank">CVE-2026-109618</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">Python</span>
+              </div>
+              <div class="poc-author">
+                <span>@skydwn</span>
+                <span>CVE-2026-109618</span>
+              </div>
+              <p class="poc-desc">Use-After-Free on PHP 8.4.26, Apache 2.4.69. RCE pre-auth PoC made for educational purposes</p>
+              <div class="poc-meta">
+                <span>0d old</span>
+                <span>★ 0</span>
+                <span>fork 0</span>
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>68</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          
+          <article class="poc-card risk-medium">
+            <div class="poc-kind">EXP</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="https:&#x2f;&#x2f;github.com&#x2f;LeonKK&#x2f;PHP2Shell-MultiScan" rel="noopener noreferrer" target="_blank">PHP2Shell-MultiScan</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">Python</span>
+              </div>
+              <div class="poc-author">
+                <span>@LeonKK</span>
+                <span>CVE-2026-109619</span>
+              </div>
+              <p class="poc-desc">PHP2Shell vulnerability scanner for CVE-2026-109618 and CVE-2026-109619. Discover vulnerable PHP version indicators, scan WordPress endpoints, assess security risks, detect exposur…</p>
+              <div class="poc-meta">
+                <span>0d old</span>
+                <span>★ 0</span>
+                <span>fork 0</span>
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>68</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          
+          <article class="poc-card risk-medium">
+            <div class="poc-kind">PoC</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="https:&#x2f;&#x2f;github.com&#x2f;ZeroHackOrg&#x2f;node2shell-poc" rel="noopener noreferrer" target="_blank">node2shell-poc</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">JavaScript</span>
+              </div>
+              <div class="poc-author">
+                <span>@ZeroHackOrg</span>
+                <span>CVE-2026-111497</span>
+              </div>
+              <p class="poc-desc">ZeroHack: Node2Shell (CVE-2026-111497) Docker Lab &amp; PoC Framework</p>
+              <div class="poc-meta">
+                <span>0d old</span>
+                <span>★ 2</span>
+                <span>fork 0</span>
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>64</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          
+          <article class="poc-card risk-medium">
+            <div class="poc-kind">PoC</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="https:&#x2f;&#x2f;github.com&#x2f;c0gnit00&#x2f;CVE-2022-24707" rel="noopener noreferrer" target="_blank">CVE-2022-24707</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">Python</span>
+              </div>
+              <div class="poc-author">
+                <span>@c0gnit00</span>
+                <span>CVE-2022-24707</span>
+              </div>
+              <p class="poc-desc">POC for CVE-2022-24707, an authenticated SQL injection in Anuko Time Tracker’s Puncher plugin before 1.20.0.5642, caused by an unsanitized date POST parameter. It allows UNION-base…</p>
+              <div class="poc-meta">
+                <span>0d old</span>
+                <span>★ 0</span>
+                <span>fork 0</span>
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>64</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          
+          <article class="poc-card risk-medium">
+            <div class="poc-kind">PoC</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="https:&#x2f;&#x2f;github.com&#x2f;al4n4n&#x2f;CVE-2026-112403" rel="noopener noreferrer" target="_blank">CVE-2026-112403</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">Python</span>
+              </div>
+              <div class="poc-author">
+                <span>@al4n4n</span>
+                <span>CVE-2026-112403</span>
+              </div>
+              <p class="poc-desc">CVE-2026-112403: Pillow heap buffer overflow in ImagingJpegDecode via lossless JPEG thumbnail. One POST, 100% crash rate.</p>
+              <div class="poc-meta">
+                <span>0d old</span>
+                <span>★ 0</span>
+                <span>fork 0</span>
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>64</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          
+          <article class="poc-card risk-medium">
+            <div class="poc-kind">PoC</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="https:&#x2f;&#x2f;github.com&#x2f;santihabib&#x2f;multer-CVE-2026-113872" rel="noopener noreferrer" target="_blank">multer-CVE-2026-113872</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">JavaScript</span>
+              </div>
+              <div class="poc-author">
+                <span>@santihabib</span>
+                <span>CVE-2026-113872</span>
+              </div>
+              <p class="poc-desc">Write-up and proof of concept for CVE-2026-113872: multer async fileFilter process crash (DoS)</p>
+              <div class="poc-meta">
+                <span>0d old</span>
+                <span>★ 0</span>
+                <span>fork 0</span>
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>64</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          
+          <article class="poc-card risk-medium">
+            <div class="poc-kind">EXP</div>
+            <div class="poc-main">
+              <div class="poc-titleline">
+                <a href="https:&#x2f;&#x2f;github.com&#x2f;SaiTeja-Erukude&#x2f;CVE-2026-57845-hf-datasets-rce" rel="noopener noreferrer" target="_blank">CVE-2026-57845-hf-datasets-rce</a>
+                <span class="tag tag-poc">PoC</span>
+                <span class="tag">Python</span>
+              </div>
+              <div class="poc-author">
+                <span>@SaiTeja-Erukude</span>
+                <span>CVE-2026-57845</span>
+              </div>
+              
+              <div class="poc-meta">
+                <span>0d old</span>
+                <span>★ 0</span>
+                <span>fork 0</span>
+                <span>2026-10-23</span>
+              </div>
+            </div>
+            <div class="poc-score">
+              <strong>68</strong>
+              <span>signal</span>
+            </div>
+          </article>
+          
+        </div>
+        
+      </div>
+    </section>
+
+      <section id="vendor-watchlist" class="panel panel-top-card panel-vendor-top">
+        <div class="panel-head">
+          <div><span class="eyebrow">Vendor Watchlist</span><h2>Vendor Watchlist</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip chip-vendor">6 vendors</span>
+            <span class="chip chip-muted">0 CVE</span>
+          </div>
+        </div>
+        <div class="top-card-body">
+          
+          <div class="vendor-spotlight level-medium">
+            <div>
+              <span class="vendor-spot-kicker">Top exposure</span>
+              <strong>Microsoft</strong>
+            </div>
+            <span>News</span>
+          </div>
+          
+          <div class="vendor-mini-stats" aria-label="Vendor watchlist totals">
+            <div><b>0</b><span>Critical</span></div>
+            <div><b>0</b><span>KEV</span></div>
+            <div><b>1</b><span>PoC</span></div>
+          </div>
+          <div class="vendor-top-list" aria-label="Vendor exposure rows">
+            
+            <article class="vendor-card level-medium">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Microsoft</strong>
+                  <span class="tag tag-vendor">Medium</span>
+                </div>
+                <div class="vendor-footprint">6 news</div>
+                <div class="vendor-bars" aria-label="Signal mix for Microsoft">
+                  
+                  
+                  <span class="vendor-bar-news" style="width: 100%"></span>
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>6</strong>
+                <span>News</span>
+              </div>
+            </article>
+            
+            <article class="vendor-card level-medium">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Apache</strong>
+                  <span class="tag tag-vendor">Medium</span>
+                </div>
+                <div class="vendor-footprint">1 PoC</div>
+                <div class="vendor-bars" aria-label="Signal mix for Apache">
+                  
+                  <span class="vendor-bar-poc" style="width: 100%"></span>
+                  
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>4</strong>
+                <span>PoC</span>
+              </div>
+            </article>
+            
+            <article class="vendor-card level-watch">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Palo Alto</strong>
+                  <span class="tag tag-vendor">Watch</span>
+                </div>
+                <div class="vendor-footprint">2 news</div>
+                <div class="vendor-bars" aria-label="Signal mix for Palo Alto">
+                  
+                  
+                  <span class="vendor-bar-news" style="width: 100%"></span>
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>2</strong>
+                <span>News</span>
+              </div>
+            </article>
+            
+            <article class="vendor-card level-watch">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Oracle</strong>
+                  <span class="tag tag-vendor">Watch</span>
+                </div>
+                <div class="vendor-footprint">1 news</div>
+                <div class="vendor-bars" aria-label="Signal mix for Oracle">
+                  
+                  
+                  <span class="vendor-bar-news" style="width: 100%"></span>
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>1</strong>
+                <span>News</span>
+              </div>
+            </article>
+            
+            <article class="vendor-card level-watch">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Atlassian</strong>
+                  <span class="tag tag-vendor">Watch</span>
+                </div>
+                <div class="vendor-footprint">1 news</div>
+                <div class="vendor-bars" aria-label="Signal mix for Atlassian">
+                  
+                  
+                  <span class="vendor-bar-news" style="width: 100%"></span>
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>1</strong>
+                <span>News</span>
+              </div>
+            </article>
+            
+            <article class="vendor-card level-watch">
+              <div class="vendor-main">
+                <div class="vendor-titleline">
+                  <strong>Linux</strong>
+                  <span class="tag tag-vendor">Watch</span>
+                </div>
+                <div class="vendor-footprint">1 news</div>
+                <div class="vendor-bars" aria-label="Signal mix for Linux">
+                  
+                  
+                  <span class="vendor-bar-news" style="width: 100%"></span>
+                </div>
+              </div>
+              <div class="vendor-score">
+                <strong>1</strong>
+                <span>News</span>
+              </div>
+            </article>
+            
+          </div>
+          <div class="vendor-legend"><span><i class="vendor-bar-cve"></i>CVE</span><span><i class="vendor-bar-poc"></i>PoC</span><span><i class="vendor-bar-news"></i>News</span></div>
+        </div>
+      </section>
+
+      <section id="attack-matrix" class="panel panel-intel-card">
+        <div class="panel-head"><div><span class="eyebrow">ATT&amp;CK Map</span><h2>Attack Patterns</h2></div><span class="chip">8 techniques</span></div>
+        <p class="lede">This run mapped content to 8 MITRE ATT&amp;CK techniques; top pattern: T1190 · Public Service Exploitation.</p>
+        
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">T1190 · Public Service Exploitation</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">13</span></div>
+  
+  <div class="bar-row"><span class="bar-label">T1041 · Data Theft &amp; Exfiltration</span><span class="bar-track"><b style="width: 53%"></b></span><span class="bar-count">7</span></div>
+  
+  <div class="bar-row"><span class="bar-label">T1566 · Phishing</span><span class="bar-track"><b style="width: 23%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">T1195 · Supply Chain</span><span class="bar-track"><b style="width: 23%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">T1486 · Ransomware &amp; Data Encryption</span><span class="bar-track"><b style="width: 15%"></b></span><span class="bar-count">2</span></div>
+  
+  <div class="bar-row"><span class="bar-label">T1078 · Valid Account Abuse</span><span class="bar-track"><b style="width: 15%"></b></span><span class="bar-count">2</span></div>
+  
+  <div class="bar-row"><span class="bar-label">T1059 · Command &amp; Script Execution</span><span class="bar-track"><b style="width: 7%"></b></span><span class="bar-count">1</span></div>
+  
+  <div class="bar-row"><span class="bar-label">T1498 · Denial of Service</span><span class="bar-track"><b style="width: 7%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+
+        <div class="meta"><span>Keyword mapping to MITRE ATT&amp;CK</span></div>
+      </section>
+
+      <section id="writeups-pulse" class="panel panel-intel-card panel-wide panel-research-priority panel-column-fill">
+        <div class="panel-head">
+          <div><span class="eyebrow">WRITEUPS</span><h2>Writeups</h2></div>
+          <div class="panel-head-actions">
+            <span class="chip">14 today</span>
+            <span class="chip chip-muted">3 sources</span>
+          </div>
+        </div>
+        
+        <p class="lede">Writeups from dedicated research feeds. Same-day items are shown first; on quiet days the most recent analyses from the past week are surfaced instead.</p>
+        <div class="grid grid-2 grid-inner writeups-list">
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@0xRaccoon&#x2f;how-i-found-bac-leads-to-de-escalate-the-administrator-privilege-c855a1e61994?source=rss------bug_bounty-5" rel="noopener noreferrer">How I found BAC leads to De-escalate the Administrator privilege</a></h3><span class="tag">Research Note</span></div>
+            <p>SummaryContinue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 16:43</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@0xRaccoon&#x2f;how-i-found-bac-leads-to-de-escalate-the-administrator-privilege-c855a1e61994?source=rss------bug_bounty_writeup-5" rel="noopener noreferrer">How I found BAC leads to De-escalate the Administrator privilege</a></h3><span class="tag">Research Note</span></div>
+            <p>SummaryContinue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty Writeup</span><span>Today 16:43</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@riyalimba&#x2f;i-just-found-out-what-happens-to-the-bugs-i-report-it-changed-how-i-hunt-09a74042ba43?source=rss------bug_bounty-5" rel="noopener noreferrer">I Just Found Out What Happens to the Bugs I Report. It Changed How I Hunt.</a></h3><span class="tag">Research Note</span></div>
+            <p>HackerOne says fix times improved 54%. The backlog still grew 131%. Here’s the math nobody explains to beginners.Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 16:42</span></div>
+          </article>
+          
+          <article class="item risk-medium">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;research.checkpoint.com&#x2f;2026&#x2f;infostealer-riding-the-ai-train&#x2f;" rel="noopener noreferrer">Infostealer riding the AI Train</a></h3><span class="tag">Malware Writeup</span></div>
+            <p>Key Points Introduction Infostealers commonly target browser passwords, session cookies, and cryptocurrency wallets. This malware combines those established capabilities with dedicated collection routines for AI applications and development tools. Its targets …</p>
+            <div class="meta"><span>Check Point Research</span><span>Today 16:30</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;shaifsec.medium.com&#x2f;php2shell-ai-uncovers-critical-rce-vulnerabilities-affecting-70-of-the-internet-aaf4e04d8008?source=rss------bug_bounty-5" rel="noopener noreferrer">PHP2Shell: AI Uncovers Critical RCE Vulnerabilities Affecting 70% of the Internet</a></h3><span class="tag">CVE Analysis</span></div>
+            <p>Two critical vulnerabilities. A CVSS score of 9.2. Potential exposure on a massive scale.Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 16:16</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;shaifsec.medium.com&#x2f;php2shell-ai-uncovers-critical-rce-vulnerabilities-affecting-70-of-the-internet-aaf4e04d8008?source=rss------bug_bounty_writeup-5" rel="noopener noreferrer">PHP2Shell: AI Uncovers Critical RCE Vulnerabilities Affecting 70% of the Internet</a></h3><span class="tag">CVE Analysis</span></div>
+            <p>Two critical vulnerabilities. A CVSS score of 9.2. Potential exposure on a massive scale.Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty Writeup</span><span>Today 16:16</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@saroyan.zorayr&#x2f;when-an-ai-security-finding-is-still-unproven-e7084cbd4708?source=rss------bug_bounty-5" rel="noopener noreferrer">When an AI security finding is still unproven</a></h3><span class="tag">Research Note</span></div>
+            <p>A fuzzer crashes on one build. An API test gets a 200 response with a second account. Both are observations. They may become serious…Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 15:48</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@YusifMammadzada&#x2f;discovering-and-responsibly-disclosing-a-path-traversal-vulnerability-in-a-wordpress-plugin-23def8cd2c67?source=rss------bug_bounty-5" rel="noopener noreferrer">Discovering and Responsibly Disclosing a Path Traversal Vulnerability in a WordPress Plugin</a></h3><span class="tag">CVE Analysis</span></div>
+            <p>Hello everyone!Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 15:10</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;kd-200.medium.com&#x2f;duplicate-duplicate-informative-ecb561f2b1d5?source=rss------bug_bounty-5" rel="noopener noreferrer">Duplicate. Duplicate. Informative.</a></h3><span class="tag">Research Note</span></div>
+            <p>Nobody posts the eleven months before the payout. That is the only period that decides whether you make it.Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 15:01</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;0mar-3lsayed.medium.com&#x2f;when-the-pdf-started-oversharing-from-xxe-to-reading-etc-passwd-d19360a702a8?source=rss------bug_bounty_writeup-5" rel="noopener noreferrer">When the PDF Started Oversharing: From XXE to Reading &#x2f;etc&#x2f;passwd</a></h3><span class="tag">Research Note</span></div>
+            <p>A bug bounty journey that started with an ordinary Export button and ended with a server putting the contents of its own files inside a…Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty Writeup</span><span>Today 14:51</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@costycrabbe&#x2f;bwapp-logout-management-session-invalidation-failure-16e2c42f9b38?source=rss------bug_bounty-5" rel="noopener noreferrer">bWAPP, Logout Management (Session Invalidation Failure)</a></h3><span class="tag">Research Note</span></div>
+            <p>Author: Ratbully Platform: bWAPP (Broken Web Application) Lab&#x2f;Module: Broken Auth, Logout Management Category: Broken Authentication &#x2f;…Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 14:49</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;codetodeploy&#x2f;i-built-a-vulnerable-demo-app-to-understand-how-common-web-bugs-happen-cbf9b0ce0335?source=rss------bug_bounty-5" rel="noopener noreferrer">I Built a Vulnerable Demo App to Understand How Common Web Bugs Happen</a></h3><span class="tag">Research Note</span></div>
+            <p>I used to think web security was mostly about learning the right tools. Building an intentionally vulnerable application taught me…Continue reading on CodeToDeploy »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 10:58</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;medium.com&#x2f;@t4nv1&#x2f;8-400-for-a-message-with-no-return-address-check-postmessage-origin-validation-bypass-to-account-f16ecc793369?source=rss------bug_bounty-5" rel="noopener noreferrer">$8,400 for a Message With No Return Address Check: postMessage Origin Validation Bypass to A…</a></h3><span class="tag">Research Note</span></div>
+            <p>Browsers give web pages a way to talk to each other across different origins when they genuinely need to — an embedded payment widget…Continue reading on Medium »</p>
+            <div class="meta"><span>Medium Bug Bounty</span><span>Today 10:11</span></div>
+          </article>
+          
+          <article class="item risk-watch">
+            <div class="item-head"><h3><a href="https:&#x2f;&#x2f;meetcyber.net&#x2f;rate-limiting-bypass-step-by-step-bug-bounty-guide-958953831352?source=rss------bug_bounty_writeup-5" rel="noopener noreferrer">Rate Limiting Bypass: Step-by-Step Bug Bounty Guide</a></h3><span class="tag">Research Note</span></div>
+            <p>A detailed, practical method to test rate limits properly — and the tricks that actually bypass themContinue reading on MeetCyber »</p>
+            <div class="meta"><span>Medium Bug Bounty Writeup</span><span>Today 01:26</span></div>
+          </article>
+          
+        </div>
+        
+      </section>
+
+    </div>
+
+    <div class="top-column top-column-news" aria-label="Daily news and threat activity stream">
+    <section id="global-news" class="panel panel-top-card panel-news-top panel-column-fill">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow">TODAY</span>
+            <h2>Today&#x27;s News</h2>
+          </div>
+          <div class="panel-head-actions">
+            <span class="chip chip-news">60 items</span>
+            <span class="chip chip-news-date">2026-10-23</span>
+          </div>
+        </div>
+        <div class="top-card-body">
+          
+          
+          <div class="news-top-list" aria-label="Latest security news">
+            
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;critical-oracle-java-flaw-with-cvss-9-1-allows-unauthenticated-remote-attacks&#x2f;" rel="noopener noreferrer" target="_blank">Critical Oracle Java Flaw With CVSS 9.1 Allows Unauthenticated Remote Attacks</a>
+      
+    </div>
+    <p class="news-excerpt">Oracle issued a security alert for CVE-2026-91403, a critical vulnerability affecting Oracle Java SE and GraalVM. Attackers can exploit this vulnerability remotely without authentication. The advisory, published on October 21, 2026, assigns…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 09:41 Tehran · 2026-10-23 06:11 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;attackers-exploit-third-velocloud-orchestrator-zero-day-in-four-months&#x2f;" rel="noopener noreferrer" target="_blank">Attackers Exploit Third VeloCloud Orchestrator Zero-Day in Four Months</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">The critical-severity SQL injection flaw allows attackers to access privileged internal functionality and gain operator privileges. The post Attackers Exploit Third VeloCloud Orchestrator Zero-Day in Four Months appeared first on SecurityWe…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Zero-day</span><span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 13:28 Tehran · 2026-10-23 09:58 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;securityaffairs.com&#x2f;201501&#x2f;apt&#x2f;microsoft-links-connectwise-breach-to-china-linked-group-using-ai-pentesting-tool-artex.html" rel="noopener noreferrer" target="_blank">Microsoft Links ConnectWise Breach to China-Linked Group Using AI Pentesting Tool ARTEX</a>
+      
+    </div>
+    <p class="news-excerpt">China-linked Storm-0940 used AI tool ARTEX to target 2,250 Microsoft 365 tenants, exploiting stolen ConnectWise credentials at machine speed. Microsoft published a detailed technical report naming Storm-0940, a China state-aligned group, as…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Security Affairs</span>
+      <span class="tag">Breach</span><span class="tag">Exploit</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 00:17 Tehran · 2026-10-22 20:47 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;security.paloaltonetworks.com&#x2f;CVE-2026-109618" rel="noopener noreferrer" target="_blank">CVE-2026-109618 Impact of Critical Vulnerabilities in PHP (CVE-2026-109618, CVE-2026-109…</a>
+      
+    </div>
+    <p class="news-excerpt">Insufficient details in source; check the original advisory.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Palo Alto Security Advisories</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 07:15 Tehran · 2026-10-23 03:45 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.wordfence.com&#x2f;blog&#x2f;2026&#x2f;10&#x2f;attacks-on-php2shell-continue-but-no-known-compromises-as-a-result-yet&#x2f;" rel="noopener noreferrer" target="_blank">Attacks on PHP2Shell Continue, But No Known Compromises as a Result Yet</a>
+      
+    </div>
+    <p class="news-excerpt">On October 21st, 2026, the PHP project released emergency updates for two critical vulnerabilities tracked as CVE-2026-109618 and CVE-2026-109619. We warned site owners before the fixes became available and followed up after our team review…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Wordfence Blog</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 01:54 Tehran · 2026-10-22 22:24 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;critical-hpe-aruba-aos-8-flaw&#x2f;" rel="noopener noreferrer" target="_blank">Critical HPE Aruba AOS-8 Flaw Allows Hackers to Bypass SSH Authentication and Take Over …</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Hewlett Packard Enterprise (HPE) has addressed a critical authentication-bypass vulnerability in the SSH daemon of its AOS-8 wireless operating system. This vulnerability, tracked as CVE-2026-79855, could let a remote, unauthenticated attac…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 15:45 Tehran · 2026-10-23 12:15 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;securityaffairs.com&#x2f;201538&#x2f;hacking&#x2f;php2shell-millions-of-attacks-no-confirmed-successful-exploits-yet.html" rel="noopener noreferrer" target="_blank">PHP2Shell: Millions of Attacks, No Confirmed Successful Exploits Yet</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">PHP2Shell attacks have surged into the millions, but no successful exploitation is confirmed. Patch it immediately. On October 21, PHP released emergency patches for two critical vulnerabilities tracked as CVE-2026-109618 and CVE-2026-10961…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Security Affairs</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 14:22 Tehran · 2026-10-23 10:52 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;php-rce-vulnerabilities&#x2f;" rel="noopener noreferrer" target="_blank">PoC Exploit Released for Two Critical PHP RCE Vulnerabilities as Hackers Launch Attacks</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Public proof-of-concept exploit code targeting two critical PHP vulnerabilities has surfaced as attackers scan exposed servers and attempt exploitation. Tracked as CVE-2026-109618 and CVE-2026-109619, the vulnerabilities are collectively ca…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 13:11 Tehran · 2026-10-23 09:41 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;risky.biz&#x2f;RBNEWS624&#x2f;" rel="noopener noreferrer" target="_blank">Risky Bulletin: Supply chain attack lets ransomware group inside 40 shipping companies</a>
+      
+    </div>
+    <p class="news-excerpt">A ransomware group used a supply chain compromise to hack around 40 shipping companies, the Pentagon assembles a technology sabotage unit, PHP2Shell exploitation gets underway and GoDaddy revokes 400,000 certs.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Risky Business</span>
+      <span class="tag">Ransomware</span><span class="tag">Exploit</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 07:05 Tehran · 2026-10-23 03:35 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;therecord.media&#x2f;toronto-crime-tips-org-freezes-ops-after-breach" rel="noopener noreferrer" target="_blank">Toronto crime tips org freezes operations after details of data breach come to light</a>
+      
+    </div>
+    <p class="news-excerpt">Late Wednesday night the Toronto chapter of Crime Stoppers broke ranks with the national association, revealing a timeline showing what it knew and when along with an announcement that it will pause operations.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Record</span>
+      <span class="tag">Breach</span><span class="tag">Apt</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 00:22 Tehran · 2026-10-22 20:52 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.malwarebytes.com&#x2f;blog&#x2f;data-breaches&#x2f;2026&#x2f;10&#x2f;resident-evil-maker-capcom-warns-of-phishing-after-11-7-million-records-exposed" rel="noopener noreferrer" target="_blank">Resident Evil maker Capcom warns of phishing after 11.7 million records exposed</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Exposed email addresses could put CAPCOM ID users at risk of phishing. Passwords were also changed without permission on 196 accounts.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Malwarebytes Labs</span>
+      <span class="tag">Breach</span><span class="tag">Malware</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 16:37 Tehran · 2026-10-23 13:07 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;thehackernews.com&#x2f;2026&#x2f;10&#x2f;urgent-php-warns-of-another-unpatched.html" rel="noopener noreferrer" target="_blank">PHP Warns of Another Unpatched RCE Two Days After Emergency PHP2Shell Patches</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">PHP has warned of another way an attacker could run code on a web server, two days after it shipped emergency fixes for the critical PHP2Shell flaws. The new issue, assigned CVE-2026-115560, affects only web applications configured in an un…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Hacker News</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 14:55 Tehran · 2026-10-23 11:25 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.malwarebytes.com&#x2f;blog&#x2f;data-breaches&#x2f;2026&#x2f;10&#x2f;crime-stoppers-chapter-freezes-tips-after-breach-breaks-anonymity-promise" rel="noopener noreferrer" target="_blank">Crime Stoppers chapter freezes tips after breach breaks anonymity promise</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">A Crime Stoppers chapter has stopped accepting tips after a breach exposed information about anonymous tipsters.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Malwarebytes Labs</span>
+      <span class="tag">Breach</span><span class="tag">Malware</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 13:27 Tehran · 2026-10-23 09:57 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;thehackernews.com&#x2f;2026&#x2f;10&#x2f;critical-flaw-in-pythons-popular-pillow.html" rel="noopener noreferrer" target="_blank">Critical Flaw in Python’s Popular Pillow Image Library Allows Code Execution via a Craft…</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Pillow, the most widely used image library for Python, can be made to run operating system commands on a server by specifying the name of a file it is told to open. The flaw, CVE-2026-112900, is in the way Pillow handles EPS images, which i…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Hacker News</span>
+      <span class="tag">Vulnerability</span><span class="tag">CVE</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 13:06 Tehran · 2026-10-23 09:36 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;thehackernews.com&#x2f;2026&#x2f;10&#x2f;php2shell-exploit-attempts-hit-millions.html" rel="noopener noreferrer" target="_blank">PHP2Shell Exploit Attempts Hit Millions as Attackers Try to Deploy Mirai Malware</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Threat actors have been observed unsuccessfully attempting to exploit the newly disclosed PHP2Shell vulnerabilities to rope infected systems into a Mirai botnet variant called Potassium, as it emerges that weaponizing the flaws may be harde…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Hacker News</span>
+      <span class="tag">Exploit</span><span class="tag">Malware</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 11:10 Tehran · 2026-10-23 07:40 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;pwc-allegedly-hit-by-everest-ransomware&#x2f;" rel="noopener noreferrer" target="_blank">PwC Allegedly Hit by Everest Ransomware Group, 590GB of Data Stolen</a>
+      
+    </div>
+    <p class="news-excerpt">The Everest ransomware group has reportedly stolen around 590GB of data linked to PwC, one of the Big Four professional services firms. The claim concerns internal human resources and learning systems, but it remains unverified, as no indep…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Ransomware</span><span class="tag">Malware&#x2f;Incident</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 08:59 Tehran · 2026-10-23 05:29 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.tenable.com&#x2f;blog&#x2f;php2shell-vulnerability-threat-actor-response" rel="noopener noreferrer" target="_blank">The adversary economy: How threat actors are reacting to PHP2Shell</a>
+      
+    </div>
+    <p class="news-excerpt">Two critical PHP vulnerabilities sent criminal forum operators scrambling to protect their own infrastructure, revealing that threat actors face the same exposure management challenges as the organizations they target.Key takeawaysThe adver…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Tenable Blog</span>
+      <span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 01:34 Tehran · 2026-10-22 22:04 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.darkreading.com&#x2f;cyberattacks-data-breaches&#x2f;microsoft-storm-0940-connectwise-supply-chain-attack" rel="noopener noreferrer" target="_blank">Microsoft Links Storm-0940 to ConnectWise Supply Chain Attack</a>
+      
+    </div>
+    <p class="news-excerpt">The China-linked actor used an AI-enabled penetration-testing tool to automate and accelerate its attack on more than 2,200 tenants.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Dark Reading</span>
+      <span class="tag">Breach</span><span class="tag">Microsoft</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 00:12 Tehran · 2026-10-22 20:42 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;critical-unpatched-linux-kernel-vulnerabilities-accidentally-disclosed-including-two-remote-code-execution-flaws&#x2f;" rel="noopener noreferrer" target="_blank">Critical Unpatched Linux Kernel Vulnerabilities Accidentally Disclosed, Including Two Re…</a>
+      
+    </div>
+    <p class="news-excerpt">In October, several unpatched Linux vulnerabilities were disclosed on public mailing lists, revealing technical details before fixes were widely available. These disclosures included two critical flaws in KSMBD that could let remote attacke…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Vulnerability</span><span class="tag">Linux</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 08:47 Tehran · 2026-10-23 05:17 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;deepseek-ai-exploited&#x2f;" rel="noopener noreferrer" target="_blank">Hacker Turned DeepSeek Into an AI Cybercrime Assistant to Attack Universities and Steal …</a>
+      
+    </div>
+    <p class="news-excerpt">A threat actor using the handle BUGSTER configured DeepSeek V4 as the reasoning engine for an AI-assisted cybercrime operation that targeted organizations in India, including universities. Unit 42, Palo Alto Networks’ threat-intelligence te…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Exploit</span><span class="tag">Palo alto</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 08:46 Tehran · 2026-10-23 05:16 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.darkreading.com&#x2f;cyberattacks-data-breaches&#x2f;state-bank-india-customer-pii-data-leak" rel="noopener noreferrer" target="_blank">State Bank of India Suffers a Customer PII Data Leak</a>
+      
+    </div>
+    <p class="news-excerpt">Relatively small data breaches in India can turn quite serious, thanks to a sophisticated underground market for trading PII.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Dark Reading</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 07:00 Tehran · 2026-10-23 03:30 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.csoonline.com&#x2f;article&#x2f;4239359&#x2f;php2shell-exposes-the-weakness-in-coordinated-vulnerability-disclosure-2.html" rel="noopener noreferrer" target="_blank">PHP2Shell exposes the weakness in coordinated vulnerability disclosure</a>
+      
+    </div>
+    <p class="news-excerpt">Two critical vulnerabilities discovered in the widely-used PHP programming language have shaken up enterprises, and the ramifications will take some time to truly understand. But one of the lesser-known stories centers around disclosure. Ac…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">CSO Online</span>
+      <span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 04:13 Tehran · 2026-10-23 00:43 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;blog.qualys.com&#x2f;product-tech&#x2f;2026&#x2f;10&#x2f;23&#x2f;node-js-patches-brotli-remote-code-execution-flaw-find-vulnerable-runtimes-before-attackers-do" rel="noopener noreferrer" target="_blank">Node.js Patches Brotli Remote Code Execution Flaw: Find Vulnerable Runtimes Before Attac…</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Executive Summary On October 21, 2026, Node.js released fixes for 10 vulnerabilities across its three supported release lines: 22.x, 24.x, and 26.x. Four are rated High. The most severe, CVE-2026-111497, is an out-of-bounds write in the bun…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Qualys Blog</span>
+      <span class="tag">CVE</span><span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 16:28 Tehran · 2026-10-23 12:58 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;mirai-botnet-operators-join-php2shell-attacks-as-aslr-bypass-exploits-emerge&#x2f;" rel="noopener noreferrer" target="_blank">Mirai Botnet Operators Join PHP2Shell Attacks as ASLR Bypass Exploits Emerge</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Researchers tie PHP2Shell attempts to a Mirai botnet and show an ASLR bypass, but no successful compromise has been confirmed yet. The post Mirai Botnet Operators Join PHP2Shell Attacks as ASLR Bypass Exploits Emerge appeared first on Secur…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Exploit</span><span class="tag">Botnet</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 16:15 Tehran · 2026-10-23 12:45 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;stealc-malware-resurfaces&#x2f;" rel="noopener noreferrer" target="_blank">StealC Infostealer Returns as Powerful Remote Access Trojan After Europol Takedown</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">StealC’s seller has resurfaced with Stadia, a modular remote access trojan that expands the disrupted infostealer into a platform for persistent endpoint control. Advertised on October 16, the malware combines credential theft with hidden d…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Malware</span><span class="tag">Stealer</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 16:04 Tehran · 2026-10-23 12:34 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;critical-okta-access-gateway-vulnerability&#x2f;" rel="noopener noreferrer" target="_blank">Critical Okta Access Gateway Vulnerability Enables Remote Command Execution</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">A critical command execution vulnerability has been identified in Okta Access Gateway (OAG), which could allow an authenticated administrator to execute system commands by submitting specially formatted configuration values through the appl…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 15:59 Tehran · 2026-10-23 12:29 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.infosecurity-magazine.com&#x2f;news&#x2f;capcom-confirms-data-breach&#x2f;" rel="noopener noreferrer" target="_blank">Gaming Giant Capcom Confirms Data Breach Exposed Users’ Personal Information</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Japanese video games giant Capcom confirmed unauthorized access to its online account system</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Infosecurity Magazine</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 15:15 Tehran · 2026-10-23 11:45 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;capcom-confirms-data-breach&#x2f;" rel="noopener noreferrer" target="_blank">Capcom Confirms Data Breach Exposing 11.7 Million CAPCOM ID Records</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Capcom has confirmed a data breach that affects 11,774,247 CAPCOM ID records worldwide. An unauthorized third party accessed customer information linked to its online membership service. This incident, disclosed on October 22, 2026, exposed…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 15:13 Tehran · 2026-10-23 11:43 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.infosecurity-magazine.com&#x2f;news&#x2f;tokenspraying-attacks-target&#x2f;" rel="noopener noreferrer" target="_blank">Widespread Token-Spraying Attacks Target Microsoft 365 Accounts For Email Compromise</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Security researchers identified attempts to access corporate networks which have been linked to a major Microsoft 365-targeted BEC campaign using phishing, stolen session tokens and social engineering</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Infosecurity Magazine</span>
+      <span class="tag">Phishing</span><span class="tag">Microsoft</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 14:00 Tehran · 2026-10-23 10:30 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.infosecurity-magazine.com&#x2f;news&#x2f;tech-third-party-breach-victims&#x2f;" rel="noopener noreferrer" target="_blank">Attacks on Tech Firms Behind Most Third-Party Data Breach Victims</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Kroll found that 69% of data breach victims in the past year were affected by a third-party breach, with attacks on tech companies the most common cause</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Infosecurity Magazine</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 13:30 Tehran · 2026-10-23 10:00 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.helpnetsecurity.com&#x2f;2026&#x2f;10&#x2f;23&#x2f;capcom-id-data-breach-11-million-records-exposed&#x2f;" rel="noopener noreferrer" target="_blank">Capcom data breach exposes 11.7 million account records</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Players who signed up for Capcom’s online account service may want to look twice at emails that seem to come from the company. The company has disclosed that a third party gained unauthorized access to customer information linked to CAPCOM …</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Help Net Security</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 12:37 Tehran · 2026-10-23 09:07 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;thehackernews.com&#x2f;2026&#x2f;10&#x2f;researchers-demonstrate-node2shell-rce.html" rel="noopener noreferrer" target="_blank">Researchers Demonstrate Node2Shell RCE Exploit on Node.js Build Using Crafted Brotli Dat…</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Malicious Brotli data can make an application on an official build of Node.js run attacker-supplied code, security researchers at Imperva have demonstrated. Their &quot;Node2Shell&quot; proof of concept ran code on the official Node.js 24.22.0 image …</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Hacker News</span>
+      <span class="tag">Exploit</span><span class="tag">Linux</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 12:10 Tehran · 2026-10-23 08:40 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;11-million-impacted-by-capcom-data-breach&#x2f;" rel="noopener noreferrer" target="_blank">11 Million Impacted by Capcom Data Breach</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">The hackers stole 11 million email addresses from CAPCOM ID and changed the login passwords for 196 accounts. The post 11 Million Impacted by Capcom Data Breach appeared first on SecurityWeek.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 12:04 Tehran · 2026-10-23 08:34 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;atlassian-patches-75-third-party-flaws-in-data-center-and-server-products&#x2f;" rel="noopener noreferrer" target="_blank">Atlassian Patches 75 Flaws in Data Center and Server Products</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Atlassian’s October bulletin lists 176 vulnerability entries, including 14 critical-severity issues, all in third-party components. The post Atlassian Patches 75 Flaws in Data Center and Server Products appeared first on SecurityWeek.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 11:24 Tehran · 2026-10-23 07:54 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.bleepingcomputer.com&#x2f;news&#x2f;security&#x2f;railway-warns-devs-to-rotate-secrets-after-potential-breach&#x2f;" rel="noopener noreferrer" target="_blank">Railway warns devs to rotate secrets after potential breach</a>
+      
+    </div>
+    <p class="news-excerpt">Cloud platform Railway published an urgent warning to users after detecting suspicious activity on its systems that store customer environment variables earlier this week. [...]</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">BleepingComputer</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 00:55 Tehran · 2026-10-22 21:25 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.theregister.com&#x2f;security&#x2f;2026&#x2f;10&#x2f;22&#x2f;php2shell-exploit-bypasses-protections-designed-to-stop-remote-code-execution&#x2f;5304883" rel="noopener noreferrer" target="_blank">PHP2Shell exploit bypasses protections designed to stop remote code execution</a>
+      
+    </div>
+    <p class="news-excerpt">“Adversaries are clearly spending time (and tokens) on this bug,” researcher says.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Register Security</span>
+      <span class="tag">Exploit</span><span class="tag">Active Exploit</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 00:07 Tehran · 2026-10-22 20:37 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.darkreading.com&#x2f;insider-threats&#x2f;texas-laptop-farms-north-korean-it-workers" rel="noopener noreferrer" target="_blank">What We Missed: Feds Lasso Texas Laptop Farms</a>
+      
+    </div>
+    <p class="news-excerpt">In this video, Dark Reading editors discuss some of the news they didn&#x27;t get a chance to cover, from busting up North Korea&#x27;s stateside infrastructure in &quot;Operation Lonestar Justice&quot; to Staples&#x27; gift card bonanza.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Dark Reading</span>
+      <span class="tag">Apt</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 00:03 Tehran · 2026-10-22 20:33 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.wiz.io&#x2f;blog&#x2f;aspm-ai-era-pt-2-prioritize-appsec-risk" rel="noopener noreferrer" target="_blank">ASPM in the AI Era Part 2: Prioritize Exploitable Risks with Code-to-Cloud Context</a>
+      
+    </div>
+    <p class="news-excerpt">Reduce triage times and focus on the risks that matter most by combining context across code, infrastructure, and runtime</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Wiz Blog</span>
+      <span class="tag">Exploit</span><span class="tag">Active Exploit</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 02:21 Tehran · 2026-10-22 22:51 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;kb.cert.org&#x2f;vuls&#x2f;id&#x2f;763488" rel="noopener noreferrer" target="_blank">VU#763488: Memory corruption vulnerabilities in PHP</a>
+      
+    </div>
+    <p class="news-excerpt">Overview Two memory-related vulnerabilities have been identified in PHP versions prior to 8.2.35, 8.3.36, 8.4.27, and 8.5.12. An unauthenticated remote attacker with network access to PHP web services can exploit these vulnerabilities via s…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">CERT&#x2f;CC Vulnerability Notes</span>
+      <span class="tag">Exploit</span><span class="tag">Active Exploit</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 01:53 Tehran · 2026-10-22 22:23 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;irans-prince-of-persia-apt-hosts-cc-in-us-for-first-time-since-2016&#x2f;" rel="noopener noreferrer" target="_blank">Iran’s Prince of Persia APT Hosts C&amp;C in US for First Time Since 2016</a>
+      
+    </div>
+    <p class="news-excerpt">After a three-month lull, Prince of Persia hid a Tornado C&amp;C server on US shared hosting, its first US-based server since 2016. The post Iran’s Prince of Persia APT Hosts C&amp;C in US for First Time Since 2016 appeared first on SecurityWeek.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Apt</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 10:09 Tehran · 2026-10-23 06:39 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;risky.biz&#x2f;RBFEATURES42&#x2f;" rel="noopener noreferrer" target="_blank">What I learned from cheating clankers</a>
+      
+    </div>
+    <p class="news-excerpt">In this solo Risky Business Features episode, James Wilson looks at the string of recent AI benchmark cheating escapades and how they’ve reshaped his thinking about LLMs and vulnerability research. He explores the current benchmarks and exa…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Risky Business</span>
+      <span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 08:58 Tehran · 2026-10-23 05:28 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;isc.sans.edu&#x2f;diary&#x2f;rss&#x2f;33450" rel="noopener noreferrer" target="_blank">PHP Vulnerability Wrap-Up, (Fri, Oct 23rd)</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">This morning, we returned to Infocon Green. As usual, we are raising the Infocon to alert you to emerging situations requiring immediate attention. PHP fit that description. By now, you either know about it, or you probably never will, so i…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SANS ISC</span>
+      <span class="tag">Vulnerability</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 16:32 Tehran · 2026-10-23 13:02 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;therecord.media&#x2f;quest-diagnostics-network-intrusion" rel="noopener noreferrer" target="_blank">Quest Diagnostics warns of potential data theft after attack on lab service system</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Nationwide lab test company Quest Diagnostics said one of its key systems may have experienced a breach of patient data.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Record</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 16:22 Tehran · 2026-10-23 12:52 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.bitdefender.com&#x2f;en-us&#x2f;blog&#x2f;hotforsecurity&#x2f;hacker-leaks-281-gb-data-germany-afd" rel="noopener noreferrer" target="_blank">Hacker leaks 281 GB of data from Germany’s far-right AfD party</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">The AfD has confirmed that hackers breached its hosting provider. A leak site now claims to offer 421,179 of the party’s internal emails, and shows AI-written summaries rather than the emails themselves. Read more in my article on the Hot f…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Graham Cluley</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 15:59 Tehran · 2026-10-23 12:29 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.helpnetsecurity.com&#x2f;2026&#x2f;10&#x2f;23&#x2f;microsoft-365-accounts-stolen-sessions&#x2f;" rel="noopener noreferrer" target="_blank">Microsoft 365 accounts compromised at 79 organizations, no passwords needed</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">An attacker who spent ten weeks replaying stolen Microsoft 365 sign-in sessions broke into email accounts at 79 organizations and used hidden inbox rules to keep victims from seeing parts of their own mail, according to Huntress. The resear…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Help Net Security</span>
+      <span class="tag">Microsoft</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 15:15 Tehran · 2026-10-23 11:45 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.darkreading.com&#x2f;cybersecurity-operations&#x2f;ai-agents-insider-threats-inside-microsoft-unified-security-stack" rel="noopener noreferrer" target="_blank">AI Agents as Insider Threats: Inside Microsoft&#x27;s Bet on a Unified Security Stack</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Microsoft&#x27;s Project Perception adds Guardian Agents to monitor and contain anomalous AI agents, but experts warn that policing unpredictable agents with other agents may multiply — not contain — the risk.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Dark Reading</span>
+      <span class="tag">Microsoft</span><span class="tag">AI Security</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 15:08 Tehran · 2026-10-23 11:38 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.csoonline.com&#x2f;article&#x2f;4239166&#x2f;the-mythos-moment-has-already-passed-now-comes-the-hard-part-for-cybersecurity.html" rel="noopener noreferrer" target="_blank">The ‘Mythos moment’ has already passed. Now comes the hard part for cybersecurity</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">When Anthropic introduced Claude Mythos Preview, the cybersecurity debate quickly turned to what AI could do: uncover decades-old vulnerabilities, develop working exploits and accelerate tasks that once required specialist expertise. Anthro…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">CSO Online</span>
+      <span class="tag">Exploit</span><span class="tag">Active Exploit</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 12:30 Tehran · 2026-10-23 09:00 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;apt41-linked-bootkit-attack&#x2f;" rel="noopener noreferrer" target="_blank">Suspected Chinese APT41 Hackers Use BlackX Bootkit to Bypass Windows Secure Boot</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Suspected Chinese APT41 hackers have deployed BlackX, a UEFI bootkit, against diplomatic organizations in Tajikistan, Uzbekistan, and Turkmenistan. Researchers attribute the operation to APT41 with medium confidence. BlackX closely resemble…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      <span class="tag">Apt</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 12:06 Tehran · 2026-10-23 08:36 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;thehackernews.com&#x2f;2026&#x2f;10&#x2f;critical-x402-sdk-flaw-could-let.html" rel="noopener noreferrer" target="_blank">Critical x402 SDK Flaw Could Let Malicious APIs Drain AI Agents’ Token Balances</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">AI agents paying for API calls with the x402 SDKs could sign a payment for their full balance of a supported token if a malicious API asked for it, security firm V12 said on October 22. The cause was the SDKs&#x27; default client, which set no s…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">The Hacker News</span>
+      <span class="tag">Vulnerability</span><span class="tag">AI Security</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 12:05 Tehran · 2026-10-23 08:35 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;quest-diagnostics-reports-cyber-breach-affecting-certain-patient-records&#x2f;" rel="noopener noreferrer" target="_blank">Quest Diagnostics Reports Cyber Breach Affecting ‘Certain Patient Records’</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">In a regulatory filing, Quest Diagnostics reported unauthorized access to its Quanum Lab Services Manager, a platform where certain clients can place test orders. The post Quest Diagnostics Reports Cyber Breach Affecting ‘Certain Patient Re…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Breach</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 11:55 Tehran · 2026-10-23 08:25 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.helpnetsecurity.com&#x2f;2026&#x2f;10&#x2f;23&#x2f;llmjacking-agent-hijacks-exposed-ai-models&#x2f;" rel="noopener noreferrer" target="_blank">Hackers hijack exposed AI models to launch cyberattacks at victims’ expense</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">An attack tool built around AI goes looking for AI models that anyone on the internet can reach, then uses them to plan break-ins while the model’s owner pays for the computing power. Symantec captured the agent’s instruction set this summe…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Help Net Security</span>
+      <span class="tag">Apt</span><span class="tag">AI Security</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 11:51 Tehran · 2026-10-23 08:21 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;litellm-compromised-in-fresh-supply-chain-attack&#x2f;" rel="noopener noreferrer" target="_blank">LiteLLM Compromised in Fresh Supply Chain Attack</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">Hackers used compromised GitHub CLI OAuth tokens to push and approve malicious packages on PyPI and Docker. The post LiteLLM Compromised in Fresh Supply Chain Attack appeared first on SecurityWeek.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Docker</span><span class="tag">AI Security</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 11:40 Tehran · 2026-10-23 08:10 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.securityweek.com&#x2f;china-apt-uses-ai-pentest-tool-artex-in-connectwise-attacks&#x2f;" rel="noopener noreferrer" target="_blank">China APT Uses AI Pentest Tool Artex in ConnectWise Attacks</a>
+      <span class="tag tag-new">New</span>
+    </div>
+    <p class="news-excerpt">The state-sponsored hackers targeted hundreds of organizations and gained privileged access to some environments. The post China APT Uses AI Pentest Tool Artex in ConnectWise Attacks appeared first on SecurityWeek.</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">SecurityWeek</span>
+      <span class="tag">Apt</span><span class="tag">AI Security</span>
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 14:01 Tehran · 2026-10-23 10:31 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.synack.com&#x2f;blog&#x2f;continuous-penetration-testing-services-pricing&#x2f;" rel="noopener noreferrer" target="_blank">Continuous Penetration Testing Services: What’s Included and How Pricing Works</a>
+      
+    </div>
+    <p class="news-excerpt">Continuous penetration testing is usually priced by subscription or credit model rather than per engagement. Cost depends on attack surface size, testing depth, and retest policy, not a simple asset count. Published price ranges vary widely…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Synack Blog</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 01:25 Tehran · 2026-10-22 21:55 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;gbhackers.com&#x2f;north-korea-hit-by-multiple-waves-of-ddos-attacks&#x2f;" rel="noopener noreferrer" target="_blank">North Korea Hit by Multiple Waves of DDoS Attacks, Knocking Over 40 Websites Offline</a>
+      
+    </div>
+    <p class="news-excerpt">Multiple waves of DDoS attacks disrupted North Korea’s internet infrastructure this week, intermittently knocking over 40 official websites offline for about 32 hours. Network monitoring company Kentik linked the outages to synchronized sur…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">GBHackers</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 10:43 Tehran · 2026-10-23 07:13 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;securityaffairs.com&#x2f;201500&#x2f;cyber-crime&#x2f;interpol-operation-serengeti-iii-nets-1462-arrests-and-recovers-105-million-in-cybercrime-crackdown.html" rel="noopener noreferrer" target="_blank">INTERPOL Operation Serengeti III Nets 1,462 Arrests and Recovers $105 Million in Cybercr…</a>
+      
+    </div>
+    <p class="news-excerpt">INTERPOL’s Operation Serengeti III led to 1,462 arrests, disrupted 10,909 malicious networks and recovered $105 million across 21 countries. INTERPOL announced the results of Operation Serengeti III, a multinational cybercrime crackdown tha…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Security Affairs</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 09:38 Tehran · 2026-10-23 06:08 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.helpnetsecurity.com&#x2f;2026&#x2f;10&#x2f;23&#x2f;google-cloud-openai-models-private-preview&#x2f;" rel="noopener noreferrer" target="_blank">Google opens its cloud to rival OpenAI, promises business data won’t train models</a>
+      
+    </div>
+    <p class="news-excerpt">Google Cloud is adding OpenAI models to its platform, initially through a private preview for selected business customers. The launch includes GPT-6 Astra, GPT-6.1 Sol and GPT-6 Luna. Google positions them as options for demanding work, low…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Help Net Security</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 09:30 Tehran · 2026-10-23 06:00 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.helpnetsecurity.com&#x2f;2026&#x2f;10&#x2f;23&#x2f;nick-donarski-rotorlab-drone-program-compliance&#x2f;" rel="noopener noreferrer" target="_blank">Drone program compliance: What a CTO says most agencies get wrong</a>
+      
+    </div>
+    <p class="news-excerpt">In this interview with Help Net Security, Nick Donarski, CTO at RotorLab, explains what councils, records clerks, insurers, and auditors expect from a public safety drone program, and where most programs fall short. He covers chain of custo…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Help Net Security</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 09:00 Tehran · 2026-10-23 05:30 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.helpnetsecurity.com&#x2f;2026&#x2f;10&#x2f;23&#x2f;barracuda-cybersecurity-career-development-report&#x2f;" rel="noopener noreferrer" target="_blank">AI is taking cybersecurity jobs at junior and experienced levels alike</a>
+      
+    </div>
+    <p class="news-excerpt">Organizations are cutting cybersecurity roles as they adopt AI, even while reporting shortages of the expertise needed to manage threats, according to Barracuda’s Cybersecurity Skills Gap Report. 56% have experienced professional workforce …</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Help Net Security</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 08:00 Tehran · 2026-10-23 04:30 UTC</span>
+    </div>
+  </div>
+</article>
+
+<article class="news-top-card">
+  <div class="news-top-main">
+    <div class="news-top-titleline">
+      <a href="https:&#x2f;&#x2f;www.helpnetsecurity.com&#x2f;2026&#x2f;10&#x2f;23&#x2f;new-infosec-products-of-the-week-october-23-2026&#x2f;" rel="noopener noreferrer" target="_blank">New infosec products of the week: October 23, 2026</a>
+      
+    </div>
+    <p class="news-excerpt">Here’s a look at the most interesting products from the past week, featuring releases from AppGate, IDENTOS, Sweet Security, and ThreatModeler. Sweet Security adds one-click protection for vulnerable cloud workloads Sweet Security has annou…</p>
+    <div class="meta news-top-source-line">
+      <span class="news-source">Help Net Security</span>
+      
+    </div>
+    <div class="meta news-top-time-line">
+      <span>2026-10-23 07:30 Tehran · 2026-10-23 04:00 UTC</span>
+    </div>
+  </div>
+</article>
+
+          </div>
+          
+        </div>
+      </section>
+
+      <section id="botnet-c2-pulse" class="panel panel-intel-card panel-botnet-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Botnet C2</span><h2>C2 Infrastructure</h2></div>
+          <div class="panel-head-actions"><span class="chip">5 C2</span><span class="chip chip-muted">16 TLS</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact threat-metric-row">
+          <div><b>19</b><span>High signal</span></div>
+          <div><b>1</b><span>Online C2</span></div>
+          <div><b>15</b><span>JA3</span></div>
+        </div>
+        
+        <div class="threat-spotlight risk-high">
+          <div><span>Top C2</span><b dir="ltr">50[.]16[.]16[.]211:443</b></div>
+          <strong>QakBot</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Family</b> QakBot</span><span><b>Port</b> 443 HTTPS</span><span><b>TLS</b> TrickBot</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Families</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">QakBot</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">4</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Emotet</span><span class="bar-track"><b style="width: 25%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+          <div><span>Ports</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">443 HTTPS</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">4</span></div>
+  
+  <div class="bar-row"><span class="bar-label">8080 HTTP-alt</span><span class="bar-track"><b style="width: 25%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Feodo Tracker + SSLBL</span><span>passive · defanged</span></div>
+      </section>
+
+      <section id="phishing-pulse" class="panel panel-intel-card panel-phishing-card risk-medium">
+        <div class="panel-head">
+          <div><span class="eyebrow">Phishing</span><h2>Credential & Brand Lures</h2></div>
+          <div class="panel-head-actions"><span class="chip">24 URL</span><span class="chip chip-muted">0 high</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact threat-metric-row">
+          <div><b>0</b><span>Credential</span></div>
+          <div><b>0</b><span>Deep path</span></div>
+          <div><b>13</b><span>HTTP</span></div>
+        </div>
+        
+        <div class="threat-spotlight risk-medium">
+          <div><span>Top lure</span><b dir="ltr">653-f66w-ecv-90xi-rp3ec-ev79[.]pages[.]dev</b></div>
+          <strong>Unknown target</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Target</b> Unattributed targets</span><span><b>TLD</b> .dev</span><span><b>Defanged</b> yes</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Targets</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Unknown target</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">24</span></div>
+  
+</div>
+</div>
+          <div><span>Risk</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">medium</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">13</span></div>
+  
+  <div class="bar-row"><span class="bar-label">watch</span><span class="bar-track"><b style="width: 85%"></b></span><span class="bar-count">11</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>OpenPhish Community Feed</span><span>defanged URLs</span></div>
+      </section>
+
+      <section id="malware-pulse" class="panel panel-intel-card panel-malware-card risk-medium">
+        <div class="panel-head">
+          <div><span class="eyebrow">Malware</span><h2>Malware Samples</h2></div>
+          <div class="panel-head-actions"><span class="chip">14 samples</span><span class="chip chip-muted">hash-only</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact threat-metric-row">
+          <div><b>0</b><span>Named family</span></div>
+          <div><b>11</b><span>Executable</span></div>
+          <div><b>0</b><span>High signal</span></div>
+        </div>
+        
+        <div class="threat-spotlight risk-medium">
+          <div><span>Top sample</span><b dir="ltr">d1047f11c8…0e1c53fca8</b></div>
+          <strong>AgentTesla</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Family</b> No named family</span><span><b>Type</b> exe</span><span><b>Display</b> metadata only</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Families</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">unclassified</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">7</span></div>
+  
+  <div class="bar-row"><span class="bar-label">WARDENStealer</span><span class="bar-track"><b style="width: 43%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">CoinMiner</span><span class="bar-track"><b style="width: 29%"></b></span><span class="bar-count">2</span></div>
+  
+</div>
+</div>
+          <div><span>File types</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">exe</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">10</span></div>
+  
+  <div class="bar-row"><span class="bar-label">hta</span><span class="bar-track"><b style="width: 20%"></b></span><span class="bar-count">2</span></div>
+  
+  <div class="bar-row"><span class="bar-label">macho</span><span class="bar-track"><b style="width: 12%"></b></span><span class="bar-count">1</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>MalwareBazaar (abuse.ch)</span><span>hash-only</span></div>
+      </section>
+
+      <section id="ransomware-pulse" class="panel panel-intel-card panel-ransomware-card risk-high">
+        <div class="panel-head">
+          <div><span class="eyebrow">Ransomware</span><h2>Victim Claims</h2></div>
+          <div class="panel-head-actions"><span class="chip">30 in 7d</span><span class="chip chip-muted">10 groups</span></div>
+        </div>
+        <div class="intel-metric-row intel-metric-row-compact advisory-metric-row">
+          <div><b>30</b><span>24h claims</span></div>
+          <div><b>7</b><span>Critical sector</span></div>
+          <div><b>11</b><span>Countries</span></div>
+        </div>
+        
+        <div class="advisory-spotlight ransomware-spotlight risk-high">
+          <div><span>Newest claim</span><b>Horn of Africa Regional Environment Centre and Network</b></div>
+          <strong>N0n</strong>
+        </div>
+        
+        <div class="intel-kv-row threat-kv-row"><span><b>Group</b> N0n</span><span><b>Country</b> US</span><span><b>Sector</b> Not Found</span></div>
+        <div class="split-bars threat-bars">
+          <div><span>Groups</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">N0n</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">10</span></div>
+  
+  <div class="bar-row"><span class="bar-label">SilentRansomGroup</span><span class="bar-track"><b style="width: 40%"></b></span><span class="bar-count">4</span></div>
+  
+  <div class="bar-row"><span class="bar-label">qilin</span><span class="bar-track"><b style="width: 40%"></b></span><span class="bar-count">4</span></div>
+  
+</div>
+</div>
+          <div><span>Sectors</span>
+<div class="bars">
+  
+  <div class="bar-row"><span class="bar-label">Not Found</span><span class="bar-track"><b style="width: 100%"></b></span><span class="bar-count">13</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Professional Services</span><span class="bar-track"><b style="width: 23%"></b></span><span class="bar-count">3</span></div>
+  
+  <div class="bar-row"><span class="bar-label">Retail &amp; E-Commerce</span><span class="bar-track"><b style="width: 23%"></b></span><span class="bar-count">3</span></div>
+  
+</div>
+</div>
+        </div>
+        <div class="meta"><span>Ransomware.live public API</span><span>public claims · passive</span></div>
+      </section>
+
+      <section class="panel panel-intel-card panel-meta-card panel-project-card">
+        <div class="panel-head"><div><span class="eyebrow">Project</span><h2>About the Project</h2></div></div>
+        <p class="note">SecPath Radar is a static, read-only dashboard for daily monitoring of the cyber threat landscape; no visitor data is collected.</p>
+        <div class="meta"><span>Design &amp; Development: Mahdi Alemi</span><span>v1.1.0</span></div>
+      </section>
+
+    </div>
+  </section>
+
+  <footer class="footer footer-redesign">
+    <div class="footer-brand"><strong>SecPath Radar</strong><span>Static read-only cyber intelligence dashboard</span></div>
+    <div class="footer-version">v2.0.0</div>
+    <div class="footer-credit">Design &amp; Development: Mahdi Alemi</div>
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>SecPath Radar</title>
+<link>https://radar.secpath.space/</link>
+<description>Static monitoring of cyber threats, CVEs, and security news</description>
+<language>en</language>
+<lastBuildDate>Fri, 23 Oct 2026 13:32:51 +0000</lastBuildDate>
+<item>
+<title>CVE-2026-53920 — odhcpd DHCPv6 Short IA_NA/IA_PD Body Stack Disclosure</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-53920</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-53920</guid>
+<description>odhcpd is the DHCPv6, DHCPv4, and router-advertisement server used by OpenWrt. From version 17.01.0 to before version 25.12.3, odhcpd&apos;s DHCPv6 IA parser accepts an IA_NA or IA_PD option whose body is shorter than struct dhcpv6_ia_hdr, casts the option header t…</description>
+</item>
+<item>
+<title>CVE-2026-111594: InterSystems Corporation InterSystems IRIS for Health Cleartext Transmission of Sens…</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-111594</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-111594</guid>
+<description>InterSystems IRIS for Health has TLS/SSL encryption turned off by default, which may enable an attacker to view transmitted data and use that data to log into the device.</description>
+<pubDate>Thu, 22 Oct 2026 21:39:47 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-93489: Improper Authentication in ASUS router modules allows an unauthenticated nearby user…</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-93489</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-93489</guid>
+<description>Improper Authentication in ASUS router modules allows an unauthenticated nearby user to send an HTTP request and forge an access ticket, subsequently enabling the user to perform administrator operations. Refer to the &apos; Security Update for ASUS Router Firmware…</description>
+<pubDate>Fri, 23 Oct 2026 07:07:13 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-75779: Improper Neutralization of Special Elements used in an OS Command (“OS Command Injec…</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-75779</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-75779</guid>
+<description>Improper Neutralization of Special Elements used in an OS Command (“OS Command Injection”) and Cross-Site Request Forgery (CSRF) in an ASUS router model allow an attacker to trick a logged-in administrator into visiting a phishing website, causing the router t…</description>
+<pubDate>Fri, 23 Oct 2026 07:03:41 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-75775: Improper Neutralization of Special Elements used in an OS Command in certain ASUS ro…</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-75775</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-75775</guid>
+<description>Improper Neutralization of Special Elements used in an OS Command in certain ASUS routers allows remote user to execute arbitrary commands with root privileges via crafted parameters sent to the router while the device is in its factory-default state.Refer to …</description>
+<pubDate>Fri, 23 Oct 2026 07:12:11 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-53921: odhcpd: Stack buffer overflow in DHCPv6 IA reply serialization (2 independent sites)</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-53921</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-53921</guid>
+<description>odhcpd is the DHCPv6, DHCPv4, and router-advertisement server used by OpenWrt. Prior to version 25.12, odhcpd&apos;s DHCPv6 IA response handler writes past the end of a fixed 512-byte stack buffer (pdbuf) when a single DHCPv6 REQUEST carries enough IA options to ne…</description>
+<pubDate>Fri, 23 Oct 2026 13:20:30 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-53918: odhcpd DHCPv6 IA dangling first pointer use-after-free</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-53918</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-53918</guid>
+<description>odhcpd is the DHCPv6, DHCPv4, and router-advertisement server used by OpenWrt. Prior to version 25.12, odhcpd&apos;s DHCPv6 IA handler keeps a per-message `first` lease pointer so multiple IA options in one message reuse the same Reconfigure authentication key. A D…</description>
+<pubDate>Fri, 23 Oct 2026 13:21:00 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-10632: Zimbra Collaboration Suite Classic Web Client Reflected Cross-Site Scripting via Doc…</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-10632</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-10632</guid>
+<description>A reflected cross-site scripting vulnerability in the Classic Web Client of Zimbra Collaboration Suite (ZCS) allows an attacker to inject JavaScript through the packages parameter of the /h/rest document editor. The editor inserts package names into script att…</description>
+<pubDate>Fri, 23 Oct 2026 13:14:04 +0000</pubDate>
+</item>
+<item>
+<title>CVE-2026-50053: Zimbra Collaboration Suite RestFilter Request Attribute Override via Unauthenticated…</title>
+<link>https://www.cve.org/CVERecord?id=CVE-2026-50053</link>
+<guid isPermaLink="false">https://www.cve.org/CVERecord?id=CVE-2026-50053</guid>
+<description>A request attribute override vulnerability in Zimbra Collaboration Suite (ZCS) allows unauthenticated requests to /h/* to populate servlet attributes intended for trusted internal dispatch. RestFilter copies URL parameters specifying an authentication token, t…</description>
+<pubDate>Fri, 23 Oct 2026 13:15:44 +0000</pubDate>
+</item>
+<item>
+<title>Attacks on PHP2Shell Continue, But No Known Compromises as a Result Yet</title>
+<link>https://www.wordfence.com/blog/2026/10/attacks-on-php2shell-continue-but-no-known-compromises-as-a-result-yet/</link>
+<guid isPermaLink="false">https://www.wordfence.com/blog/2026/10/attacks-on-php2shell-continue-but-no-known-compromises-as-a-result-yet/</guid>
+<description>On October 21st, 2026, the PHP project released emergency updates for two critical vulnerabilities tracked as CVE-2026-109618 and CVE-2026-109619. We warned site owners before the fixes became available and followed up after our team review…</description>
+<pubDate>Thu, 22 Oct 2026 22:24:25 +0000</pubDate>
+</item>
+<item>
+<title>Microsoft Links ConnectWise Breach to China-Linked Group Using AI Pentesting Tool ARTEX</title>
+<link>https://securityaffairs.com/201501/apt/microsoft-links-connectwise-breach-to-china-linked-group-using-ai-pentesting-tool-artex.html</link>
+<guid isPermaLink="false">https://securityaffairs.com/201501/apt/microsoft-links-connectwise-breach-to-china-linked-group-using-ai-pentesting-tool-artex.html</guid>
+<description>China-linked Storm-0940 used AI tool ARTEX to target 2,250 Microsoft 365 tenants, exploiting stolen ConnectWise credentials at machine speed. Microsoft published a detailed technical report naming Storm-0940, a China state-aligned group, as…</description>
+<pubDate>Thu, 22 Oct 2026 20:47:34 +0000</pubDate>
+</item>
+<item>
+<title>Risky Bulletin: Supply chain attack lets ransomware group inside 40 shipping companies</title>
+<link>https://risky.biz/RBNEWS624/</link>
+<guid isPermaLink="false">https://risky.biz/RBNEWS624/</guid>
+<description>A ransomware group used a supply chain compromise to hack around 40 shipping companies, the Pentagon assembles a technology sabotage unit, PHP2Shell exploitation gets underway and GoDaddy revokes 400,000 certs.</description>
+<pubDate>Fri, 23 Oct 2026 03:35:19 +0000</pubDate>
+</item>
+<item>
+<title>Toronto crime tips org freezes operations after details of data breach come to light</title>
+<link>https://therecord.media/toronto-crime-tips-org-freezes-ops-after-breach</link>
+<guid isPermaLink="false">https://therecord.media/toronto-crime-tips-org-freezes-ops-after-breach</guid>
+<description>Late Wednesday night the Toronto chapter of Crime Stoppers broke ranks with the national association, revealing a timeline showing what it knew and when along with an announcement that it will pause operations.</description>
+<pubDate>Thu, 22 Oct 2026 20:52:00 +0000</pubDate>
+</item>
+<item>
+<title>Resident Evil maker Capcom warns of phishing after 11.7 million records exposed</title>
+<link>https://www.malwarebytes.com/blog/data-breaches/2026/10/resident-evil-maker-capcom-warns-of-phishing-after-11-7-million-records-exposed</link>
+<guid isPermaLink="false">https://www.malwarebytes.com/blog/data-breaches/2026/10/resident-evil-maker-capcom-warns-of-phishing-after-11-7-million-records-exposed</guid>
+<description>Exposed email addresses could put CAPCOM ID users at risk of phishing. Passwords were also changed without permission on 196 accounts.</description>
+<pubDate>Fri, 23 Oct 2026 13:07:52 +0000</pubDate>
+</item>
+<item>
+<title>PHP Warns of Another Unpatched RCE Two Days After Emergency PHP2Shell Patches</title>
+<link>https://thehackernews.com/2026/10/urgent-php-warns-of-another-unpatched.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/10/urgent-php-warns-of-another-unpatched.html</guid>
+<description>PHP has warned of another way an attacker could run code on a web server, two days after it shipped emergency fixes for the critical PHP2Shell flaws. The new issue, assigned CVE-2026-115560, affects only web applications configured in an un…</description>
+<pubDate>Fri, 23 Oct 2026 11:25:43 +0000</pubDate>
+</item>
+<item>
+<title>Crime Stoppers chapter freezes tips after breach breaks anonymity promise</title>
+<link>https://www.malwarebytes.com/blog/data-breaches/2026/10/crime-stoppers-chapter-freezes-tips-after-breach-breaks-anonymity-promise</link>
+<guid isPermaLink="false">https://www.malwarebytes.com/blog/data-breaches/2026/10/crime-stoppers-chapter-freezes-tips-after-breach-breaks-anonymity-promise</guid>
+<description>A Crime Stoppers chapter has stopped accepting tips after a breach exposed information about anonymous tipsters.</description>
+<pubDate>Fri, 23 Oct 2026 09:57:48 +0000</pubDate>
+</item>
+<item>
+<title>Critical Flaw in Python’s Popular Pillow Image Library Allows Code Execution via a Craft…</title>
+<link>https://thehackernews.com/2026/10/critical-flaw-in-pythons-popular-pillow.html</link>
+<guid isPermaLink="false">https://thehackernews.com/2026/10/critical-flaw-in-pythons-popular-pillow.html</guid>
+<description>Pillow, the most widely used image library for Python, can be made to run operating system commands on a server by specifying the name of a file it is told to open. The flaw, CVE-2026-112900, is in the way Pillow handles EPS images, which i…</description>
+<pubDate>Fri, 23 Oct 2026 09:36:00 +0000</pubDate>
+</item>
+</channel>
+</rss>

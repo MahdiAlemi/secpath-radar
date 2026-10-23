@@ -1,0 +1,539 @@
+{
+  "date_en": "2026-10-23",
+  "executive_snapshot": {
+    "bar_width": 100,
+    "generated_at": "2026-10-23 17:01",
+    "impact_sources": [
+      {
+        "bar_width": 33,
+        "count": 31,
+        "name": "NVD + CISA KEV + EPSS"
+      },
+      {
+        "bar_width": 100,
+        "count": 93,
+        "name": "DShield + abuse.ch + SSLBL + OpenPhish + InternetDB + GreyNoise"
+      },
+      {
+        "bar_width": 55,
+        "count": 51,
+        "name": "GitHub Advisories + OSV + Ransomware.live"
+      }
+    ],
+    "level": "high",
+    "rising_signals": [
+      {
+        "bar_width": 100,
+        "level": "high",
+        "metric": "port 22 · ssh",
+        "title": "Attack Pressure"
+      },
+      {
+        "bar_width": 100,
+        "level": "high",
+        "metric": "github · 17 | Unknown target · 24",
+        "title": "IOC Pattern"
+      },
+      {
+        "bar_width": 100,
+        "level": "high",
+        "metric": "N0n · 10 | medium · 12",
+        "title": "Ransomware / Ecosystem"
+      }
+    ],
+    "risk_cards": [
+      {
+        "bar_width": 100,
+        "level": "high",
+        "metric": "2 critical / 22 CVE / 7 PoC",
+        "title": "Vulnerability Risk"
+      },
+      {
+        "bar_width": 100,
+        "level": "high",
+        "metric": "36 IOC / 5 C2 / 24 phish / 12 ICS",
+        "title": "IOC & Suspicious Infrastructure"
+      },
+      {
+        "bar_width": 100,
+        "level": "high",
+        "metric": "21 advisory / 30 claims",
+        "title": "Supply Chain & Ransomware"
+      }
+    ],
+    "score": 100,
+    "score_formula": "Weighted blend: 45% Vulnerability (100) + 35% Telemetry (100) + 20% Ecosystem (100)",
+    "summary": "60-second summary: This run saw 512 items, 22 CVEs, 7 PoC metadata, 36 IOCs, 5 C2 botnets, 24 phishing URLs, 12 ICS/OT advisories, 7 IPs with GreyNoise context, 21 supply chain advisories, and 30 ransomware claims.",
+    "title": "Static Executive Snapshot"
+  },
+  "generated_at": "2026-10-23 17:01",
+  "intel_cache": {
+    "cache_age_minutes": 2856,
+    "cache_status": "stale",
+    "newest_source_fetched_at": "2026-10-23T13:32:19Z",
+    "source_fetched_at": "2026-10-21T13:55:55Z",
+    "sources": [
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:48Z",
+        "label": "DShield top ports",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:48Z",
+        "label": "DShield top ports by source IPs",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:48Z",
+        "label": "DShield top ports by reports",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:49Z",
+        "label": "DShield top ports by targets",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 2856,
+        "fetched_at": "2026-10-21T13:55:55Z",
+        "label": "URLhaus recent URLs",
+        "stale_reason": "HTTP error for URLhaus recent URLs: HTTP status client error (410 Gone) for url (https://urlhaus.abuse.ch/downloads/csv_recent/)",
+        "status": "stale-cache"
+      },
+      {
+        "age_minutes": 2856,
+        "fetched_at": "2026-10-21T13:55:56Z",
+        "label": "ThreatFox recent IOCs",
+        "stale_reason": "HTTP error for ThreatFox recent IOCs: HTTP status client error (410 Gone) for url (https://threatfox.abuse.ch/export/csv/recent/)",
+        "status": "stale-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:50Z",
+        "label": "DShield top source IPs",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:50Z",
+        "label": "Shodan InternetDB 62.238.55.102",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:51Z",
+        "label": "Shodan InternetDB 23.94.68.19",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:51Z",
+        "label": "Shodan InternetDB 79.124.62.230",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:51Z",
+        "label": "Shodan InternetDB 204.76.203.212",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:52Z",
+        "label": "Shodan InternetDB 79.124.62.134",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:53Z",
+        "label": "Shodan InternetDB 79.124.62.126",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:54Z",
+        "label": "Shodan InternetDB 173.249.33.72",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:55Z",
+        "label": "Shodan InternetDB 193.46.255.51",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:55Z",
+        "label": "GitHub Advisory npm",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:56Z",
+        "label": "GitHub Advisory pip",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:56Z",
+        "label": "GitHub Advisory maven",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:57Z",
+        "label": "GitHub Advisory go",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:57Z",
+        "label": "GitHub Advisory rust",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:58Z",
+        "label": "GitHub Advisory composer",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:31:59Z",
+        "label": "GitHub Advisory nuget",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:00Z",
+        "label": "Ransomware.live recent victims",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:00Z",
+        "label": "Feodo Tracker C2 blocklist",
+        "stale_reason": null,
+        "status": "revalidated-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:00Z",
+        "label": "SSLBL JA3 blacklist",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:01Z",
+        "label": "SSLBL certificate blacklist",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:01Z",
+        "label": "GreyNoise Community 193.46.255.51",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:01Z",
+        "label": "GreyNoise Community 204.76.203.212",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:02Z",
+        "label": "GreyNoise Community 23.94.68.19",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:02Z",
+        "label": "GreyNoise Community 79.124.62.126",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:03Z",
+        "label": "GreyNoise Community 79.124.62.134",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:03Z",
+        "label": "GreyNoise Community 79.124.62.230",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:04Z",
+        "label": "GreyNoise Community 62.238.55.102",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:04Z",
+        "label": "GreyNoise Community 125.40.121.194",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:05Z",
+        "label": "OpenPhish community feed",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:05Z",
+        "label": "CISA ICS advisories feed",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 2856,
+        "fetched_at": "2026-10-21T13:56:12Z",
+        "label": "MalwareBazaar recent samples",
+        "stale_reason": "HTTP error for MalwareBazaar recent samples: HTTP status client error (410 Gone) for url (https://bazaar.abuse.ch/export/csv/recent/)",
+        "status": "stale-cache"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:05Z",
+        "label": "Spamhaus DROP v4 list",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:06Z",
+        "label": "CSAF changes index",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:06Z",
+        "label": "CSAF advisory 2026/rhsa-2026_88563.json",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:07Z",
+        "label": "CSAF advisory 2026/rhsa-2026_88564.json",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:07Z",
+        "label": "CSAF advisory 2026/rhsa-2026_88668.json",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:08Z",
+        "label": "CSAF advisory 2026/rhsa-2026_88662.json",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:08Z",
+        "label": "CSAF advisory 2026/rhsa-2026_88669.json",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:09Z",
+        "label": "CSAF advisory 2026/rhsa-2026_88459.json",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:10Z",
+        "label": "ProjectDiscovery nuclei-templates tree",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:11Z",
+        "label": "Latest GitHub PoC metadata query 1",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:13Z",
+        "label": "Latest GitHub PoC metadata query 2",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:14Z",
+        "label": "Latest GitHub PoC metadata query 3",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:15Z",
+        "label": "Latest GitHub PoC metadata query 4",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:16Z",
+        "label": "Latest GitHub PoC metadata query 5",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:17Z",
+        "label": "Latest GitHub PoC metadata query 6",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:19Z",
+        "label": "Latest GitHub PoC metadata query 7",
+        "stale_reason": null,
+        "status": "network"
+      },
+      {
+        "age_minutes": 0,
+        "fetched_at": "2026-10-23T13:32:19Z",
+        "label": "Latest GitHub PoC metadata query 8",
+        "stale_reason": null,
+        "status": "network"
+      }
+    ],
+    "stale_sources": 3,
+    "tracked_sources": 54
+  },
+  "priority_alert": {
+    "ops_note": "Identify exposed assets first, then track patch or mitigation status.",
+    "risk_score": 10,
+    "source": "NVD / CISA KEV / EPSS",
+    "summary": "odhcpd is the DHCPv6, DHCPv4, and router-advertisement server used by OpenWrt. From version 17.01.0 to before version 25.12.3, odhcpd's DHCPv6 IA parser accepts an IA_NA or IA_PD option whose body is shorter than struct dhcpv6_ia_hdr, casts the option header t…",
+    "tags": [
+      "High",
+      "Router"
+    ],
+    "title": "CVE-2026-53920 — odhcpd DHCPv6 Short IA_NA/IA_PD Body Stack Disclosure",
+    "url": "https://www.cve.org/CVERecord?id=CVE-2026-53920",
+    "why_it_matters": "If the related product exists in your environment, patch and exposure control are high priority."
+  },
+  "stats": {
+    "attack_techniques": 8,
+    "botnet_c2": 5,
+    "breaking_news": 10,
+    "critical_cves": 2,
+    "csaf_advisories": 6,
+    "csaf_critical": 6,
+    "current_day_news": 72,
+    "cves": 22,
+    "cves_fetched_before_day_filter": 12,
+    "cves_filtered_other_days": 0,
+    "daily_news": 60,
+    "daily_news_hidden": 428,
+    "degraded_rss_sources": 6,
+    "degraded_writeup_sources": 4,
+    "drop_big_ranges": 191,
+    "drop_ranges": 1687,
+    "epss_falling": 0,
+    "epss_rising": 0,
+    "epss_stable": 12,
+    "epss_tracked": 0,
+    "failed_rss_sources": 5,
+    "failed_writeup_sources": 1,
+    "global_news": 60,
+    "greynoise_malicious": 2,
+    "greynoise_noise": 5,
+    "greynoise_riot": 0,
+    "history_changes": 6,
+    "ics_advisories": 12,
+    "ics_high": 0,
+    "ics_vendors": 11,
+    "infrastructure_hosts": 12,
+    "intel_cache_age_minutes": 2856,
+    "intel_sources": 17,
+    "intel_stale_sources": 3,
+    "intel_tracked_sources": 54,
+    "iocs": 36,
+    "kev": 0,
+    "malicious_tls": 16,
+    "malware_families": 4,
+    "malware_samples": 14,
+    "news_backfill": 0,
+    "nuclei_coverage_pct": 0,
+    "nuclei_covered_cves": 0,
+    "phishing_high": 0,
+    "phishing_tlds": 3,
+    "phishing_urls": 24,
+    "poc_watch": 7,
+    "poc_watch_cves": 7,
+    "poc_watch_high": 0,
+    "ransomware_victims": 30,
+    "rss_items_fetched": 500,
+    "rss_sources": 118,
+    "stale_rss_sources": 1,
+    "stale_writeup_sources": 3,
+    "supply_chain_advisories": 21,
+    "total_items": 512,
+    "trend_rising": 0,
+    "trend_runs": 14,
+    "vendor_hits": 12,
+    "vulnrichment_checked": 10,
+    "vulnrichment_hits": 0,
+    "vulnrichment_missing": 10,
+    "writeup_feed_sources": 68,
+    "writeup_sources": 3,
+    "writeups": 14
+  },
+  "version": "v1.1.0"
+}
